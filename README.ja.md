@@ -58,15 +58,26 @@ export default createSlide(
 
 hinote 自身のスタイルが読むのは、`colors` の `bg`・`fg`・`accent`・`muted`、`fonts` の `base`・`heading`・`mono`、`typography` の `h1`・`h2`・`body`・`small`、それに `spacing.unit` です。それ以外の名前も同じように変数になります。`colors: { brand: "#f50" }` と書けば、スライドの中で `var(--hinote-color-brand)` を使えます。スライドに `theme` を書くと、その1枚で、書いた値だけを上書きします。
 
-## 表示する
+## はじめる
 
-このリポジトリでは Bun で動かします。
+hinote は Bun で動きます。
 
 ```bash
-bun src/cli.ts dev examples/deck.tsx
-bun src/cli.ts dev deck.tsx --port 4321
-bun src/cli.ts build deck.tsx -o dist/index.html
-bun examples/deck.tsx
+bunx hinote init my-talk
+cd my-talk
+bun install
+bun run dev
+```
+
+`init` は `deck.tsx`、`tsconfig.json`（JSX は `hono/jsx`）、`hinote` と `hono` に依存する `package.json` を書き出します。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、`bun add hinote hono` で追加してください。
+
+## 表示する
+
+```bash
+hinote dev [deck.tsx] [--port 4321]
+hinote build [deck.tsx] [-o dist/index.html]
+bun deck.tsx
+bun --hot deck.tsx
 ```
 
 `dev` は <http://127.0.0.1:4321> にデッキを、`/presenter` に発表者画面を出します。発表者画面には、今のスライド、次に送ったときの画面のプレビュー、経過時間、時刻、ノートが出ます。経過時間は押すと 0 に戻り、ページを読み直しても続きから数えます。`O` で全スライドの一覧を開き、押したスライドへ移ります。デッキのディレクトリの中のファイルが変わるとデッキを読み直し、開いているページも読み直します。読み込みに失敗したときはエラーを出し、前のデッキを出したままにします。`dev` は、デッキのあるディレクトリの中のファイル（画像など）も配信します。ディレクトリの外へ出るパスは拒否します。
@@ -84,5 +95,7 @@ PDF にするときは、どのページでも印刷して「PDF として保存
 `build` が書き出すのは視聴画面だけです。発表者画面、ポインタ、同期はありません。位置はハッシュ（`#3`）に入ります。`build` は画像の URL を書き換えません。画像は、その HTML から読める場所に置いてください。
 
 ## hinote を開発する
+
+このリポジトリでは、`bun run dev`（`bun src/cli.ts dev examples/deck.tsx`）でサンプルを表示できます。
 
 `src/client.ts` はブラウザで動くコードです。ページには、ここから生成した `src/client.generated.ts` を埋め込みます。そのため、描画のたびにバンドラを動かすことはありません。クライアントを変えたら `bun run build:client` を実行してください。生成ファイルが古いままだと `bun test` が失敗します。

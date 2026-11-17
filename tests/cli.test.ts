@@ -14,6 +14,7 @@ import { createDevApp, resolveInside } from "../src/server.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
 const api = resolve(import.meta.dir, "../src/index.ts");
+const repo = resolve(import.meta.dir, "..");
 
 async function tempDir() {
   const scratch = join(import.meta.dir, "../.tmp");
@@ -120,6 +121,45 @@ test("build writes one html file and leaves nothing behind on failure", async ()
     );
     expect(rejected.code).toBe(1);
     expect(await Bun.file(join(dir, "nope.html")).exists()).toBe(false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("init writes a deck that renders, and never overwrites", async () => {
+  const dir = await tempDir();
+  try {
+    const project = join(dir, "talk");
+    const created = await run(["init", "talk"], dir);
+    expect(created.code).toBe(0);
+    // Stand in for `bun install`: link this package and its hono into the project.
+    await mkdir(join(project, "node_modules"));
+    await symlink(repo, join(project, "node_modules/hinote"));
+    await symlink(
+      join(repo, "node_modules/hono"),
+      join(project, "node_modules/hono"),
+    );
+    const deck = await loadDeckFile(join(project, "deck.tsx"));
+    const html = await deck.render();
+    expect(deck.slides.length).toBeGreaterThan(1);
+    expect(html).toContain('<pre class="highlights"');
+    const pkg = JSON.parse(
+      await readFile(join(project, "package.json"), "utf8"),
+    );
+    expect(Object.keys(pkg.dependencies)).toEqual(["hinote", "hono"]);
+
+    const before = await readFile(join(project, "deck.tsx"), "utf8");
+    const again = await run(["init", "talk"], dir);
+    expect(again.code).toBe(1);
+    expect(await readFile(join(project, "deck.tsx"), "utf8")).toBe(before);
+
+    // An existing package.json is the author's; init adds only the deck.
+    const own = join(dir, "own");
+    await mkdir(own);
+    await writeFile(join(own, "package.json"), "{}\n");
+    expect((await run(["init", "own"], dir)).code).toBe(0);
+    expect(await readFile(join(own, "package.json"), "utf8")).toBe("{}\n");
+    expect(await Bun.file(join(own, "deck.tsx")).exists()).toBe(true);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

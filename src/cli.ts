@@ -3,11 +3,13 @@ import { watch } from "node:fs";
 import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { HinoteError } from "./errors.ts";
+import { initProject } from "./init.ts";
 import { loadDeckFile } from "./load.ts";
 import { createDevApp } from "./server.ts";
 
 function usage(): string {
-  return `hinote dev [deck.tsx] [--port 4321]
+  return `hinote init [dir]
+hinote dev [deck.tsx] [--port 4321]
 hinote build [deck.tsx] [-o dist/index.html]`;
 }
 
@@ -123,6 +125,15 @@ async function buildCommand(argv: string[]): Promise<void> {
   console.log(output);
 }
 
+async function initCommand(argv: string[]): Promise<void> {
+  const args = parseArgs(argv);
+  if (args.positionals.length > 1)
+    throw new HinoteError("init accepts one directory.");
+  const dir = args.positionals[0] ?? ".";
+  for (const file of await initProject(dir)) console.log(file);
+  console.log(`\nNext: cd ${dir} && bun install && bun run dev`);
+}
+
 export async function main(argv: string[]): Promise<void> {
   if (argv.length === 0) throw new HinoteError(usage());
   if (argv[0] === "--help" || argv[0] === "help") {
@@ -130,7 +141,8 @@ export async function main(argv: string[]): Promise<void> {
     return;
   }
   const [command, ...rest] = argv;
-  if (command === "dev") await devCommand(rest);
+  if (command === "init") await initCommand(rest);
+  else if (command === "dev") await devCommand(rest);
   else if (command === "build") await buildCommand(rest);
   else throw new HinoteError(`Unknown command "${command}".\n${usage()}`);
 }

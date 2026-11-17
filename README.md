@@ -47,15 +47,26 @@ export default createSlide(
 - `Center`, `Column`, and `Row` take `gap`, `align`, and `justify`. A numeric `gap` is that many multiples of the theme's `spacing.unit`.
 - A theme has the groups `colors`, `fonts`, `typography`, `shadows`, and `spacing`, plus `radius`. Each token becomes a CSS variable named `--hinote-<group>-<name>`, with the groups written `color`, `font`, `text`, `shadow`, and `space`: `colors.bg` is `--hinote-color-bg`, `typography.h1` is `--hinote-text-h1`, and `radius` is `--hinote-radius`. hinote's own styles read `colors` `bg`, `fg`, `accent`, `muted`; `fonts` `base`, `heading`, `mono`; `typography` `h1`, `h2`, `body`, `small`; and `spacing.unit`. Any other name works the same way, so `colors: { brand: "#f50" }` gives `var(--hinote-color-brand)` to use in your slides. A slide's own `theme` sets only the tokens it names, on that slide.
 
-## Running
+## Getting started
 
-Run this repository with Bun.
+hinote runs on Bun.
 
 ```bash
-bun src/cli.ts dev examples/deck.tsx
-bun src/cli.ts dev deck.tsx --port 4321
-bun src/cli.ts build deck.tsx -o dist/index.html
-bun examples/deck.tsx
+bunx hinote init my-talk
+cd my-talk
+bun install
+bun run dev
+```
+
+`init` writes `deck.tsx`, `tsconfig.json` (JSX from `hono/jsx`), and a `package.json` that depends on `hinote` and `hono`. It never overwrites a file, and it leaves an existing `package.json` alone; then add the packages with `bun add hinote hono`.
+
+## Running
+
+```bash
+hinote dev [deck.tsx] [--port 4321]
+hinote build [deck.tsx] [-o dist/index.html]
+bun deck.tsx
+bun --hot deck.tsx
 ```
 
 `dev` serves the deck at <http://127.0.0.1:4321> and the presenter view at `/presenter`. The presenter view shows the current slide, a preview of what the next key press shows, the elapsed time (click it to restart; it survives reloads), the clock, and the notes. Press `O` for an overview of every slide; click one to jump to it. It reloads the deck when a file in the deck directory changes, and open pages reload with it. A deck that fails to load is reported, and the last one keeps serving. `dev` also serves files inside the deck directory, such as images, and refuses a path that leaves that directory.
@@ -73,5 +84,7 @@ To make a PDF, print any page and choose "Save as PDF". Each slide becomes one p
 `build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). `build` does not rewrite image URLs. Put the images where the HTML file can load them.
 
 ## Developing hinote
+
+In this repository, run the example with `bun run dev` (`bun src/cli.ts dev examples/deck.tsx`).
 
 `src/client.ts` runs in the browser. Pages inline the generated `src/client.generated.ts`, so rendering never needs a bundler. After editing the client, run `bun run build:client`; `bun test` fails while the generated file is stale.
