@@ -1,0 +1,9 @@
+{
+  "name": "bench-slidev",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@slidev/cli": "53.1.0",
+    "@slidev/theme-default": "0.25.0"
+  }
+}

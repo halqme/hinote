@@ -1,0 +1,9 @@
+{
+  "name": "bench-hinote",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "hinote": "file:../.pack/hinote.tgz",
+    "hono": "^4.13.19"
+  }
+}

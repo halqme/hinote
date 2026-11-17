@@ -27,5 +27,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  // Each bench/ project resolves hinote only after bench/run.ts installs it.
+  "exclude": ["node_modules", "bench"]
 }
