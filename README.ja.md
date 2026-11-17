@@ -311,3 +311,5 @@ directory = "./public"
 `src/client.ts` はブラウザで動くコードです。ページには、ここから生成した `src/client.generated.ts` を埋め込みます。そのため、描画のたびにバンドラを動かすことはありません。クライアントを変えたら `bun run build:client` を実行してください。生成ファイルが古いままだと `bun test` が失敗します。
 
 `bun run build:lib` は、ライブラリと CLI（パッケージの `bin` である `dist/cli.js`）の JavaScript と型定義を `dist/` に書き出します。パッケージにまとめる前に `prepack` が自動で実行します。Bun は `bun` の export 条件を通して `src/` を直接読みます。Node が入っている環境では、`bun test` が `dist/` をビルドして Node でも動かします。
+
+コミットの前に、`bun test`、`bun run typecheck`、`bun run lint` を実行してください。`lint` は [oxlint](https://oxc.rs/docs/guide/usage/linter) を `.oxlintrc.json` のルールで動かします（そこで止めているルールには、それぞれ理由を書いています）。続けて [oxdg](https://www.npmjs.com/package/oxdg) で、`src/` のモジュール同士が循環して import していないかを確かめ、循環があれば失敗します。`createSlide` が `src/create.ts` にあるのもそのためです。`createSlide` はデッキを作り、デッキはスライドを描画するので、スライドの定義とは別のファイルに置いています。

@@ -9,6 +9,8 @@ export type LayoutProps = {
 };
 
 function cssToken(value: string, label: string): string {
+  // Control characters are what this rejects.
+  // oxlint-disable-next-line no-control-regex
   if (value.trim() === "" || /[<>;{}]|[\u0000-\u001f]/.test(value)) {
     throw new HinoteError(
       `${label} must be a CSS value without braces or semicolons.`,

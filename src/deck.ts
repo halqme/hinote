@@ -136,8 +136,8 @@ export class Deck extends Hono {
       let html = this.#pages.get(key);
       if (!html) {
         const transform = this.transform;
-        html = this.render(kind, { base, sync }).then((page) =>
-          transform ? transform(page) : page,
+        html = this.render(kind, { base, sync }).then((rendered) =>
+          transform ? transform(rendered) : rendered,
         );
         this.#pages.set(key, html);
         html.catch(() => this.#pages.delete(key));

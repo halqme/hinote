@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "rules": {
+    // Slides render one after another on purpose: steps count in document
+    // order, and an error names the first broken slide.
+    "no-await-in-loop": "off",
+    // Small helpers next to the code that uses them read better here.
+    "unicorn/consistent-function-scoping": "off",
+    // Sorting arrays the code just made mutates nothing anyone else holds.
+    "unicorn/no-array-sort": "off",
+    // BroadcastChannel.postMessage has no target origin.
+    "unicorn/require-post-message-target-origin": "off",
+    // Each channel and event source has one handler, set once.
+    "unicorn/prefer-add-event-listener": "off"
+  },
+  "ignorePatterns": ["dist", "bench", "src/client.generated.ts"]
+}

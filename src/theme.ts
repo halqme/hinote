@@ -60,6 +60,8 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 export function cssValue(value: string, label: string): string {
+  // Control characters are what this rejects.
+  // oxlint-disable-next-line no-control-regex
   if (/[<>{}]|[\u0000-\u001f]|;/.test(value)) {
     throw new HinoteError(
       `${label} cannot contain '<', '>', '{', '}', ';', or control characters.`,

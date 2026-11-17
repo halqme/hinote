@@ -115,6 +115,8 @@ async function elementHtml(node: unknown): Promise<string> {
   // An escaped String object can carry callbacks (Suspense, ErrorBoundary);
   // resolving them is what Hono itself does before sending a response.
   const rendered = (await node.toString()) as unknown;
+  // Hono's escaped strings are String objects made in this realm.
+  // oxlint-disable-next-line unicorn/no-instanceof-builtins
   if (typeof rendered !== "string" && !(rendered instanceof String))
     throw new HinoteError("Slide renderers must return JSX.");
   return resolveCallback(

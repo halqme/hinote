@@ -1,11 +1,8 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
-import { realpathSync, watch } from "node:fs";
-import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
-import { networkInterfaces } from "node:os";
-import { dirname, relative, resolve, sep } from "node:path";
+import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { HinoteError, UsageError } from "./errors.ts";
+import { UsageError } from "./errors.ts";
 import { parseArgs } from "./cli/args.ts";
 import type { Command } from "./cli/command.ts";
 import { commandHelp, overview } from "./cli/help.ts";
@@ -71,11 +68,11 @@ export async function main(argv: readonly string[]): Promise<number> {
               command: "help",
               data: {
                 version: pkg.version,
-                commands: COMMANDS.map(({ name, group, summary, args }) => ({
-                  name,
-                  group,
-                  summary,
-                  args,
+                commands: COMMANDS.map((c) => ({
+                  name: c.name,
+                  group: c.group,
+                  summary: c.summary,
+                  args: c.args,
                 })),
               },
             }),

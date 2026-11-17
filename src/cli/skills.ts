@@ -104,10 +104,10 @@ To install a skill for an agent that reads skill directories, copy the directory
         );
       const all = await listSkills();
       out.result(
-        all.map(({ name, description, references }) => ({
-          name,
-          description,
-          references,
+        all.map((s) => ({
+          name: s.name,
+          description: s.description,
+          references: s.references,
         })),
         all.map(
           (s) =>

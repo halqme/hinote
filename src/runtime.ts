@@ -33,9 +33,20 @@ export function readText(path: string): Promise<string> {
   return readFile(path, "utf8");
 }
 
-async function optional<T>(name: string): Promise<T> {
+// The Node-only packages, each imported by a literal specifier so tools that
+// follow imports can see them.
+const NODE_IMPORTS = {
+  esbuild: () => import("esbuild"),
+  "@hono/node-server": () => import("@hono/node-server"),
+} satisfies Record<(typeof NODE_PACKAGES)[number], () => Promise<unknown>>;
+
+async function optional<N extends keyof typeof NODE_IMPORTS>(
+  name: N,
+): Promise<Awaited<ReturnType<(typeof NODE_IMPORTS)[N]>>> {
   try {
-    return (await import(name)) as T;
+    return (await NODE_IMPORTS[name]()) as Awaited<
+      ReturnType<(typeof NODE_IMPORTS)[N]>
+    >;
   } catch {
     throw new HinoteError(
       `hinote needs ${name} to run on Node. Install it with: npm install -D ${NODE_PACKAGES.join(" ")}`,
@@ -47,7 +58,7 @@ async function optional<T>(name: string): Promise<T> {
 // instead when they cannot and Bun is installed.
 export async function hasNodePackages(): Promise<boolean> {
   try {
-    await Promise.all(NODE_PACKAGES.map((name) => import(name)));
+    await Promise.all(NODE_PACKAGES.map((name) => NODE_IMPORTS[name]()));
     return true;
   } catch {
     return false;
@@ -86,7 +97,7 @@ export async function bundle(
     if (!artifact) throw new HinoteError("build produced no output.");
     return artifact.text();
   }
-  const esbuild = await optional<typeof import("esbuild")>("esbuild");
+  const esbuild = await optional("esbuild");
   try {
     const result = await esbuild.build({
       entryPoints: [entry],
@@ -107,7 +118,7 @@ export async function bundle(
     if (error instanceof HinoteError) throw error;
     const errors = (error as { errors?: { text: string }[] }).errors;
     throw new HinoteError(
-      errors?.map((entry) => entry.text).join("\n") ||
+      errors?.map((item) => item.text).join("\n") ||
         (error instanceof Error ? error.message : String(error)),
     );
   }
@@ -136,10 +147,9 @@ export async function serve(options: {
       throw error;
     }
   }
-  const { serve } =
-    await optional<typeof import("@hono/node-server")>("@hono/node-server");
+  const { serve: serveNode } = await optional("@hono/node-server");
   return new Promise((resolve, reject) => {
-    const server = serve(options, (info) => {
+    const server = serveNode(options, (info) => {
       resolve({
         port: info.port,
         stop: () => {
