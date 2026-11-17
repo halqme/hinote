@@ -4,6 +4,10 @@ import type { Position, Role } from "./player.ts";
 export type HinoteClient = {
   // "presenter" on the presenter view, "view" everywhere else.
   readonly role: Role;
+  // How events reach other pages: through the deck's server, between windows
+  // of one browser (prerender), or not at all (the built file, or a deck
+  // without the presenter), where send() only reaches this page.
+  readonly sync: "server" | "broadcast" | "none";
   // The slide (from 0) and how many of its steps are shown.
   readonly position: Position;
   // Calls `handler` for every event with this name, from this page or another

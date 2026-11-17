@@ -128,14 +128,34 @@ type PresenterView = {
   show(position: Position): void;
   // Returns true when it used the key.
   key(key: string): boolean;
+  // Whether the laser pointer follows the mouse to the audience.
+  readonly laser: boolean;
 };
+
+// The laser survives reloads from `hinote dev`, like the timer.
+const LASER_KEY = "hinote-laser";
+
+function savedLaser(): boolean {
+  try {
+    return sessionStorage.getItem(LASER_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
 
 function presenterView(
   slides: HTMLElement[],
   steps: readonly number[],
   canvasWidth: number,
-  go: (position: Position) => void,
+  actions: {
+    go(position: Position): void;
+    next(): void;
+    prev(): void;
+    // Called when the laser is turned off, to hide it on every page.
+    laserOff(): void;
+  },
 ): PresenterView {
+  const { go } = actions;
   const nextEl = document.getElementById("hinote-next");
   const timerEl = document.getElementById("hinote-timer");
   const clockEl = document.getElementById("hinote-clock");
@@ -195,7 +215,38 @@ function presenterView(
         ?.scrollIntoView({ block: "center" });
   };
 
+  // The toolbar does what the keys do.
+  let laser = savedLaser();
+  const laserButton = document.querySelector<HTMLElement>(
+    '[data-action="laser"]',
+  );
+  const setLaser = (on: boolean) => {
+    laser = on;
+    laserButton?.setAttribute("aria-pressed", String(on));
+    try {
+      sessionStorage.setItem(LASER_KEY, on ? "on" : "off");
+    } catch {}
+    if (!on) actions.laserOff();
+  };
+  setLaser(laser);
+  const toolbar: Record<string, () => void> = {
+    prev: actions.prev,
+    next: actions.next,
+    overview: () =>
+      setOverview(!(overview?.classList.contains("is-open") ?? false)),
+    laser: () => setLaser(!laser),
+  };
+  for (const button of document.querySelectorAll<HTMLElement>(
+    "#hinote-toolbar [data-action]",
+  )) {
+    const action = toolbar[button.dataset.action ?? ""];
+    if (action) button.addEventListener("click", action);
+  }
+
   return {
+    get laser() {
+      return laser;
+    },
     show(position) {
       for (const [index, item] of items.entries())
         item.classList.toggle("is-current", index === position.slide);
@@ -214,6 +265,7 @@ function presenterView(
       const open = overview?.classList.contains("is-open") ?? false;
       if (key === "o" || key === "O") setOverview(!open);
       else if (key === "Escape" && open) setOverview(false);
+      else if (key === "l" || key === "L") setLaser(!laser);
       else return false;
       return true;
     },
@@ -375,6 +427,7 @@ function boot(): void {
 
   const api: HinoteClient = {
     role,
+    sync: served && (sync === "server" || sync === "broadcast") ? sync : "none",
     get position() {
       return current;
     },
@@ -408,13 +461,21 @@ function boot(): void {
   };
   globalThis.hinote = api;
 
+  // The laser is drawn only while it is on and the mouse is over the slide.
+  let pointing = false;
+  const point = (active: boolean, x = 0, y = 0) => {
+    if (!active && !pointing) return;
+    pointing = active;
+    player.pointer(x, y, active, "local");
+  };
+
   if (role === "presenter" && stage) {
-    presenter = presenterView(
-      slides,
-      steps,
-      Number(stage.dataset.width),
-      (position) => player.go(position, "local"),
-    );
+    presenter = presenterView(slides, steps, Number(stage.dataset.width), {
+      go: (position) => player.go(position, "local"),
+      next: () => player.next(),
+      prev: () => player.prev(),
+      laserOff: () => point(false),
+    });
     presenter.show(player.position);
   }
 
@@ -425,15 +486,9 @@ function boot(): void {
   });
 
   if (role === "presenter" && deck) {
-    let laser = false;
-    const point = (active: boolean, x = 0, y = 0) => {
-      if (!active && !laser) return;
-      laser = active;
-      player.pointer(x, y, active, "local");
-    };
     deck.addEventListener("pointermove", (event) => {
       const active = activeSlide();
-      if (!active) return;
+      if (!active || !presenter?.laser) return;
       const normalized = normalizePointer(
         active.getBoundingClientRect(),
         event.clientX,

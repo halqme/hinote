@@ -28,6 +28,24 @@ ol {
   gap: 0.5rem;
 }
 
+.chart-controls button[aria-pressed="true"] {
+  background: var(--hinote-color-accent);
+  color: var(--hinote-color-bg);
+}
+
+/* The Game of Life slide: components/life.client.tsx draws the board. */
+.life-board {
+  width: 1600px;
+  height: 800px;
+  border-radius: var(--hinote-radius);
+}
+
+.life-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.life-controls button,
 .chart-controls button {
   padding: 0.4em 1em;
   border: 2px solid var(--hinote-color-accent);
@@ -39,7 +57,7 @@ ol {
   cursor: pointer;
 }
 
-.chart-controls button[aria-pressed="true"] {
+.life-controls button[aria-pressed="true"] {
   background: var(--hinote-color-accent);
   color: var(--hinote-color-bg);
 }

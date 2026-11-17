@@ -75,6 +75,11 @@ html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45
 .hinote-label{margin:0;color:#a1a1aa;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 #hinote-next[data-end]::after{content:"End";position:absolute;inset:0;display:grid;place-items:center;color:#71717a;background:#0b0d12}
 #hinote-meta{display:flex;align-items:baseline;justify-content:space-between;gap:1rem}
+#hinote-toolbar{display:flex;flex-wrap:wrap;gap:.4rem}
+#hinote-toolbar button{all:unset;cursor:pointer;padding:.3rem .7rem;border:1px solid #3a4150;border-radius:6px;color:#e4e4e7;font-size:13px}
+#hinote-toolbar button:hover{background:#262b36}
+#hinote-toolbar button:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+#hinote-toolbar button[aria-pressed="true"]{border-color:#ff2d2d;color:#ff8a8a}
 #hinote-timer{all:unset;cursor:pointer;font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
 #hinote-step,#hinote-clock{margin:0;color:#a1a1aa;font-size:13px;font-variant-numeric:tabular-nums}
 #hinote-notes{white-space:pre-wrap;flex:1}
@@ -135,6 +140,35 @@ function presenterPanel(slideCount: number, notes: string) {
     jsx(
       "aside",
       { id: "hinote-panel" },
+      jsx(
+        "div",
+        { id: "hinote-toolbar", role: "toolbar", "aria-label": "Presenter" },
+        jsx(
+          "button",
+          { type: "button", "data-action": "prev", title: "Previous (←)" },
+          "← Prev",
+        ),
+        jsx(
+          "button",
+          { type: "button", "data-action": "next", title: "Next (→)" },
+          "Next →",
+        ),
+        jsx(
+          "button",
+          { type: "button", "data-action": "overview", title: "Overview (O)" },
+          "Overview",
+        ),
+        jsx(
+          "button",
+          {
+            type: "button",
+            "data-action": "laser",
+            "aria-pressed": "true",
+            title: "Laser pointer (L)",
+          },
+          "Laser",
+        ),
+      ),
       jsx("p", { class: "hinote-label" }, "Next"),
       jsx("div", { id: "hinote-next", class: "hinote-thumb" }),
       jsx(
@@ -154,7 +188,7 @@ function presenterPanel(slideCount: number, notes: string) {
       ),
       jsx("p", { class: "hinote-label" }, "Notes"),
       jsx("div", { id: "hinote-notes" }, notes),
-      jsx("p", { class: "hinote-label" }, "O: overview"),
+      jsx("p", { class: "hinote-label" }, "← → move · O overview · L laser"),
     ),
     jsx("div", { id: "hinote-overview" }),
   ];

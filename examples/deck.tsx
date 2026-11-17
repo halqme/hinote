@@ -3,6 +3,7 @@
 import { createSlide } from "hinote";
 import agenda from "./slides/agenda.tsx";
 import code from "./slides/code.tsx";
+import life from "./slides/life.tsx";
 import problem from "./slides/problem.tsx";
 import results from "./slides/results.tsx";
 import setup from "./slides/setup.tsx";
@@ -37,5 +38,5 @@ export default createSlide(
       radius: "20px",
     },
   },
-  [title, agenda, problem, build, results, thanks],
+  [title, agenda, problem, build, results, life, thanks],
 );
