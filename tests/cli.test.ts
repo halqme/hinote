@@ -8,8 +8,8 @@ import {
 } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { expect, test } from "bun:test";
+import { Hono } from "hono";
 import { loadDeckFile } from "../src/load.ts";
-import { renderDeck } from "../src/render.ts";
 import { createDevApp, resolveInside } from "../src/server.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
@@ -45,17 +45,31 @@ test("loads a changed deck again instead of the cached module", async () => {
     const file = join(dir, "deck.tsx");
     await writeFile(
       file,
-      deckSource(`export default createSlide(() => <p>one</p>)`),
+      deckSource(`export default createSlide([createSlide(() => <p>one</p>)])`),
     );
-    const first = await renderDeck(await loadDeckFile(file));
+    const first = await (await loadDeckFile(file)).render();
     await writeFile(
       file,
-      deckSource(`export default createSlide(() => <p>two</p>)`),
+      deckSource(`export default createSlide([createSlide(() => <p>two</p>)])`),
     );
-    const second = await renderDeck(await loadDeckFile(file));
+    const second = await (await loadDeckFile(file)).render();
     expect(first).toContain("one");
     expect(first).not.toContain(">two<");
     expect(second).toContain("two");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a default export that is not a deck is refused", async () => {
+  const dir = await tempDir();
+  try {
+    const file = join(dir, "deck.tsx");
+    await writeFile(
+      file,
+      deckSource(`export default createSlide(() => <p>x</p>)`),
+    );
+    await expect(loadDeckFile(file)).rejects.toThrow("createSlide([...])");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -67,7 +81,7 @@ test("build writes one html file and leaves nothing behind on failure", async ()
     await writeFile(
       join(dir, "deck.tsx"),
       deckSource(
-        `export const theme = { colors: { accent: "#222222" } }\nexport default createSlide(() => <h1>Built</h1>)`,
+        `export default createSlide({ theme: { colors: { accent: "#222222" } } }, [createSlide(() => <h1>Built</h1>)])`,
       ),
     );
     const built = await run(
@@ -79,7 +93,7 @@ test("build writes one html file and leaves nothing behind on failure", async ()
     expect(html).toContain("Built");
     expect(html).toContain("--hinote-accent:#222222");
     expect(html).not.toContain("<script src");
-    expect(html).not.toContain("/_hinote/reload");
+    expect(html).toContain('data-mode="static"');
 
     const missing = join(dir, "missing.html");
     const failed = await run(
@@ -93,7 +107,7 @@ test("build writes one html file and leaves nothing behind on failure", async ()
     await writeFile(
       join(dir, "bad.tsx"),
       deckSource(
-        `export default createSlide(() => { throw new Error("boom") })`,
+        `export default createSlide([createSlide(() => { throw new Error("boom") })])`,
       ),
     );
     const boom = await run(["build", "bad.tsx", "-o", "thrown.html"], dir);
@@ -172,7 +186,7 @@ test(
     await writeFile(
       deck,
       deckSource(
-        `export default createSlide({ title: "Live", notes: "台本" }, () => <h1>Live</h1>)`,
+        `export default createSlide([createSlide({ title: "Live", notes: "台本" }, () => <h1>Live</h1>)])`,
       ),
     );
     await writeFile(join(root, "pic.txt"), "picture");
@@ -205,6 +219,37 @@ test(
       expect(
         (await fetch(`http://127.0.0.1:${port}/%2e%2e/secret.txt`)).status,
       ).toBe(404);
+
+      // Saving the deck reloads it and tells open pages to reload.
+      const events = await fetch(
+        `http://127.0.0.1:${port}/_hinote/events?id=page`,
+      );
+      const reader = events.body!.getReader();
+      await writeFile(
+        deck,
+        deckSource(
+          `export default createSlide([createSlide(() => <h1>Edited</h1>)])`,
+        ),
+      );
+      let received = "";
+      const decoder = new TextDecoder();
+      while (!received.includes('"reload"')) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        received += decoder.decode(chunk.value);
+      }
+      expect(received).toContain('{"type":"reload"}');
+      await reader.cancel();
+      expect(await (await fetch(`http://127.0.0.1:${port}/`)).text()).toContain(
+        "Edited",
+      );
+
+      // A deck that fails to load keeps the last one serving.
+      await writeFile(deck, deckSource(`export default createSlide(`));
+      await Bun.sleep(500);
+      expect(await (await fetch(`http://127.0.0.1:${port}/`)).text()).toContain(
+        "Edited",
+      );
     } finally {
       proc.kill();
       await proc.exited;
@@ -229,14 +274,10 @@ test("static paths cannot escape the deck directory", async () => {
       await realpathFile(join(root, "ok.txt")),
     );
 
-    const app = createDevApp(
-      { view: "<p>old</p>", presenter: "<p>old-presenter</p>" },
-      root,
-    );
-    expect(await (await app.request("http://local/")).text()).toContain("old");
-    expect(
-      await (await app.request("http://local/presenter")).text(),
-    ).toContain("old-presenter");
+    const deck = new Hono().get("/", (c) => c.text("deck"));
+    const app = createDevApp(() => deck, root);
+    expect(await (await app.request("http://local/")).text()).toBe("deck");
+    expect(await (await app.request("http://local/ok.txt")).text()).toBe("ok");
     expect((await app.request("http://local/missing-file")).status).toBe(404);
     expect((await app.request("http://local/leak.txt")).status).toBe(404);
   } finally {
@@ -245,15 +286,14 @@ test("static paths cannot escape the deck directory", async () => {
 });
 
 test("the example deck renders its slides", async () => {
-  const loaded = await loadDeckFile(
+  const deck = await loadDeckFile(
     resolve(import.meta.dir, "../examples/deck.tsx"),
   );
-  const html = await renderDeck(loaded);
-  expect(loaded.slides).toHaveLength(3);
-  expect(html).toContain("hinote");
+  const html = await deck.render();
+  expect(deck.slides).toHaveLength(4);
   expect(html).toContain("Column と Row");
+  expect(html).toContain("data-hinote-step");
   expect(html).toContain("#111827");
-  expect(html).toContain("#38bdf8");
 });
 
 async function realpathFile(file: string): Promise<string> {

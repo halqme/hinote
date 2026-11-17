@@ -4,14 +4,17 @@ export type Role = "view" | "presenter";
 
 export type Pointer = { x: number; y: number; active: boolean };
 
+// `step` counts revealed steps: 0 shows none, `steps[slide]` shows all.
+export type Position = { slide: number; step: number };
+
 export type SyncMessage =
-  | { type: "navigate"; index: number }
+  | { type: "navigate"; slide: number; step: number }
   | { type: "pointer"; x: number; y: number; active: boolean }
   | { type: "hello" };
 
 export type Player = {
-  readonly index: number;
-  go(index: number, source: "local" | "remote"): void;
+  readonly position: Position;
+  go(position: Position, source: "local" | "remote"): void;
   next(): void;
   prev(): void;
   key(key: string): boolean;
@@ -26,18 +29,22 @@ export type Player = {
 
 export type PlayerOptions = {
   role: Role;
-  slideCount: number;
-  notes: readonly string[];
-  initialIndex?: number;
-  showSlide: (index: number) => void;
+  // Number of steps on each slide. Its length is the slide count.
+  steps: readonly number[];
+  initial?: Position;
+  show: (position: Position) => void;
   showPointer: (pointer: Pointer) => void;
-  showNotes: (notes: string) => void;
   post: (message: SyncMessage) => void;
 };
 
-function clampIndex(index: number, slideCount: number): number {
-  if (slideCount <= 0) return 0;
-  return Math.min(slideCount - 1, Math.max(0, index));
+export function clampPosition(
+  position: Position,
+  steps: readonly number[],
+): Position {
+  if (steps.length === 0) return { slide: 0, step: 0 };
+  const slide = Math.min(steps.length - 1, Math.max(0, position.slide));
+  const step = Math.min(steps[slide] ?? 0, Math.max(0, position.step));
+  return { slide, step };
 }
 
 export function normalizePointer(
@@ -54,8 +61,12 @@ export function normalizePointer(
 
 function isNavigate(
   message: Record<string, unknown>,
-): message is { type: "navigate"; index: number } {
-  return message.type === "navigate" && Number.isInteger(message.index);
+): message is { type: "navigate"; slide: number; step: number } {
+  return (
+    message.type === "navigate" &&
+    Number.isInteger(message.slide) &&
+    Number.isInteger(message.step)
+  );
 }
 
 function isPointer(
@@ -75,68 +86,61 @@ function isPointer(
   );
 }
 
+const NEXT_KEYS = new Set([
+  "ArrowRight",
+  "ArrowDown",
+  "PageDown",
+  " ",
+  "Enter",
+]);
+const PREV_KEYS = new Set(["ArrowLeft", "ArrowUp", "PageUp", "Backspace"]);
+
 export function createPlayer(options: PlayerOptions): Player {
-  let index = clampIndex(options.initialIndex ?? 0, options.slideCount);
-  const notesAt = (next: number) => options.notes[next] ?? "";
+  const { steps } = options;
+  let position = clampPosition(options.initial ?? { slide: 0, step: 0 }, steps);
+  const stepsAt = (slide: number) => steps[slide] ?? 0;
 
-  const show = (next: number) => {
-    index = next;
-    options.showSlide(next);
-    options.showNotes(notesAt(next));
-  };
-
-  show(index);
+  options.show(position);
   options.showPointer({ x: 0, y: 0, active: false });
   options.post({ type: "hello" });
 
   const player: Player = {
-    get index() {
-      return index;
+    get position() {
+      return position;
     },
     go(next, source) {
-      if (!Number.isInteger(next)) return;
-      const clamped = clampIndex(next, options.slideCount);
-      if (clamped === index) return;
-      if (options.slideCount <= 0) return;
-      show(clamped);
-      if (source === "local")
-        options.post({ type: "navigate", index: clamped });
+      if (steps.length === 0) return;
+      if (!Number.isInteger(next.slide) || !Number.isInteger(next.step)) return;
+      const clamped = clampPosition(next, steps);
+      if (clamped.slide === position.slide && clamped.step === position.step)
+        return;
+      position = clamped;
+      options.show(position);
+      if (source === "local") options.post({ type: "navigate", ...position });
     },
+    // Reveal the next step, or move to the next slide with nothing revealed.
     next() {
-      player.go(index + 1, "local");
+      const { slide, step } = position;
+      if (step < stepsAt(slide)) player.go({ slide, step: step + 1 }, "local");
+      else if (slide < steps.length - 1)
+        player.go({ slide: slide + 1, step: 0 }, "local");
     },
+    // Hide the last step, or move to the previous slide fully revealed.
     prev() {
-      player.go(index - 1, "local");
+      const { slide, step } = position;
+      if (step > 0) player.go({ slide, step: step - 1 }, "local");
+      else if (slide > 0)
+        player.go({ slide: slide - 1, step: stepsAt(slide - 1) }, "local");
     },
     key(key) {
-      if (
-        key === "ArrowRight" ||
-        key === "ArrowDown" ||
-        key === "PageDown" ||
-        key === " " ||
-        key === "Enter"
-      ) {
-        player.next();
-        return true;
-      }
-      if (
-        key === "ArrowLeft" ||
-        key === "ArrowUp" ||
-        key === "PageUp" ||
-        key === "Backspace"
-      ) {
-        player.prev();
-        return true;
-      }
-      if (key === "Home") {
-        player.go(0, "local");
-        return true;
-      }
-      if (key === "End") {
-        player.go(options.slideCount - 1, "local");
-        return true;
-      }
-      return false;
+      if (NEXT_KEYS.has(key)) player.next();
+      else if (PREV_KEYS.has(key)) player.prev();
+      else if (key === "Home") player.go({ slide: 0, step: 0 }, "local");
+      else if (key === "End") {
+        const last = steps.length - 1;
+        player.go({ slide: last, step: stepsAt(last) }, "local");
+      } else return false;
+      return true;
     },
     pointer(x, y, active, source) {
       if (source === "local" && options.role !== "presenter") return;
@@ -148,11 +152,11 @@ export function createPlayer(options: PlayerOptions): Player {
       const record = message as Record<string, unknown>;
       if (record.type === "hello") {
         if (options.role === "presenter")
-          options.post({ type: "navigate", index });
+          options.post({ type: "navigate", ...position });
         return;
       }
       if (isNavigate(record)) {
-        player.go(record.index, "remote");
+        player.go({ slide: record.slide, step: record.step }, "remote");
         return;
       }
       if (isPointer(record))

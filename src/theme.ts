@@ -120,6 +120,21 @@ export function mergeTheme(
   };
 }
 
+export function mergeOverride(
+  base: ThemeOverride,
+  override: ThemeOverride | undefined,
+): ThemeOverride {
+  if (!override) return base;
+  const merged: ThemeOverride = {};
+  for (const key of Object.keys(GROUPS) as (keyof typeof GROUPS)[]) {
+    if (base[key] || override[key])
+      Object.assign(merged, { [key]: { ...base[key], ...override[key] } });
+  }
+  const radius = override.radius ?? base.radius;
+  if (radius !== undefined) merged.radius = radius;
+  return merged;
+}
+
 export function themeDeclarations(theme: Theme): Record<string, string> {
   return {
     "--hinote-bg": theme.colors.bg,

@@ -1,23 +1,5 @@
-import { Center, createSlide, type Theme } from "hinote";
+import { Center, Step, createSlide } from "hinote";
 import points from "./slides/points.tsx";
-
-export const theme: Theme = {
-  colors: { bg: "#0f1115", fg: "#f8fafc", accent: "#38bdf8", muted: "#94a3b8" },
-  fonts: {
-    base: "system-ui, sans-serif",
-    heading: "system-ui, sans-serif",
-    mono: "ui-monospace, monospace",
-  },
-  typography: {
-    h1: "4.5rem",
-    h2: "2.25rem",
-    body: "1.35rem",
-    small: "0.95rem",
-  },
-  shadows: { md: "0 12px 40px rgb(0 0 0 / 0.35)" },
-  spacing: { unit: "8px" },
-  radius: "12px",
-};
 
 const title = createSlide({ title: "hinote", notes: "はじめる" }, () => (
   <Center>
@@ -26,12 +8,40 @@ const title = createSlide({ title: "hinote", notes: "はじめる" }, () => (
   </Center>
 ));
 
-const nested = createSlide([
-  createSlide({ title: "Theme", theme: { colors: { bg: "#111827" } } }, () => (
+const steps = createSlide({ title: "Step", notes: "一つずつ出す" }, () => (
+  <Center gap={2}>
+    <h2>一歩ずつ見せる</h2>
+    <ul>
+      <Step as="li">右矢印で一つ目</Step>
+      <Step as="li">もう一度で二つ目</Step>
+      <Step as="li">最後に次のスライドへ</Step>
+    </ul>
+  </Center>
+));
+
+const nested = createSlide({ theme: { colors: { bg: "#111827" } } }, [
+  createSlide({ title: "Theme" }, () => (
     <Center>
-      <h2>スライドごとのテーマ</h2>
+      <h2>入れ子のデッキのテーマ</h2>
     </Center>
   )),
 ]);
 
-export default createSlide([title, points, nested]);
+// The deck is a Hono app: `bun examples/deck.tsx` serves it as is.
+export default createSlide(
+  {
+    aspect: "16:9",
+    theme: {
+      colors: {
+        bg: "#0f1115",
+        fg: "#f8fafc",
+        accent: "#38bdf8",
+        muted: "#94a3b8",
+      },
+      typography: { h1: "7rem", h2: "4rem", body: "2.25rem", small: "1.5rem" },
+      shadows: { md: "0 12px 40px rgb(0 0 0 / 0.35)" },
+      radius: "12px",
+    },
+  },
+  [title, points, steps, nested],
+);

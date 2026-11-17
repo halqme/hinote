@@ -24,6 +24,7 @@
   },
   "scripts": {
     "dev": "bun src/cli.ts dev examples/deck.tsx",
+    "build:client": "bun scripts/build-client.ts",
     "test": "bun test",
     "typecheck": "bun check",
     "format": "bun fmt"

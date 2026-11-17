@@ -3,18 +3,13 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { HinoteError } from "./errors.ts";
-import { collectSlides, type Slide } from "./slide.ts";
-import { parseThemeOverride, type ThemeOverride } from "./theme.ts";
-
-export type LoadedDeck = {
-  slides: Slide[];
-  theme?: ThemeOverride;
-};
+import type { Deck } from "./deck.ts";
+import { isDeck } from "./slide.ts";
 
 // Bundle the deck so hinote and hono resolve from this package. The bundle is a
-// second copy of hinote, so a slide is recognized by its kind and render function.
-// Tree shaking stays off so a named `theme` export is kept.
-export async function loadDeckFile(file: string): Promise<LoadedDeck> {
+// second copy of hinote, so the deck is recognized by shape, not by class.
+// A fresh bundle per call also makes each reload see the edited files.
+export async function loadDeckFile(file: string): Promise<Deck> {
   const absolute = resolve(file);
   if (!(await Bun.file(absolute).exists()))
     throw new HinoteError(`Could not load ${absolute}: file does not exist.`);
@@ -23,7 +18,6 @@ export async function loadDeckFile(file: string): Promise<LoadedDeck> {
     format: "esm",
     target: "bun",
     packages: "bundle",
-    treeShaking: false,
     jsx: { runtime: "automatic", importSource: "hono/jsx", development: false },
   });
   if (!built.success) {
@@ -45,9 +39,11 @@ export async function loadDeckFile(file: string): Promise<LoadedDeck> {
       string,
       unknown
     >;
-    const theme =
-      loaded.theme === undefined ? undefined : parseThemeOverride(loaded.theme);
-    return { slides: collectSlides(loaded.default), theme };
+    if (!isDeck(loaded.default))
+      throw new HinoteError(
+        `Could not load ${absolute}: the default export must be createSlide([...]).`,
+      );
+    return loaded.default;
   } catch (error) {
     if (error instanceof HinoteError) throw error;
     const message = error instanceof Error ? error.message : String(error);

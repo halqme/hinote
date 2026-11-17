@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
+import { watch } from "node:fs";
 import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve, sep } from "node:path";
 import { HinoteError } from "./errors.ts";
 import { insertIntoDeck } from "./insert.ts";
 import { loadDeckFile } from "./load.ts";
-import { renderDeck } from "./render.ts";
 import { createDevApp } from "./server.ts";
 
 function usage(): string {
@@ -64,18 +64,27 @@ export default createSlide({ title: "${name}" }, () => (
 `;
 }
 
+// Edits under these directories do not change the deck.
+const IGNORED_DIRS = new Set(["node_modules", ".git", ".tmp", "dist"]);
+
+function isIgnored(root: string, file: string): boolean {
+  const path = relative(root, resolve(root, file));
+  return path.split(sep).some((part) => IGNORED_DIRS.has(part));
+}
+
 async function devCommand(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
   if (args.positionals.length > 1)
     throw new HinoteError("dev accepts one deck file.");
   const deckFile = resolve(args.positionals[0] ?? "deck.tsx");
+  const root = dirname(deckFile);
   const port = args.port ?? 4321;
   if (port < 1 || port > 65535)
     throw new HinoteError("--port must be from 1 to 65535.");
-  const loaded = await loadDeckFile(deckFile);
-  const view = await renderDeck({ ...loaded, role: "view" });
-  const presenter = await renderDeck({ ...loaded, role: "presenter" });
-  const app = createDevApp({ view, presenter }, dirname(deckFile));
+  let deck = await loadDeckFile(deckFile);
+  // One hub for the whole session, so open pages hear `reload` from the new deck.
+  const hub = deck.hub;
+  const app = createDevApp(() => deck, root);
   const server = Bun.serve({
     port,
     hostname: "127.0.0.1",
@@ -85,8 +94,31 @@ async function devCommand(argv: string[]): Promise<void> {
   console.log(`hinote dev http://127.0.0.1:${server.port}`);
   console.log(`presenter http://127.0.0.1:${server.port}/presenter`);
 
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let loading = Promise.resolve();
+  const reload = () => {
+    loading = loading.then(async () => {
+      try {
+        const next = await loadDeckFile(deckFile);
+        next.hub = hub;
+        deck = next;
+        hub.broadcast({ type: "reload" });
+        console.log("reloaded");
+      } catch (error) {
+        // Keep serving the last deck that loaded.
+        console.error(error instanceof HinoteError ? error.message : error);
+      }
+    });
+  };
+  const watcher = watch(root, { recursive: true }, (_event, file) => {
+    if (file && isIgnored(root, file)) return;
+    clearTimeout(timer);
+    timer = setTimeout(reload, 100);
+  });
+
   const shutdown = () => {
-    server.stop();
+    watcher.close();
+    server.stop(true);
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
@@ -98,8 +130,8 @@ async function buildCommand(argv: string[]): Promise<void> {
     throw new HinoteError("build accepts one deck file.");
   const deckFile = resolve(args.positionals[0] ?? "deck.tsx");
   const output = resolve(args.output ?? "dist/index.html");
-  const loaded = await loadDeckFile(deckFile);
-  const html = await renderDeck({ ...loaded, role: "view" });
+  const deck = await loadDeckFile(deckFile);
+  const html = await deck.render("view", "static");
   await mkdir(dirname(output), { recursive: true });
   const temporary = `${output}.${process.pid}.tmp`;
   await writeFile(temporary, html);

@@ -1,6 +1,12 @@
 import type { Child } from "hono/jsx";
+import { Deck, parseDeckOptions, type DeckOptions } from "./deck.ts";
 import { HinoteError } from "./errors.ts";
-import { cssValue, parseThemeOverride, type ThemeOverride } from "./theme.ts";
+import {
+  cssValue,
+  mergeOverride,
+  parseThemeOverride,
+  type ThemeOverride,
+} from "./theme.ts";
 
 export type SlideRender = () => Child;
 
@@ -18,11 +24,6 @@ export type Slide = {
   readonly render: SlideRender;
 };
 
-export type Deck = {
-  readonly kind: "deck";
-  readonly slides: readonly Slide[];
-};
-
 export type SlideInput = Slide | Deck;
 
 const OPTION_KEYS = new Set(["notes", "title", "background", "class", "theme"]);
@@ -36,12 +37,14 @@ export function isSlide(value: unknown): value is Slide {
   );
 }
 
+// Duck-typed because `hinote dev` loads the deck with its own bundled copy of hinote.
 export function isDeck(value: unknown): value is Deck {
   return (
     !!value &&
     typeof value === "object" &&
     (value as Deck).kind === "deck" &&
-    Array.isArray((value as Deck).slides)
+    Array.isArray((value as Deck).slides) &&
+    typeof (value as Deck).fetch === "function"
   );
 }
 
@@ -72,11 +75,28 @@ function parseOptions(value: Record<string, unknown>): SlideOptions {
   return options;
 }
 
+// A nested deck lends its theme to its slides; a slide theme still wins.
+function nestedSlides(deck: Deck): Slide[] {
+  if (deck.config.title !== undefined || deck.config.aspect !== undefined)
+    throw new HinoteError(
+      'Deck options "title" and "aspect" can only be set on the top-level deck.',
+    );
+  const theme = deck.config.theme;
+  if (!theme) return [...deck.slides];
+  return deck.slides.map((slide) => ({
+    ...slide,
+    options: {
+      ...slide.options,
+      theme: mergeOverride(theme, slide.options.theme),
+    },
+  }));
+}
+
 function flatten(nodes: readonly unknown[]): Slide[] {
   const slides: Slide[] = [];
   for (const node of nodes) {
     if (isSlide(node)) slides.push(node);
-    else if (isDeck(node)) slides.push(...node.slides);
+    else if (isDeck(node)) slides.push(...nestedSlides(node));
     else
       throw new HinoteError(
         "createSlide() arrays can only contain slides or decks.",
@@ -88,12 +108,24 @@ function flatten(nodes: readonly unknown[]): Slide[] {
 export function createSlide(render: SlideRender): Slide;
 export function createSlide(options: SlideOptions, render: SlideRender): Slide;
 export function createSlide(nodes: readonly SlideInput[]): Deck;
+export function createSlide(
+  options: DeckOptions,
+  nodes: readonly SlideInput[],
+): Deck;
 export function createSlide(first?: unknown, second?: unknown): Slide | Deck {
   if (typeof first === "function" && second === undefined) {
     return { kind: "slide", options: {}, render: first as SlideRender };
   }
   if (Array.isArray(first) && second === undefined) {
-    return { kind: "deck", slides: flatten(first) };
+    return new Deck(flatten(first));
+  }
+  if (
+    isPlainObject(first) &&
+    !isSlide(first) &&
+    !isDeck(first) &&
+    Array.isArray(second)
+  ) {
+    return new Deck(flatten(second), parseDeckOptions(first));
   }
   if (
     isPlainObject(first) &&
@@ -108,14 +140,6 @@ export function createSlide(first?: unknown, second?: unknown): Slide | Deck {
     };
   }
   throw new HinoteError(
-    "createSlide() expects a render function, options plus a render function, or an array of slides.",
-  );
-}
-
-export function collectSlides(value: unknown): Slide[] {
-  if (isSlide(value)) return [value];
-  if (isDeck(value)) return [...value.slides];
-  throw new HinoteError(
-    "The deck default export must be a createSlide() result.",
+    "createSlide() expects a render function or an array of slides, optionally after an options object.",
   );
 }

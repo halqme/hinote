@@ -22,26 +22,19 @@ export function resolveInside(root: string, urlPath: string): string | null {
   return real;
 }
 
-export function createDevApp(
-  pages: { view: string; presenter: string },
-  rootDir: string,
-) {
+export type FetchApp = {
+  fetch(request: Request): Response | Promise<Response>;
+};
+
+// `hinote dev` serves the current deck and falls back to files next to deck.tsx,
+// such as images. `current` is read per request so a reload swaps the deck in place.
+export function createDevApp(current: () => FetchApp, rootDir: string) {
   const app = new Hono();
-  app.get("/", () => html(pages.view));
-  app.get("/presenter", () => html(pages.presenter));
-  app.get("*", (c) => {
+  app.all("*", async (c) => {
+    const response = await current().fetch(c.req.raw);
+    if (response.status !== 404 || c.req.method !== "GET") return response;
     const file = resolveInside(rootDir, new URL(c.req.url).pathname);
-    if (!file) return c.notFound();
-    return new Response(Bun.file(file));
+    return file ? new Response(Bun.file(file)) : response;
   });
   return app;
-}
-
-function html(body: string): Response {
-  return new Response(body, {
-    headers: {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store",
-    },
-  });
 }
