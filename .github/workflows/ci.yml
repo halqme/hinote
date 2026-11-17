@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # The lowest Bun package.json allows (devEngines).
+          bun-version: 1.4.4
+      # bun test builds dist/ and runs the CLI under Node when Node is there.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - run: bun install --frozen-lockfile
+      - run: bun fmt --check
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun test
