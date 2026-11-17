@@ -1,0 +1,17 @@
+{
+  "target": 540,
+  "batches": [
+    { "no": 1, "mode": "manual", "firstCrack": 492 },
+    { "no": 2, "mode": "manual", "firstCrack": 575 },
+    { "no": 3, "mode": "manual", "firstCrack": 518 },
+    { "no": 4, "mode": "manual", "firstCrack": 601 },
+    { "no": 5, "mode": "manual", "firstCrack": 470 },
+    { "no": 6, "mode": "manual", "firstCrack": 559 },
+    { "no": 7, "mode": "auto", "firstCrack": 546 },
+    { "no": 8, "mode": "auto", "firstCrack": 533 },
+    { "no": 9, "mode": "auto", "firstCrack": 541 },
+    { "no": 10, "mode": "auto", "firstCrack": 538 },
+    { "no": 11, "mode": "auto", "firstCrack": 549 },
+    { "no": 12, "mode": "auto", "firstCrack": 536 }
+  ]
+}

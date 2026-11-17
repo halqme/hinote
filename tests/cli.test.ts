@@ -348,16 +348,17 @@ test("static paths cannot escape the deck directory", async () => {
   }
 });
 
-test("the example deck renders its slides", async () => {
+test("the example deck renders every slide, including its data", async () => {
   const deck = await loadDeckFile(
     resolve(import.meta.dir, "../examples/deck.tsx"),
   );
   const html = await deck.render();
-  expect(deck.slides).toHaveLength(5);
+  expect(deck.slides).toHaveLength(7);
   expect(html).toContain('<pre class="highlights"');
-  expect(html).toContain("Column と Row");
   expect(html).toContain("data-hinote-step");
-  expect(html).toContain("#111827");
+  // The chart reads data/roasts.json next to the deck while it renders.
+  expect(html).toMatch(/手動 <b>\d+秒<\/b>/);
+  expect(html).toContain("./images/setup.svg");
 });
 
 async function realpathFile(file: string): Promise<string> {

@@ -1,59 +1,38 @@
-import { Center, Code, Column, Step, createSlide } from "hinote";
-import points from "./slides/points.tsx";
+// A fictional five-minute talk, written the way a real one would be.
+// `bun run dev` in the repository shows it; `bun examples/deck.tsx` serves it too.
+import { createSlide } from "hinote";
+import agenda from "./slides/agenda.tsx";
+import code from "./slides/code.tsx";
+import problem from "./slides/problem.tsx";
+import results from "./slides/results.tsx";
+import setup from "./slides/setup.tsx";
+import thanks from "./slides/thanks.tsx";
+import title from "./slides/title.tsx";
 
-const title = createSlide({ title: "hinote", notes: "はじめる" }, () => (
-  <Center>
-    <h1>hinote</h1>
-    <p>Hono/JSX で書くスライド</p>
-  </Center>
-));
+// The build part of the talk is a deck of its own; it lends its transition to its slides.
+const build = createSlide({ transition: "slide" }, [setup, code]);
 
-const steps = createSlide({ title: "Step", notes: "一つずつ出す" }, () => (
-  <Center gap={2}>
-    <h2>一歩ずつ見せる</h2>
-    <ul>
-      <Step as="li">右矢印で一つ目</Step>
-      <Step as="li">もう一度で二つ目</Step>
-      <Step as="li">最後に次のスライドへ</Step>
-    </ul>
-  </Center>
-));
-
-const code = createSlide({ title: "Code", notes: "色はビルド時に付く" }, () => (
-  <Column gap={3}>
-    <h2>コードを書く</h2>
-    <Code lang="tsx">{`
-      export default createSlide([
-        createSlide(() => <h1>hinote</h1>),
-      ]);
-    `}</Code>
-  </Column>
-));
-
-const nested = createSlide({ theme: { colors: { bg: "#111827" } } }, [
-  createSlide({ title: "Theme" }, () => (
-    <Center>
-      <h2>入れ子のデッキのテーマ</h2>
-    </Center>
-  )),
-]);
-
-// The deck is a Hono app: `bun examples/deck.tsx` serves it as is.
 export default createSlide(
   {
+    title: "週末の焙煎をコードで回す",
     aspect: "16:9",
-    transition: "slide",
+    transition: "fade",
     theme: {
       colors: {
-        bg: "#0f1115",
-        fg: "#f8fafc",
-        accent: "#38bdf8",
-        muted: "#94a3b8",
+        bg: "#1c1410",
+        fg: "#f5ede6",
+        accent: "#e0a96d",
+        muted: "#a8968a",
+        // Tokens of our own: --hinote-color-surface, used by components/Card.tsx.
+        surface: "#2a1e17",
       },
-      typography: { h1: "7rem", h2: "4rem" },
-      shadows: { md: "0 12px 40px rgb(0 0 0 / 0.35)" },
-      radius: "12px",
+      fonts: {
+        base: "'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif",
+        heading: "'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif",
+      },
+      typography: { h1: "7rem" },
+      radius: "20px",
     },
   },
-  [title, points, steps, code, nested],
+  [title, agenda, problem, build, results, thanks],
 );

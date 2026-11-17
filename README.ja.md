@@ -132,6 +132,16 @@ PDF にするときは、どのページでも印刷して「PDF として保存
 
 ## hinote を開発する
 
-このリポジトリでは、`bun run dev`（`bun src/cli.ts dev examples/deck.tsx`）でサンプルを表示できます。
+このリポジトリでは、`bun run dev` で `examples/` のサンプルを表示できます。実際の発表と同じ書き方で作った、架空の5分 LT です。
+
+| ファイル                                               | 見どころ                                                                                             |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `deck.tsx`                                             | デッキの設定、独自の値（`surface`）を足したテーマ、transition を中のスライドに効かせる入れ子のデッキ |
+| `slides/agenda.tsx`                                    | リストの中の `<Step as="li">`                                                                        |
+| `slides/problem.tsx`、`components/Card.tsx`            | 自作のコンポーネントを `data-hinote-step` で順に出す                                                 |
+| `slides/setup.tsx`                                     | デッキの隣に置いた画像                                                                               |
+| `slides/code.tsx`                                      | `<Code>`                                                                                             |
+| `slides/results.tsx`、`components/FirstCrackChart.tsx` | `data/roasts.json` を読んでグラフを描く async コンポーネント                                         |
+| `slides/thanks.tsx`                                    | その1枚だけのテーマと transition                                                                     |
 
 `src/client.ts` はブラウザで動くコードです。ページには、ここから生成した `src/client.generated.ts` を埋め込みます。そのため、描画のたびにバンドラを動かすことはありません。クライアントを変えたら `bun run build:client` を実行してください。生成ファイルが古いままだと `bun test` が失敗します。
