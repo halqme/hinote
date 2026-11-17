@@ -4,7 +4,7 @@
 
 Write slides with Hono and Hono/JSX. A deck is a Hono app: any way of running Hono serves it. `build` writes the audience view as one HTML file.
 
-New to hinote? Start with the [hands-on](docs/hands-on.md).
+New to hinote? Start with the [hands-on](docs/hands-on.md). For a deck written like a real talk, see [`examples/`](examples/README.md); for how hinote compares with Slidev and Marp in install size and speed, see [the comparison](docs/comparison.md).
 
 ## Getting started
 
@@ -122,16 +122,6 @@ To make a PDF, print any page and choose "Save as PDF". Each slide becomes one p
 
 ## Developing hinote
 
-In this repository, `bun run dev` shows the example in `examples/`: a fictional five-minute talk written the way a real one would be.
-
-| File                                                   | Shows                                                                                                  |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `deck.tsx`                                             | Deck options, a theme with a token of its own (`surface`), and a nested deck that lends its transition |
-| `slides/agenda.tsx`                                    | `<Step as="li">` in a list                                                                             |
-| `slides/problem.tsx`, `components/Card.tsx`            | A component of your own, revealed with `data-hinote-step`                                              |
-| `slides/setup.tsx`                                     | An image next to the deck                                                                              |
-| `slides/code.tsx`                                      | `<Code>`                                                                                               |
-| `slides/results.tsx`, `components/FirstCrackChart.tsx` | An async component that reads `data/roasts.json` and draws a chart                                     |
-| `slides/thanks.tsx`                                    | A slide with its own theme and transition                                                              |
+In this repository, `bun run dev` shows the example in [`examples/`](examples/README.md): a fictional five-minute talk written the way a real one would be.
 
 `src/client.ts` runs in the browser. Pages inline the generated `src/client.generated.ts`, so rendering never needs a bundler. After editing the client, run `bun run build:client`; `bun test` fails while the generated file is stale.
