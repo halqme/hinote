@@ -20,6 +20,10 @@ const TITLE = "週末の焙煎をコードで回す";
 
 type Tool = {
   name: string;
+  // Directory under bench/, when it differs from the name.
+  dir?: string;
+  // Runs the bin with this runtime instead of its shebang.
+  runner?: string;
   build: string[];
   dev: string[];
   env?: Record<string, string>;
@@ -28,10 +32,20 @@ type Tool = {
 
 const tools: Tool[] = [
   {
-    name: "hinote",
+    name: "hinote (Bun)",
+    dir: "hinote",
+    runner: "bun",
     build: ["hinote", "build", "deck.tsx", "-o", "dist/index.html"],
     dev: ["hinote", "dev", "deck.tsx", "--port", "4501"],
     url: "http://127.0.0.1:4501/",
+  },
+  {
+    name: "hinote (Node)",
+    dir: "hinote-node",
+    runner: "node",
+    build: ["hinote", "build", "deck.tsx", "-o", "dist/index.html"],
+    dev: ["hinote", "dev", "deck.tsx", "--port", "4504"],
+    url: "http://127.0.0.1:4504/",
   },
   {
     name: "slidev",
@@ -52,10 +66,18 @@ const now = () => performance.now() / 1000;
 const median = (values: number[]) =>
   [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)] ?? 0;
 
-// Marp reads Markdown from stdin when stdin is not a terminal, so close it.
-function run(cwd: string, cmd: string[], env: Record<string, string> = {}) {
+// The command for a bin in the project, run by `runner` when one is given.
+function command(tool: Tool, cwd: string, cmd: string[]): [string, string[]] {
   const [bin = "", ...args] = cmd;
-  const result = spawnSync(join(cwd, "node_modules/.bin", bin), args, {
+  const path = join(cwd, "node_modules/.bin", bin);
+  return tool.runner ? [tool.runner, [path, ...args]] : [path, args];
+}
+
+// Marp reads Markdown from stdin when stdin is not a terminal, so close it.
+function run(tool: Tool, cwd: string, cmd: string[]) {
+  const [file, args] = command(tool, cwd, cmd);
+  const env = tool.env ?? {};
+  const result = spawnSync(file, args, {
     cwd,
     env: { ...process.env, ...env },
     stdio: ["ignore", "ignore", "pipe"],
@@ -94,9 +116,9 @@ function browse(...args: string[]) {
 }
 
 async function startUp(tool: Tool, cwd: string) {
-  const [bin = "", ...args] = tool.dev;
+  const [file, args] = command(tool, cwd, tool.dev);
   const start = now();
-  const child = spawn(join(cwd, "node_modules/.bin", bin), args, {
+  const child = spawn(file, args, {
     cwd,
     env: { ...process.env, ...tool.env },
     stdio: "ignore",
@@ -137,7 +159,7 @@ if (packed.status !== 0)
   throw new Error(`bun pm pack failed:\n${packed.stderr}`);
 
 for (const tool of tools) {
-  const cwd = join(root, tool.name);
+  const cwd = join(root, tool.dir ?? tool.name);
   rmSync(join(cwd, "node_modules"), { recursive: true, force: true });
   rmSync(join(cwd, "bun.lock"), { force: true });
   const cache = mkdtempSync(join(root, ".cache-"));
@@ -153,12 +175,12 @@ for (const tool of tools) {
     install.stdout + install.stderr,
   )?.[1];
 
-  run(cwd, tool.build, tool.env); // warm-up
+  run(tool, cwd, tool.build); // warm-up
   const builds: number[] = [];
   for (let i = 0; i < 5; i++) {
     rmSync(join(cwd, "dist"), { recursive: true, force: true });
     start = now();
-    run(cwd, tool.build, tool.env);
+    run(tool, cwd, tool.build);
     builds.push(now() - start);
   }
   const out = sizeOf(join(cwd, "dist"));
