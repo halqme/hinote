@@ -50,7 +50,7 @@ export default createSlide(
         accent: "#38bdf8",
         muted: "#94a3b8",
       },
-      typography: { h1: "7rem", h2: "4rem", body: "2.25rem", small: "1.5rem" },
+      typography: { h1: "7rem", h2: "4rem" },
       shadows: { md: "0 12px 40px rgb(0 0 0 / 0.35)" },
       radius: "12px",
     },

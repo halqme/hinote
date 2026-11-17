@@ -35,12 +35,13 @@ export const defaultTheme: Theme = {
     heading: "system-ui, sans-serif",
     mono: "ui-monospace, monospace",
   },
+  // Sizes for a canvas 1080 px tall, where 1rem is 16px.
   typography: {
-    h1: "4.5rem",
-    h2: "2.5rem",
-    body: "1.5rem",
-    small: "1rem",
-    code: "1.25rem",
+    h1: "6rem",
+    h2: "3.5rem",
+    body: "2.25rem",
+    small: "1.5rem",
+    code: "1.75rem",
   },
   shadows: {
     sm: "0 1px 2px rgb(0 0 0 / 0.3)",
