@@ -1,0 +1,38 @@
+{
+  "name": "hinote",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Local slide tool using Hono and Hono/JSX",
+  "license": "MIT",
+  "author": "HALQME",
+  "bin": {
+    "hinote": "src/cli.ts"
+  },
+  "files": [
+    "src",
+    "README.ja.md"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "bun",
+      "version": ">=1.4.4"
+    }
+  },
+  "scripts": {
+    "dev": "bun src/cli.ts dev examples/deck.tsx",
+    "test": "bun test",
+    "typecheck": "bun check",
+    "format": "bun fmt"
+  },
+  "dependencies": {
+    "hono": "^4.13.19"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "typescript": "^7.0.2"
+  }
+}
