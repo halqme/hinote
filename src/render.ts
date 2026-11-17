@@ -1,6 +1,7 @@
 import { jsx } from "hono/jsx";
 import { HtmlEscapedCallbackPhase, resolveCallback } from "hono/utils/html";
 import clientScript from "./client.generated.ts";
+import { loadCss, scopeCss, type CssSource, type StyleLayer } from "./css.ts";
 import { HinoteError } from "./errors.ts";
 // `view` and `presenter` are served by the deck and sync through it. `static` is
 // the single file from `hinote build`: one audience view with no sync.
@@ -20,15 +21,34 @@ import {
 // Every slide is laid out on a fixed canvas and scaled as a whole, so a slide looks
 // the same in any window. The client sets --hinote-scale to fit the canvas in #deck.
 // rem stays the browser default; theme sizes in rem are relative to it, not to each other.
+//
+// Author CSS sits in cascade layers after `hinote` (see authorCss), so it wins over
+// SLIDE_CSS whatever its selectors. FRAME_CSS is unlayered and wins over every layer:
+// it holds what must not move, such as the canvas, hidden slides and steps, and the
+// presenter view.
+
 // Center sets flex:1, which fills the slide only because .slide is a column flex container.
-const BASE_CSS = `
+const SLIDE_CSS = `
 *{box-sizing:border-box}
+.slide{display:flex;flex-direction:column;padding:calc(var(--hinote-space-unit) * 6);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
+:where(.slide) :is(h1,h2,h3,p){margin:0}
+:where(.slide) h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
+:where(.slide) :is(h2,h3){font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}
+:where(.slide) p{font-size:var(--hinote-text-body);line-height:1.5}
+:where(.slide) small{font-size:var(--hinote-text-small);color:var(--hinote-color-muted)}
+:where(.slide) :is(code,pre){font-family:var(--hinote-font-mono)}
+:where(.slide) pre.highlights{margin:0;padding:1em 1.25em;border-radius:var(--hinote-radius);font-size:var(--hinote-text-code);line-height:1.5;text-align:left;white-space:pre;overflow:hidden}
+:where(.slide) a{color:var(--hinote-color-accent)}
+`.trim();
+
+const FRAME_CSS = `
 html,body{margin:0;height:100%;overflow:hidden;background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-family:var(--hinote-font-base)}
 #deck{position:fixed;inset:0;display:grid;place-items:center;--hinote-scale:1}
 .hinote-stage{position:relative;overflow:hidden;width:calc(var(--hinote-canvas-width) * var(--hinote-scale));height:calc(var(--hinote-canvas-height) * var(--hinote-scale))}
-.slide{display:none;position:absolute;top:0;left:0;width:var(--hinote-canvas-width);height:var(--hinote-canvas-height);overflow:hidden;flex-direction:column;padding:calc(var(--hinote-space-unit) * 6);transform-origin:0 0;transform:scale(var(--hinote-scale));background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
-.slide.is-active{display:flex}
+.slide{position:absolute;top:0;left:0;width:var(--hinote-canvas-width);height:var(--hinote-canvas-height);overflow:hidden;transform-origin:0 0;transform:scale(var(--hinote-scale))}
+.slide:not(.is-active){display:none}
 [data-hinote-step]{transition:opacity .2s ease}
+[data-hinote-step].is-hidden{opacity:0;visibility:hidden}
 .hinote-stage{view-transition-name:hinote-stage}
 ::view-transition-old(root),::view-transition-new(root){animation:none}
 ::view-transition-image-pair(hinote-stage){overflow:clip}
@@ -41,18 +61,9 @@ html[data-transition="slide"][data-direction="back"]::view-transition-new(hinote
 @keyframes hinote-to-right{to{transform:translateX(100%)}}
 @keyframes hinote-from-left{from{transform:translateX(-100%)}}
 @keyframes hinote-from-right{from{transform:translateX(100%)}}
-[data-hinote-step].is-hidden{opacity:0;visibility:hidden}
-h1,h2,h3,p{margin:0}
-h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
-h2,h3{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}
-p{font-size:var(--hinote-text-body);line-height:1.5}
-small{font-size:var(--hinote-text-small);color:var(--hinote-color-muted)}
-code,pre{font-family:var(--hinote-font-mono)}
-pre.highlights{margin:0;padding:1em 1.25em;border-radius:var(--hinote-radius);font-size:var(--hinote-text-code);line-height:1.5;text-align:left;white-space:pre;overflow:hidden}
-a{color:var(--hinote-color-accent)}
 #hinote-pointer{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 16px #ff2d2d;pointer-events:none;z-index:10;opacity:0}
 .hinote-thumb{position:relative;overflow:hidden;width:100%;aspect-ratio:var(--hinote-canvas-ratio);background:var(--hinote-color-bg);border-radius:6px}
-.hinote-thumb>.slide{display:flex}
+.hinote-thumb>.slide{display:revert-layer}
 html[data-page="presenter"] body{display:grid;grid-template-columns:minmax(0,1fr) minmax(18rem,30vw);background:#111318;color:#f4f4f5;font:16px/1.6 system-ui,sans-serif}
 html[data-page="presenter"] #deck{position:relative;inset:auto;min-width:0;min-height:0;padding:1.25rem;background:#0b0d12}
 html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45)}
@@ -72,7 +83,7 @@ html,body{height:auto;overflow:visible;-webkit-print-color-adjust:exact;print-co
 html[data-page] body{display:block}
 #deck,html[data-page="presenter"] #deck{position:static;display:block;padding:0}
 .hinote-stage{width:auto;height:auto;overflow:visible;box-shadow:none}
-.hinote-stage>.slide{display:flex;position:relative;transform:none;break-after:page}
+.hinote-stage>.slide{display:revert-layer;position:relative;transform:none;break-after:page}
 [data-hinote-step].is-hidden{opacity:1;visibility:visible}
 #hinote-panel,#hinote-overview,#hinote-pointer{display:none}
 }
@@ -145,12 +156,61 @@ function presenterPanel(slideCount: number, notes: string) {
   ];
 }
 
+// Layers, weakest first: hinote's SLIDE_CSS, then the top-level deck (hinote-0),
+// nested decks by depth (hinote-1, ...), then each slide's own (hinote-slide).
+// Each layer reaches only its slides: they carry its id in data-hinote-css.
+async function authorCss(
+  slides: readonly Slide[],
+  deckCss: readonly CssSource[] | undefined,
+): Promise<{ css: string; scopes: (string | undefined)[] }> {
+  const layers = new Map<StyleLayer, { id: string; depth: number }>();
+  for (const slide of slides) {
+    for (const [index, layer] of (slide.styles ?? []).entries()) {
+      if (!layers.has(layer))
+        layers.set(layer, { id: `d${layers.size}`, depth: index + 1 });
+    }
+  }
+  const scope = (id: string) => `:where(.slide[data-hinote-css~="${id}"])`;
+  const blocks: string[] = [`@layer hinote{${SLIDE_CSS}}`];
+  if (deckCss)
+    blocks.push(
+      `@layer hinote-0{${scopeCss(await loadCss(deckCss), ":where(.slide)", "Deck css")}}`,
+    );
+  for (const [layer, { id, depth }] of layers)
+    blocks.push(
+      `@layer hinote-${depth}{${scopeCss(await loadCss(layer.sources), scope(id), "Nested deck css")}}`,
+    );
+  const scopes: (string | undefined)[] = [];
+  for (const [index, slide] of slides.entries()) {
+    const ids = (slide.styles ?? []).map((layer) => layers.get(layer)?.id);
+    if (slide.options.css) {
+      ids.push(`s${index}`);
+      blocks.push(
+        `@layer hinote-slide{${scopeCss(await loadCss(slide.options.css), scope(`s${index}`), `Slide ${index + 1} css`)}}`,
+      );
+    }
+    scopes.push(ids.length > 0 ? ids.join(" ") : undefined);
+  }
+  const depth = Math.max(
+    0,
+    ...[...layers.values()].map((layer) => layer.depth),
+  );
+  const order = Array.from({ length: depth + 1 }, (_, i) => `hinote-${i}`);
+  return {
+    css: [`@layer hinote,${order.join(",")},hinote-slide;`, ...blocks].join(
+      "\n",
+    ),
+    scopes,
+  };
+}
+
 export async function renderDeck(input: {
   slides: readonly Slide[];
   theme?: Theme;
   title?: string;
   canvas?: { width: number; height: number };
   transition?: Transition;
+  css?: readonly CssSource[];
   page?: Page;
   base?: string;
 }): Promise<string> {
@@ -165,11 +225,13 @@ export async function renderDeck(input: {
     input.slides.find((slide) => slide.options.title)?.options.title ||
     "hinote";
   const firstNotes = input.slides[0]?.options.notes ?? "";
+  const author = await authorCss(input.slides, input.css);
   // Printing gives one page per slide at canvas size, which "Save as PDF" turns into a PDF.
   const css = `${themeCss(theme)}
 :root{--hinote-canvas-width:${canvas.width}px;--hinote-canvas-height:${canvas.height}px;--hinote-canvas-ratio:${canvas.width} / ${canvas.height}}
 @page{size:${canvas.width}px ${canvas.height}px;margin:0}
-${BASE_CSS}`;
+${author.css}
+${FRAME_CSS}`;
   // Slides render one after another, so an error names the first broken slide.
   const slides = [];
   for (const [index, slide] of input.slides.entries()) {
@@ -185,6 +247,7 @@ ${BASE_CSS}`;
       jsx("section", {
         class: className,
         "data-notes": slide.options.notes ?? "",
+        "data-hinote-css": author.scopes[index],
         "data-transition":
           slide.options.transition ?? input.transition ?? "none",
         style: slideStyle(slide),

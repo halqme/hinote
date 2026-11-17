@@ -1,5 +1,6 @@
 import { Hono, type Context } from "hono";
 import { streamSSE } from "hono/streaming";
+import { parseCss, type CssInput, type CssSource } from "./css.ts";
 import { HinoteError } from "./errors.ts";
 import { syncHub } from "./hub.ts";
 import { parseServedPath } from "./location.ts";
@@ -18,6 +19,9 @@ export type DeckOptions = {
   aspect?: Aspect;
   // How slides enter, "none" by default. A slide can set its own.
   transition?: Transition;
+  // CSS for every slide in this deck. A nested deck's CSS and a slide's own
+  // CSS win over it, whatever their selectors.
+  css?: CssInput;
 };
 
 export type Canvas = { width: number; height: number };
@@ -42,14 +46,20 @@ export function parseAspect(aspect: string): Canvas {
   };
 }
 
-const OPTION_KEYS = new Set(["title", "theme", "aspect", "transition"]);
+const OPTION_KEYS = new Set(["title", "theme", "aspect", "transition", "css"]);
 
-export function parseDeckOptions(value: Record<string, unknown>): DeckOptions {
+type ParsedDeckOptions = Omit<DeckOptions, "css"> & {
+  css?: readonly CssSource[];
+};
+
+export function parseDeckOptions(
+  value: Record<string, unknown>,
+): ParsedDeckOptions {
   for (const key of Object.keys(value)) {
     if (!OPTION_KEYS.has(key))
       throw new HinoteError(`Unknown deck option "${key}".`);
   }
-  const options: DeckOptions = {};
+  const options: ParsedDeckOptions = {};
   if (value.title !== undefined) {
     if (typeof value.title !== "string")
       throw new HinoteError('Deck option "title" must be a string.');
@@ -68,6 +78,8 @@ export function parseDeckOptions(value: Record<string, unknown>): DeckOptions {
       value.transition,
       'Deck option "transition"',
     );
+  if (value.css !== undefined)
+    options.css = parseCss(value.css, 'Deck option "css"');
   return options;
 }
 
@@ -76,10 +88,10 @@ export function parseDeckOptions(value: Record<string, unknown>): DeckOptions {
 export class Deck extends Hono {
   readonly kind = "deck";
   readonly slides: readonly Slide[];
-  readonly config: DeckOptions;
+  readonly config: ParsedDeckOptions;
   readonly #pages = new Map<string, Promise<string>>();
 
-  constructor(slides: readonly Slide[], options: DeckOptions = {}) {
+  constructor(slides: readonly Slide[], options: ParsedDeckOptions = {}) {
     super();
     this.slides = slides;
     this.config = options;
@@ -171,6 +183,7 @@ export class Deck extends Hono {
       title: this.config.title,
       canvas: this.canvas,
       transition: this.config.transition,
+      css: this.config.css,
       page,
     });
   }

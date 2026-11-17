@@ -73,6 +73,24 @@ export default createSlide(
 
 hinote 自身のスタイルが読むのは、`colors` の `bg`・`fg`・`accent`・`muted`、`fonts` の `base`・`heading`・`mono`、`typography` の `h1`・`h2`・`body`・`small`、それに `spacing.unit` です。それ以外の名前も同じように変数になります。`colors: { brand: "#f50" }` と書けば、スライドの中で `var(--hinote-color-brand)` を使えます。スライドに `theme` を書くと、その1枚で、書いた値だけを上書きします。
 
+## CSS
+
+デッキにもスライドにも `css` を渡せます。CSS の文字列、`new URL("./style.css", import.meta.url)` のようなファイル、またはその配列です。
+
+```tsx
+export default createSlide({ css: new URL("./style.css", import.meta.url) }, [
+  title,
+  createSlide({ css: "h2 { color: var(--hinote-color-accent); }" }, [a, b]),
+  createSlide({ css: "& { padding: 0; }" }, () => <img src="./cover.png" />),
+]);
+```
+
+- それぞれの CSS は、自分のスライドだけに効きます。デッキの CSS は全部のスライドに、入れ子のデッキの CSS はその中のスライドに、スライドの CSS はその1枚に効きます。発表者画面のパネルには効きません。
+- 内側の CSS が勝ちます。スライドの CSS は入れ子のデッキの CSS に、入れ子のデッキの CSS は外のデッキの CSS に、セレクタの強さに関係なく勝ちます。hinote はそれぞれを [カスケードレイヤー](https://developer.mozilla.org/docs/Web/CSS/@layer) に入れ、自分の既定のスタイルを一番弱いレイヤーに置いています。そのため、渡した CSS は必ず既定のスタイルより優先されます。
+- セレクタはスライドの中に対して効きます。スライドそのものは `& { ... }` と書きます。`:root`、`html`、`body` には効きません。`@keyframes` や `@font-face` などは、ファイルのどこに書いても使えます。`@import` は使えないので、ファイルごとに配列で渡してください。
+- ファイルはデッキを描画するときに読みます。そのため、ファイルを読めるランタイム（Bun、Node、Deno）が必要です。ファイルを読めないランタイムでは、ファイルをテキストとして import し、文字列で渡してください。
+- CSS の中の `url()` は、ページ、つまり `deck.tsx` のあるディレクトリから解決されます。
+
 ## ステップ
 
 `<Step>` は、1枚のスライドの中身を、キーを押すたびに少しずつ見せるためのコンポーネントです。PowerPoint の「クリックで表示」アニメーションと同じ役割です。

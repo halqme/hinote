@@ -17,13 +17,15 @@ export default createSlide(
     title: "週末の焙煎をコードで回す",
     aspect: "16:9",
     transition: "fade",
+    // Plain CSS for every slide; see components/Card.tsx for the classes it styles.
+    css: new URL("./style.css", import.meta.url),
     theme: {
       colors: {
         bg: "#1c1410",
         fg: "#f5ede6",
         accent: "#e0a96d",
         muted: "#a8968a",
-        // Tokens of our own: --hinote-color-surface, used by components/Card.tsx.
+        // A token of our own: --hinote-color-surface, used by .card in style.css.
         surface: "#2a1e17",
       },
       fonts: {

@@ -1,0 +1,23 @@
+/* Every slide of the deck. Nested decks and slides can add CSS that wins over this. */
+
+.card {
+  flex: 1;
+  padding: calc(var(--hinote-space-unit) * 5);
+  border: 3px solid transparent;
+  border-radius: var(--hinote-radius);
+  background: var(--hinote-color-surface);
+}
+
+.card.accent {
+  border-color: var(--hinote-color-accent);
+}
+
+.card h3 {
+  margin-bottom: 0.5em;
+}
+
+ol {
+  margin: 0;
+  font-size: 3rem;
+  line-height: 1.8;
+}

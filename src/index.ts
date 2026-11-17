@@ -1,5 +1,6 @@
 export type { Aspect, Deck, DeckOptions } from "./deck.ts";
 export { Code } from "./code.tsx";
+export type { CssInput, CssSource } from "./css.ts";
 export type { CodeProps } from "./code.tsx";
 export { Center, Column, Row } from "./layout.tsx";
 export type { LayoutProps } from "./layout.tsx";

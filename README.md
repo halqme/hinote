@@ -63,6 +63,24 @@ export default createSlide(
 - `Center`, `Column`, and `Row` take `gap`, `align`, and `justify`. A numeric `gap` is that many multiples of the theme's `spacing.unit`.
 - A theme has the groups `colors`, `fonts`, `typography`, `shadows`, and `spacing`, plus `radius`. Each token becomes a CSS variable named `--hinote-<group>-<name>`, with the groups written `color`, `font`, `text`, `shadow`, and `space`: `colors.bg` is `--hinote-color-bg`, `typography.h1` is `--hinote-text-h1`, and `radius` is `--hinote-radius`. hinote's own styles read `colors` `bg`, `fg`, `accent`, `muted`; `fonts` `base`, `heading`, `mono`; `typography` `h1`, `h2`, `body`, `small`; and `spacing.unit`. Any other name works the same way, so `colors: { brand: "#f50" }` gives `var(--hinote-color-brand)` to use in your slides. A slide's own `theme` sets only the tokens it names, on that slide.
 
+## CSS
+
+Pass `css` to a deck or a slide: CSS text, a file as `new URL("./style.css", import.meta.url)`, or an array of them.
+
+```tsx
+export default createSlide({ css: new URL("./style.css", import.meta.url) }, [
+  title,
+  createSlide({ css: "h2 { color: var(--hinote-color-accent); }" }, [a, b]),
+  createSlide({ css: "& { padding: 0; }" }, () => <img src="./cover.png" />),
+]);
+```
+
+- Each CSS reaches only its own slides: the deck's reaches every slide, a nested deck's reaches its slides, and a slide's reaches that slide. It never touches the presenter panel.
+- Inner CSS wins: a slide's CSS beats its nested deck's, which beats the outer deck's, whatever the selectors. hinote puts each in a [cascade layer](https://developer.mozilla.org/docs/Web/CSS/@layer), and its own default styles sit in the weakest one, so any CSS you pass can override them.
+- Selectors match inside the slide. Write `& { ... }` for the slide itself; `:root`, `html`, and `body` do not match. `@keyframes`, `@font-face`, and similar rules work anywhere in the file. `@import` is refused; pass each file in the array instead.
+- A file is read when the deck renders, which needs a file system (Bun, Node, Deno). On a runtime without one, import the file as text and pass the string.
+- `url()` in CSS resolves from the page, that is, from the directory of `deck.tsx`.
+
 ## Steps
 
 `<Step>` reveals part of a slide one key press at a time, like a click animation in other slide tools.

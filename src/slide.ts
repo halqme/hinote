@@ -1,5 +1,11 @@
 import type { Child } from "hono/jsx";
 import { Deck, parseDeckOptions, type DeckOptions } from "./deck.ts";
+import {
+  parseCss,
+  type CssInput,
+  type CssSource,
+  type StyleLayer,
+} from "./css.ts";
 import { HinoteError } from "./errors.ts";
 import { parseTransition, type Transition } from "./transition.ts";
 import { cssValue, mergeTheme, parseTheme, type Theme } from "./theme.ts";
@@ -15,12 +21,18 @@ export type SlideOptions = {
   theme?: Theme;
   // How this slide enters. Defaults to the deck's transition.
   transition?: Transition;
+  // CSS for this slide only. It wins over the CSS of the decks around it.
+  css?: CssInput;
 };
 
 export type Slide = {
   readonly kind: "slide";
-  readonly options: SlideOptions;
+  readonly options: Omit<SlideOptions, "css"> & {
+    css?: readonly CssSource[];
+  };
   readonly render: SlideRender;
+  // CSS of the nested decks around this slide, outermost first.
+  readonly styles?: readonly StyleLayer[];
 };
 
 export type SlideInput = Slide | Deck;
@@ -32,6 +44,7 @@ const OPTION_KEYS = new Set([
   "class",
   "theme",
   "transition",
+  "css",
 ]);
 
 export function isSlide(value: unknown): value is Slide {
@@ -58,12 +71,12 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-function parseOptions(value: Record<string, unknown>): SlideOptions {
+function parseOptions(value: Record<string, unknown>): Slide["options"] {
   for (const key of Object.keys(value)) {
     if (!OPTION_KEYS.has(key))
       throw new HinoteError(`Unknown slide option "${key}".`);
   }
-  const options: SlideOptions = {};
+  const options: Slide["options"] = {};
   for (const key of ["notes", "title", "background"] as const) {
     const entry = value[key];
     if (entry === undefined) continue;
@@ -83,22 +96,26 @@ function parseOptions(value: Record<string, unknown>): SlideOptions {
       value.transition,
       'Slide option "transition"',
     );
+  if (value.css !== undefined)
+    options.css = parseCss(value.css, 'Slide option "css"');
   return options;
 }
 
-// A nested deck lends its theme and transition to its slides; a slide's own still wins.
+// A nested deck lends its theme, transition, and CSS to its slides; a slide's own still wins.
 function nestedSlides(deck: Deck): Slide[] {
   if (deck.config.title !== undefined || deck.config.aspect !== undefined)
     throw new HinoteError(
       'Deck options "title" and "aspect" can only be set on the top-level deck.',
     );
-  const { theme, transition } = deck.config;
-  if (!theme && !transition) return [...deck.slides];
+  const { theme, transition, css } = deck.config;
+  if (!theme && !transition && !css) return [...deck.slides];
+  const layer: StyleLayer | undefined = css && { sources: css };
   return deck.slides.map((slide) => {
     const options = { ...slide.options };
     if (theme) options.theme = mergeTheme(theme, slide.options.theme);
     options.transition ??= transition;
-    return { ...slide, options };
+    const styles = layer ? [layer, ...(slide.styles ?? [])] : slide.styles;
+    return { ...slide, options, styles };
   });
 }
 
