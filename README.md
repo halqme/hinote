@@ -52,7 +52,6 @@ Run this repository with Bun.
 bun src/cli.ts dev examples/deck.tsx
 bun src/cli.ts dev deck.tsx --port 4321
 bun src/cli.ts build deck.tsx -o dist/index.html
-bun src/cli.ts insert Next --at 2
 bun examples/deck.tsx
 ```
 
@@ -67,8 +66,6 @@ Advance with the left, right, up, and down arrows, Page Up, Page Down, Space, En
 The presenter sends the pointer to the audience. Either window can move, and the other follows. A window opened later jumps to the presenter's position. Served pages sync through the deck itself (an SSE stream at `/_hinote/events` and POST to `/_hinote/sync`), so pages on other devices that reach the server follow too. The built HTML file syncs with `BroadcastChannel` (`hinote-sync`) between windows of the same origin; two copies opened with `file://` do not sync. On the built file, the position is in the hash (`#3`) and `?presenter` opens the presenter view.
 
 `build` does not rewrite image URLs. Put the images where the HTML file can load them.
-
-`insert` creates `slides/<Name>.tsx` and adds an import to a deck whose default export is a single `createSlide([...])` without options. `<Name>` has to be a JavaScript identifier.
 
 ## Developing hinote
 

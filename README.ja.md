@@ -58,7 +58,6 @@ export default createSlide(
 bun src/cli.ts dev examples/deck.tsx
 bun src/cli.ts dev deck.tsx --port 4321
 bun src/cli.ts build deck.tsx -o dist/index.html
-bun src/cli.ts insert Next --at 2
 bun examples/deck.tsx
 ```
 
@@ -73,8 +72,6 @@ bun examples/deck.tsx
 ポインタは発表者画面から視聴画面へ送られます。どちらの画面で送っても、もう一方が同じ位置へ移ります。後から開いた画面は、発表者画面の位置に合わせます。サーバーで表示しているページは、デッキ自身を通して同期します（`/_hinote/events` の SSE と `/_hinote/sync` への POST）。そのため、サーバーに届く別の端末のページも追従します。書き出した HTML は、同じオリジンのウィンドウ同士で `BroadcastChannel`（`hinote-sync`）を使って同期します。`file://` で開いた2つのコピーは同期しません。書き出した HTML では、位置はハッシュ（`#3`）に入り、発表者画面は `?presenter` です。
 
 `build` は画像の URL を書き換えません。画像は、その HTML から読める場所に置いてください。
-
-`insert` は `slides/<Name>.tsx` を作り、default export が設定なしの `createSlide([...])` 1つだけのデッキに import を足します。`<Name>` は JavaScript の識別子にしてください。
 
 ## hinote を開発する
 

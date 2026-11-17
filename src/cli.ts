@@ -3,22 +3,18 @@ import { watch } from "node:fs";
 import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { HinoteError } from "./errors.ts";
-import { insertIntoDeck } from "./insert.ts";
 import { loadDeckFile } from "./load.ts";
 import { createDevApp } from "./server.ts";
 
 function usage(): string {
   return `hinote dev [deck.tsx] [--port 4321]
-hinote build [deck.tsx] [-o dist/index.html]
-hinote insert <Name> [--deck deck.tsx] [--at N]`;
+hinote build [deck.tsx] [-o dist/index.html]`;
 }
 
 type Args = {
   positionals: string[];
   port?: number;
   output?: string;
-  deck?: string;
-  at?: number;
 };
 
 function parseArgs(argv: string[]): Args {
@@ -30,8 +26,6 @@ function parseArgs(argv: string[]): Args {
       args.port = readNumber(argv, ++i, arg);
     else if (arg === "--output" || arg === "-o")
       args.output = readValue(argv, ++i, arg);
-    else if (arg === "--deck") args.deck = readValue(argv, ++i, arg);
-    else if (arg === "--at") args.at = readNumber(argv, ++i, arg);
     else if (arg.startsWith("-"))
       throw new HinoteError(`Unknown option "${arg}".`);
     else args.positionals.push(arg);
@@ -51,17 +45,6 @@ function readNumber(argv: string[], index: number, flag: string): number {
   if (!/^\d+$/.test(value))
     throw new HinoteError(`${flag} must be an integer.`);
   return Number(value);
-}
-
-function slideTemplate(name: string): string {
-  return `import { Center, createSlide } from "hinote"
-
-export default createSlide({ title: "${name}" }, () => (
-  <Center>
-    <h1>${name}</h1>
-  </Center>
-))
-`;
 }
 
 // Edits under these directories do not change the deck.
@@ -144,33 +127,6 @@ async function buildCommand(argv: string[]): Promise<void> {
   console.log(output);
 }
 
-async function insertCommand(argv: string[]): Promise<void> {
-  const args = parseArgs(argv);
-  const name = args.positionals[0];
-  if (!name || args.positionals.length !== 1)
-    throw new HinoteError("insert needs one slide name.");
-  const deckFile = resolve(args.deck ?? "deck.tsx");
-  if (!(await Bun.file(deckFile).exists()))
-    throw new HinoteError(`Could not read ${deckFile}.`);
-  const source = await Bun.file(deckFile).text();
-  const next = insertIntoDeck(source, name, `./slides/${name}.tsx`, args.at);
-  const slideFile = resolve(dirname(deckFile), "slides", `${name}.tsx`);
-  if (await Bun.file(slideFile).exists())
-    throw new HinoteError(`${slideFile} already exists.`);
-  await mkdir(dirname(slideFile), { recursive: true });
-  const temporary = `${deckFile}.${process.pid}.tmp`;
-  try {
-    await writeFile(slideFile, slideTemplate(name));
-    await writeFile(temporary, next);
-    await rename(temporary, deckFile);
-  } catch (error) {
-    await unlink(temporary).catch(() => {});
-    await unlink(slideFile).catch(() => {});
-    throw error;
-  }
-  console.log(slideFile);
-}
-
 export async function main(argv: string[]): Promise<void> {
   if (argv.length === 0) throw new HinoteError(usage());
   if (argv[0] === "--help" || argv[0] === "help") {
@@ -180,7 +136,6 @@ export async function main(argv: string[]): Promise<void> {
   const [command, ...rest] = argv;
   if (command === "dev") await devCommand(rest);
   else if (command === "build") await buildCommand(rest);
-  else if (command === "insert") await insertCommand(rest);
   else throw new HinoteError(`Unknown command "${command}".\n${usage()}`);
 }
 

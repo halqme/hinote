@@ -125,36 +125,6 @@ test("build writes one html file and leaves nothing behind on failure", async ()
   }
 });
 
-test("insert writes a slide and does not touch the deck when it cannot", async () => {
-  const dir = await tempDir();
-  try {
-    const deck = join(dir, "deck.tsx");
-    const original = `import { createSlide } from "hinote"\n\nexport default createSlide([\n  alpha,\n])\n`;
-    await writeFile(deck, original);
-    const inserted = await run(["insert", "Beta", "--at", "1"], dir);
-    expect(inserted.code).toBe(0);
-    const next = await readFile(deck, "utf8");
-    expect(next).toContain('import Beta from "./slides/Beta.tsx"');
-    expect(next.indexOf("Beta,")).toBeLessThan(next.indexOf("alpha,"));
-    const slide = await readFile(join(dir, "slides/Beta.tsx"), "utf8");
-    expect(slide).toContain("createSlide");
-    expect(slide).toContain("Beta");
-
-    const before = await readFile(deck, "utf8");
-    const duplicate = await run(["insert", "Beta"], dir);
-    expect(duplicate.code).toBe(1);
-    expect(await readFile(deck, "utf8")).toBe(before);
-    expect(await readFile(join(dir, "slides/Beta.tsx"), "utf8")).toBe(slide);
-
-    const outOfRange = await run(["insert", "Gamma", "--at", "9"], dir);
-    expect(outOfRange.code).toBe(1);
-    expect(await readFile(deck, "utf8")).toBe(before);
-    expect(await Bun.file(join(dir, "slides/Gamma.tsx")).exists()).toBe(false);
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-});
-
 test("help succeeds and a missing command fails", async () => {
   const dir = await tempDir();
   try {
