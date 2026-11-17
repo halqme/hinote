@@ -221,7 +221,8 @@ test("build writes one html file and leaves nothing behind on failure", async ()
       ["build", "deck.tsx", "--nope", "-o", "nope.html"],
       dir,
     );
-    expect(rejected.code).toBe(1);
+    // A command used wrongly exits 2, apart from a deck that fails (1).
+    expect(rejected.code).toBe(2);
     expect(await Bun.file(join(dir, "nope.html")).exists()).toBe(false);
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -586,15 +587,198 @@ test("init installs with the package manager that started it", async () => {
   }
 });
 
-test("help succeeds and a missing command fails", async () => {
+test("hinote alone and help describe every command; mistakes exit 2 with a hint", async () => {
   const dir = await tempDir();
   try {
-    const help = await run(["--help"], dir);
-    expect(help.code).toBe(0);
-    expect(help.stdout).toContain("hinote dev");
-    const none = await run([], dir);
-    expect(none.code).toBe(1);
-    expect(none.stderr).toContain("hinote build");
+    const bare = await run([], dir);
+    expect(bare.code).toBe(0);
+    // Agents are pointed at the skill first.
+    expect(bare.stdout).toContain("hinote skills get core");
+    for (const name of [
+      "init",
+      "dev",
+      "build",
+      "render",
+      "inline",
+      "check",
+      "skills",
+    ])
+      expect(bare.stdout).toContain(`  ${name} `);
+
+    const viaHelp = await run(["help", "build"], dir);
+    const viaFlag = await run(["build", "--help"], dir);
+    expect(viaHelp.code).toBe(0);
+    expect(viaHelp.stdout).toContain("Usage: hinote build");
+    expect(viaHelp.stdout).toContain("--output <path>");
+    expect(viaFlag.stdout).toBe(viaHelp.stdout);
+
+    const typo = await run(["biuld"], dir);
+    expect(typo.code).toBe(2);
+    expect(typo.stderr).toContain("hint:");
+    const flag = await run(["--json", "build", "--nope"], dir);
+    expect(flag.code).toBe(2);
+    expect(JSON.parse(flag.stdout)).toMatchObject({
+      ok: false,
+      command: "build",
+      error: { code: "usage", hint: "Run: hinote help build" },
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("check names each broken slide and exits 1; a sound deck exits 0", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(join(dir, "ok.png"), "png");
+    await writeFile(join(dir, "bad.client.tsx"), "export const = ;");
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`import { Script } from ${JSON.stringify(api)}
+export default createSlide([
+  createSlide(() => <img src="./ok.png" />),
+  createSlide(() => { throw new Error("boom"); }),
+  createSlide(() => <img src="./gone.png" />),
+])`),
+    );
+    const broken = await run(["check", "--json"], dir);
+    expect(broken.code).toBe(1);
+    const report = JSON.parse(broken.stdout);
+    expect(report.ok).toBe(false);
+    expect(report.data.problems).toEqual([
+      expect.objectContaining({ code: "render", slides: [2] }),
+      expect.objectContaining({ code: "missing-file", slides: [3] }),
+    ]);
+
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`import { Script } from ${JSON.stringify(api)}
+export default createSlide([
+  createSlide(() => <div><img src="./ok.png" /><Script src={new URL("./bad.client.tsx", import.meta.url)} /></div>),
+])`),
+    );
+    const script = await run(["check", "--json"], dir);
+    expect(script.code).toBe(1);
+    expect(JSON.parse(script.stdout).data.problems).toEqual([
+      expect.objectContaining({ code: "script" }),
+    ]);
+
+    await writeFile(join(dir, "bad.client.tsx"), "console.log(1);");
+    const fixed = await run(["check"], dir);
+    expect(fixed.code).toBe(0);
+    expect(fixed.stdout).toContain("ok: 1 slides");
+
+    const missing = await run(["check", "nowhere.tsx", "--json"], dir);
+    expect(missing.code).toBe(1);
+    expect(JSON.parse(missing.stdout).data.problems[0].code).toBe(
+      "deck-not-found",
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("inspect reports each slide's title, steps, notes, and files", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`import { Step } from ${JSON.stringify(api)}
+export default createSlide({ aspect: "4:3" }, [
+  createSlide({ title: "Opening", notes: "smile" }, () => <h1>ignored</h1>),
+  createSlide(() => <div><h2>Agenda <em>today</em></h2><Step>a</Step><Step>b</Step><Step at={1}>c</Step></div>),
+  createSlide(() => <img src="./pic.png" />),
+])`),
+    );
+    // A directory stands for the deck.tsx in it.
+    const inspected = await run(["inspect", ".", "--json"], dir);
+    expect(inspected.code).toBe(0);
+    const { data } = JSON.parse(inspected.stdout);
+    expect(data.aspect).toBe("4:3");
+    expect(data.canvas).toEqual({ width: 1440, height: 1080 });
+    expect(
+      data.slides.map(
+        (s: {
+          title?: string;
+          steps: number;
+          notes?: string;
+          files: string[];
+        }) => [s.title, s.steps, s.notes, s.files],
+      ),
+    ).toEqual([
+      ["Opening", 0, "smile", []],
+      ["Agenda today", 2, undefined, []],
+      [undefined, 0, undefined, ["./pic.png"]],
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("build is render piped through inline, and refs lists what it copies", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(join(dir, "logo.svg"), "<svg/>");
+    await writeFile(join(dir, "w.client.tsx"), `document.title = "w" + "ok";`);
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`import { Script } from ${JSON.stringify(api)}
+export default createSlide([
+  createSlide(() => <div><img src="./logo.svg" /><img src="./gone.png" /><Script src={new URL("./w.client.tsx", import.meta.url)} /></div>),
+])`),
+    );
+    expect((await run(["build", "-o", "dist/index.html"], dir)).code).toBe(0);
+    const rendered = await run(["render", "-o", "page.html"], dir);
+    expect(rendered.code).toBe(0);
+    expect(await readFile(join(dir, "page.html"), "utf8")).toContain(
+      "data-hinote-src",
+    );
+    const proc = Bun.spawn(["bun", cli, "inline"], {
+      cwd: dir,
+      stdin: Bun.file(join(dir, "page.html")),
+      stdout: "pipe",
+    });
+    const piped = await new Response(proc.stdout).text();
+    expect(await proc.exited).toBe(0);
+    expect(piped).toBe(await readFile(join(dir, "dist/index.html"), "utf8"));
+    expect(piped).not.toContain("data-hinote-src");
+    expect(piped).toContain("wok");
+
+    const listed = await run(["refs", "--json"], dir);
+    expect(JSON.parse(listed.stdout).data).toEqual([
+      { path: "./logo.svg", exists: true },
+      { path: "./gone.png", exists: false },
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("skills prints the guide and its references, and names what exists when asked for what does not", async () => {
+  const dir = await tempDir();
+  try {
+    const list = JSON.parse((await run(["skills", "--json"], dir)).stdout);
+    const core = list.data.find((s: { name: string }) => s.name === "core");
+    expect(core.references.length).toBeGreaterThan(0);
+
+    const guide = await run(["skills", "get", "core"], dir);
+    expect(guide.code).toBe(0);
+    expect(guide.stdout).toStartWith("---\nname: hinote\n");
+    // Every reference the guide routes to can be loaded.
+    for (const ref of core.references) {
+      const loaded = await run(["skills", "get", "core", "--ref", ref], dir);
+      expect(loaded.code).toBe(0);
+      expect(guide.stdout).toContain(`\`${ref}\``);
+    }
+    const full = await run(["skill", "get", "core", "--full"], dir);
+    expect(full.stdout.length).toBeGreaterThan(guide.stdout.length);
+
+    const wrong = await run(["skills", "get", "nope", "--json"], dir);
+    expect(wrong.code).toBe(1);
+    expect(JSON.parse(wrong.stdout).error).toMatchObject({
+      code: "skill-not-found",
+      hint: expect.stringContaining("core"),
+    });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

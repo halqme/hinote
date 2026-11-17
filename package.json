@@ -12,6 +12,7 @@
     "src",
     "dist",
     "docs",
+    "skills",
     "README.ja.md"
   ],
   "type": "module",

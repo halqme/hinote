@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
@@ -52,10 +52,21 @@ const sourceMeta: LoadPlugin = {
   },
 };
 
-export async function loadDeckFile(file: string): Promise<Deck> {
+// A directory stands for the deck.tsx in it.
+export function deckPath(file = "deck.tsx"): string {
   const absolute = resolve(file);
+  return existsSync(absolute) && statSync(absolute).isDirectory()
+    ? join(absolute, "deck.tsx")
+    : absolute;
+}
+
+export async function loadDeckFile(file: string): Promise<Deck> {
+  const absolute = deckPath(file);
   if (!existsSync(absolute))
-    throw new HinoteError(`Could not load ${absolute}: file does not exist.`);
+    throw new HinoteError(`Could not load ${absolute}: file does not exist.`, {
+      code: "deck-not-found",
+      hint: "Pass the deck file (hinote check talk/deck.tsx), or create one with hinote init.",
+    });
   let code: string;
   try {
     code = await bundle(
@@ -64,7 +75,9 @@ export async function loadDeckFile(file: string): Promise<Deck> {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new HinoteError(`Could not load ${absolute}: ${message}`);
+    throw new HinoteError(`Could not load ${absolute}: ${message}`, {
+      code: "deck-load",
+    });
   }
   const dir = await mkdtemp(join(tmpdir(), "hinote-deck-"));
   const outfile = join(dir, "deck.mjs");
@@ -77,12 +90,18 @@ export async function loadDeckFile(file: string): Promise<Deck> {
     if (!isDeck(loaded.default))
       throw new HinoteError(
         `Could not load ${absolute}: the default export must be createSlide([...]).`,
+        {
+          code: "deck-export",
+          hint: "End deck.tsx with: export default createSlide([...])",
+        },
       );
     return loaded.default;
   } catch (error) {
     if (error instanceof HinoteError) throw error;
     const message = error instanceof Error ? error.message : String(error);
-    throw new HinoteError(`Could not load ${absolute}: ${message}`);
+    throw new HinoteError(`Could not load ${absolute}: ${message}`, {
+      code: "deck-load",
+    });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

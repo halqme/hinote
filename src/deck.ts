@@ -215,9 +215,33 @@ export class Deck extends Hono {
     page: Page = "view",
     options: { base?: string; sync?: Sync; directories?: boolean } = {},
   ) {
+    return this.#renderSlides(this.slides, page, options);
+  }
+
+  // Renders each slide as a page of its own, so a slide that fails can be
+  // named (`hinote check`, `hinote inspect`). A failure is kept, not thrown.
+  async renderEach(
+    page: Page = "view",
+  ): Promise<({ html: string } | { error: unknown })[]> {
+    const results: ({ html: string } | { error: unknown })[] = [];
+    for (const slide of this.slides) {
+      try {
+        results.push({ html: await this.#renderSlides([slide], page, {}) });
+      } catch (error) {
+        results.push({ error });
+      }
+    }
+    return results;
+  }
+
+  #renderSlides(
+    slides: readonly Slide[],
+    page: Page,
+    options: { base?: string; sync?: Sync; directories?: boolean },
+  ) {
     return renderDeck({
       ...options,
-      slides: this.slides,
+      slides,
       theme: this.config.theme,
       title: this.config.title,
       canvas: this.canvas,

@@ -67,6 +67,7 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
     if (build.exitCode !== 0) throw new Error(build.stderr.toString());
     await cp(join(repo, "package.json"), join(pkg, "package.json"));
     await cp(join(repo, "src"), join(pkg, "src"), { recursive: true });
+    await cp(join(repo, "skills"), join(pkg, "skills"), { recursive: true });
     full = join(dir, "full");
     bare = join(dir, "bare");
     await project(full, ["hono", "@pierre", "esbuild", "@hono/node-server"]);
@@ -91,6 +92,15 @@ console.log(await (await deck.request("/1")).text());`,
     });
     expect(run.stderr.toString()).toBe("");
     expect(run.stdout.toString()).toContain("<h1>library</h1>");
+  });
+
+  test("the CLI finds its skills and checks a deck under Node", async () => {
+    const guide = hinote(bare, ["skills", "get", "core"]);
+    expect(guide.exitCode).toBe(0);
+    expect(guide.stdout.toString()).toContain("name: hinote");
+    const checked = hinote(full, ["check", "--json"]);
+    expect(checked.exitCode).toBe(0);
+    expect(JSON.parse(checked.stdout.toString()).ok).toBe(true);
   });
 
   test("the CLI builds and serves with esbuild and @hono/node-server", async () => {

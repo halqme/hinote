@@ -40,7 +40,7 @@ export function referencedPaths(html: string): string[] {
   return [...paths];
 }
 
-function decode(text: string): string {
+export function decode(text: string): string {
   return text
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")

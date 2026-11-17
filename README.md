@@ -175,6 +175,8 @@ hinote prerender [deck.tsx] [-o dist] [--base /path]
 hinote assets [deck.tsx] [-o public]
 ```
 
+`hinote` alone lists every command, and `hinote help <command>` (or `--help`) gives one command's options and examples. A deck argument may be the file or its directory.
+
 The CLI works the same on Bun and on Node. On Bun it uses Bun's own bundler and server; on Node it uses `esbuild` and `@hono/node-server`, which `init` adds there. If they are missing on Node, the CLI hands the run to Bun when Bun is installed, and otherwise says what to install.
 
 `dev` serves the deck at <http://127.0.0.1:4321> and the presenter view at `/presenter`. The presenter view shows the current slide, a preview of what the next key press shows, the elapsed time (click it to restart; it survives reloads), the clock, and the notes. Press `O` for an overview of every slide; click one to jump to it. It reloads the deck when a file in the deck directory changes, and open pages reload with it. A deck that fails to load is reported, and the last one keeps serving. `dev` also serves files inside the deck directory, such as images, and refuses a path that leaves that directory.
@@ -194,6 +196,26 @@ To make a PDF, print any page and choose "Save as PDF". Each slide becomes one p
 `build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). Images and other files the slides refer to by relative path (`src`, `href`, `srcset`, and `url()` in CSS) are copied next to the HTML file, keeping their paths. Files outside the deck directory, absolute paths, and other sites are left as they are.
 
 `prerender` writes the pages a server would answer, for a static host: an `index.html` at `/` and `/3/` for every slide, plus the files the slides refer to. With `presenter: true` on the deck it also writes `/presenter/` and `/presenter/3/`, and the pages sync between windows of one browser through `BroadcastChannel`: present from the presenter view on your laptop with the audience view on the projector. With no server behind them, other devices do not follow, but anyone can open the presenter pages and read the notes, so publish them only when that is fine. Pass `--base /repo` when the site lives under a path, such as a GitHub Pages project site, then upload the directory to any static host (GitHub Pages, Cloudflare Pages, Netlify, and so on).
+
+## Commands for each step, and for agents
+
+Each command above is a few smaller commands in a row, in the way of Git's plumbing. They run on their own, so a script or an agent can do one step and look at the result:
+
+| Command                                                 | What it does                                                                                                                                                       |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `hinote check [deck]`                                   | Renders each slide alone, looks for the files slides load, and bundles each `<Script>`; lists every problem with its slide and a code, and exits 1 if there is one |
+| `hinote inspect [deck]`                                 | Each slide's title, steps, notes, and the files it loads                                                                                                           |
+| `hinote refs [deck]`                                    | The files the slides refer to, and whether each is there                                                                                                           |
+| `hinote render [deck] [--page view\|presenter\|static]` | One page's HTML, with `<Script>` left as placeholders                                                                                                              |
+| `hinote inline [page.html]`                             | Bundles the `<Script>` files of a page from a file or stdin                                                                                                        |
+
+`hinote build` is `hinote render | hinote inline` followed by `hinote assets`, and `hinote check && hinote build` stops on a broken deck.
+
+hinote decks are mostly written by coding agents, so the CLI is built for them too:
+
+- `hinote skills get core` prints a guide to writing and checking decks that ships with the package and matches its version; `--ref <name>` loads one of its references and `--full` all of them. `hinote skills path core` gives its directory, to copy into an agent's skills.
+- `--json` on any command prints JSON on stdout: `{"ok": true, "command", "data"}`, or `{"ok": false, "command", "error": {"code", "message", "hint"}}`, where the hint is usually the command to run next. `hinote dev --json` prints one `{"event", "data"}` line per event, starting with `listening` and its URLs.
+- Exit codes: 0 success, 1 a problem with the deck or its files, 2 a command used wrongly. No command asks a question.
 
 ## Serving the deck as a Hono app
 
