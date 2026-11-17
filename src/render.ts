@@ -44,6 +44,15 @@ html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45
 html[data-page="presenter"] #hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;margin:0;padding:1.25rem;overflow:auto;background:#181b22;border-left:1px solid #2c313c;font-size:16px;line-height:1.6}
 html[data-page="presenter"] #hinote-step{margin:0;color:#a1a1aa;font-size:13px;letter-spacing:.04em}
 html[data-page="presenter"] #hinote-notes{margin:0;font-size:16px;line-height:1.6}
+@media print{
+html,body{height:auto;overflow:visible;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html[data-page] body{display:block}
+#deck,html[data-page="presenter"] #deck{position:static;display:block;padding:0}
+.hinote-stage{width:auto;height:auto;overflow:visible;box-shadow:none}
+.hinote-stage>.slide{display:flex;position:relative;transform:none;break-after:page}
+[data-hinote-step].is-hidden{opacity:1;visibility:visible}
+#hinote-panel,#hinote-overview,#hinote-pointer{display:none}
+}
 `.trim();
 
 // The HTML parser ends a script at the character sequence "</script".
@@ -94,7 +103,11 @@ export async function renderDeck(input: {
     input.slides.find((slide) => slide.options.title)?.options.title ||
     "hinote";
   const firstNotes = input.slides[0]?.options.notes ?? "";
-  const css = `${themeCss(theme)}\n:root{--hinote-canvas-width:${canvas.width}px;--hinote-canvas-height:${canvas.height}px}\n${BASE_CSS}`;
+  // Printing gives one page per slide at canvas size, which "Save as PDF" turns into a PDF.
+  const css = `${themeCss(theme)}
+:root{--hinote-canvas-width:${canvas.width}px;--hinote-canvas-height:${canvas.height}px}
+@page{size:${canvas.width}px ${canvas.height}px;margin:0}
+${BASE_CSS}`;
   const slides = input.slides.map((slide, index) => {
     const className = [
       "slide",

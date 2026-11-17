@@ -65,6 +65,8 @@ Advance with the left, right, up, and down arrows, Page Up, Page Down, Space, En
 
 The presenter sends the pointer to the audience. Either window can move, and the other follows. A window opened later jumps to the presenter's position. Pages sync through the deck itself (an SSE stream at `/_hinote/events` and POST to `/_hinote/sync`), so pages on other devices that reach the server follow too.
 
+To make a PDF, print any page and choose "Save as PDF". Each slide becomes one page at canvas size with every step revealed.
+
 `build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). `build` does not rewrite image URLs. Put the images where the HTML file can load them.
 
 ## Developing hinote
