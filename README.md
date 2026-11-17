@@ -57,7 +57,7 @@ bun examples/deck.tsx
 
 `dev` serves the deck at <http://127.0.0.1:4321> and the presenter view at `/presenter`. The presenter view shows the current slide, a preview of what the next key press shows, the elapsed time (click it to restart; it survives reloads), the clock, and the notes. Press `O` for an overview of every slide; click one to jump to it. It reloads the deck when a file in the deck directory changes, and open pages reload with it. A deck that fails to load is reported, and the last one keeps serving. `dev` also serves files inside the deck directory, such as images, and refuses a path that leaves that directory.
 
-Because the deck is a Hono app, `bun deck.tsx` serves it too (on port 3000), and so does `app.route("/talk", deck)` inside another app. You can add your own routes with `deck.get(...)`. Without `dev` there is no reload and no file serving; add `serveStatic` yourself if you need images.
+Because the deck is a Hono app, `bun deck.tsx` serves it too (on port 3000), and so does `app.route("/talk", deck)` inside another app. You can add your own routes with `deck.get(...)`. With `bun --hot deck.tsx`, open pages reload when you save, as with `dev`. Without `dev` there is no file serving; add `serveStatic` yourself if you need images.
 
 `/3` opens the third slide and `/presenter/3` its presenter view. Paths do not nest further: steps are not in the URL, so a reload starts the slide with no step revealed.
 

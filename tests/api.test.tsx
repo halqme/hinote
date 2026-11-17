@@ -327,9 +327,14 @@ describe("deck as a Hono app", () => {
 });
 
 describe("sync over the deck server", () => {
-  async function listen(deck: ReturnType<typeof deckOf>, id: string) {
+  async function listen(
+    deck: ReturnType<typeof deckOf>,
+    id: string,
+    channel = "",
+  ) {
     const controller = new AbortController();
-    const response = await deck.request(`/_hinote/events?id=${id}`, {
+    const query = new URLSearchParams({ id, channel });
+    const response = await deck.request(`/_hinote/events?${query}`, {
       signal: controller.signal,
     });
     expect(response.headers.get("content-type")).toContain("text/event-stream");
@@ -360,16 +365,58 @@ describe("sync over the deck server", () => {
     const b = await listen(deck, "b");
     try {
       const message = { type: "navigate", slide: 1, step: 0 };
-      const sent = await send(deck, JSON.stringify({ from: "a", message }));
+      const sent = await send(
+        deck,
+        JSON.stringify({ channel: "", from: "a", message }),
+      );
       expect(sent.status).toBe(204);
       expect(await b.next()).toEqual(message);
       const reply = { type: "hello" };
-      await send(deck, JSON.stringify({ from: "b", message: reply }));
+      await send(
+        deck,
+        JSON.stringify({ channel: "", from: "b", message: reply }),
+      );
       // a's first message is b's reply, so a never saw its own navigate.
       expect(await a.next()).toEqual(reply);
     } finally {
       a.close();
       b.close();
+    }
+  });
+
+  test("pages on another channel do not follow", async () => {
+    const deck = deckOf(textSlide("x"));
+    const talk = await listen(deck, "talk", "/talk");
+    const other = await listen(deck, "other", "/other");
+    try {
+      const message = { type: "navigate", slide: 1, step: 0 };
+      await send(
+        deck,
+        JSON.stringify({ channel: "/other", from: "x", message }),
+      );
+      expect(await other.next()).toEqual(message);
+      const own = { type: "hello" };
+      await send(
+        deck,
+        JSON.stringify({ channel: "/talk", from: "x", message: own }),
+      );
+      // The first message on /talk is its own, not the one sent to /other.
+      expect(await talk.next()).toEqual(own);
+    } finally {
+      talk.close();
+      other.close();
+    }
+  });
+
+  test("building a deck while pages are open tells them to reload", async () => {
+    const deck = deckOf(textSlide("old"));
+    const page = await listen(deck, "page", "/talk");
+    try {
+      // What `bun --hot` and `hinote dev` do when deck.tsx changes.
+      deckOf(textSlide("new"));
+      expect(await page.next()).toEqual({ type: "reload" });
+    } finally {
+      page.close();
     }
   });
 

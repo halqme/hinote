@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { HinoteError } from "./errors.ts";
-import { SyncHub } from "./hub.ts";
+import { syncHub } from "./hub.ts";
 import { renderDeck, type Page } from "./render.ts";
 import type { Slide } from "./slide.ts";
 import { parseTheme, type Theme } from "./theme.ts";
@@ -68,14 +68,14 @@ export class Deck extends Hono {
   readonly kind = "deck";
   readonly slides: readonly Slide[];
   readonly config: DeckOptions;
-  // Replaced by `hinote dev` so pages stay connected across reloads.
-  hub = new SyncHub();
   readonly #pages = new Map<Page, Promise<string>>();
 
   constructor(slides: readonly Slide[], options: DeckOptions = {}) {
     super();
     this.slides = slides;
     this.config = options;
+    // A deck built while pages are open is an edited deck (`bun --hot`, `hinote dev`).
+    syncHub().reloadAll();
 
     const page = (kind: "view" | "presenter") => async () => {
       let html = this.#pages.get(kind);
@@ -99,8 +99,9 @@ export class Deck extends Hono {
 
     this.get("/_hinote/events", (c) => {
       const id = c.req.query("id") ?? crypto.randomUUID();
+      const channel = c.req.query("channel") ?? "";
       return streamSSE(c, async (stream) => {
-        const disconnect = this.hub.connect(id, (message) => {
+        const disconnect = syncHub().connect(channel, id, (message) => {
           void stream.writeSSE({ data: JSON.stringify(message) });
         });
         stream.onAbort(disconnect);
@@ -126,10 +127,19 @@ export class Deck extends Hono {
         return c.body(null, 400);
       }
       if (!body || typeof body !== "object") return c.body(null, 400);
-      const { from, message } = body as { from?: unknown; message?: unknown };
-      if (typeof from !== "string" || !message || typeof message !== "object")
+      const { channel, from, message } = body as {
+        channel?: unknown;
+        from?: unknown;
+        message?: unknown;
+      };
+      if (
+        typeof channel !== "string" ||
+        typeof from !== "string" ||
+        !message ||
+        typeof message !== "object"
+      )
         return c.body(null, 400);
-      this.hub.broadcast(message, from);
+      syncHub().broadcast(channel, message, from);
       return c.body(null, 204);
     });
   }

@@ -27,14 +27,14 @@ const NO_PORT: Port = { post() {}, listen() {} };
 // on other devices follow too. The server sends `reload` after `hinote dev` reloads.
 function serverPort(base: string): Port {
   const id = crypto.randomUUID();
-  const events = new EventSource(
-    `${base}/_hinote/events?id=${encodeURIComponent(id)}`,
-  );
+  // The base path names the channel, so decks mounted side by side stay apart.
+  const query = new URLSearchParams({ id, channel: base });
+  const events = new EventSource(`${base}/_hinote/events?${query}`);
   const post = (message: SyncMessage) => {
     void fetch(`${base}/_hinote/sync`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ from: id, message }),
+      body: JSON.stringify({ channel: base, from: id, message }),
     }).catch(() => {});
   };
   // A message sent before the stream opened gets no answer, so greet again on (re)connect.

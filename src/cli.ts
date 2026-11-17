@@ -65,8 +65,6 @@ async function devCommand(argv: string[]): Promise<void> {
   if (port < 1 || port > 65535)
     throw new HinoteError("--port must be from 1 to 65535.");
   let deck = await loadDeckFile(deckFile);
-  // One hub for the whole session, so open pages hear `reload` from the new deck.
-  const hub = deck.hub;
   const app = createDevApp(() => deck, root);
   const server = Bun.serve({
     port,
@@ -82,10 +80,8 @@ async function devCommand(argv: string[]): Promise<void> {
   const reload = () => {
     loading = loading.then(async () => {
       try {
-        const next = await loadDeckFile(deckFile);
-        next.hub = hub;
-        deck = next;
-        hub.broadcast({ type: "reload" });
+        // Building the new deck tells open pages to reload (see hub.ts).
+        deck = await loadDeckFile(deckFile);
         console.log("reloaded");
       } catch (error) {
         // Keep serving the last deck that loaded.
