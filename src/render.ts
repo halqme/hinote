@@ -1,7 +1,9 @@
 import { jsx } from "hono/jsx";
 import clientScript from "./client.generated.ts";
 import { HinoteError } from "./errors.ts";
-import type { Role } from "./player.ts";
+// `view` and `presenter` are served by the deck and sync through it. `static` is
+// the single file from `hinote build`: one audience view with no sync.
+export type Page = "view" | "presenter" | "static";
 import type { Slide } from "./slide.ts";
 import { withStepCounter } from "./step.tsx";
 import {
@@ -35,14 +37,13 @@ small{font-size:var(--hinote-small);color:var(--hinote-muted)}
 code,pre{font-family:var(--hinote-font-mono)}
 a{color:var(--hinote-accent)}
 #hinote-pointer{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 16px #ff2d2d;pointer-events:none;z-index:10;opacity:0}
-#hinote-panel{display:none}
 #hinote-notes{white-space:pre-wrap}
-html[data-role="presenter"] body{display:grid;grid-template-columns:minmax(0,1fr) minmax(14rem,22rem);background:#111318;color:#f4f4f5}
-html[data-role="presenter"] #deck{position:relative;inset:auto;min-width:0;min-height:0;padding:1.25rem;background:#0b0d12}
-html[data-role="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45)}
-html[data-role="presenter"] #hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;margin:0;padding:1.25rem;overflow:auto;background:#181b22;border-left:1px solid #2c313c;font-size:16px;line-height:1.6}
-html[data-role="presenter"] #hinote-step{margin:0;color:#a1a1aa;font-size:13px;letter-spacing:.04em}
-html[data-role="presenter"] #hinote-notes{margin:0;font-size:16px;line-height:1.6}
+html[data-page="presenter"] body{display:grid;grid-template-columns:minmax(0,1fr) minmax(14rem,22rem);background:#111318;color:#f4f4f5}
+html[data-page="presenter"] #deck{position:relative;inset:auto;min-width:0;min-height:0;padding:1.25rem;background:#0b0d12}
+html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45)}
+html[data-page="presenter"] #hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;margin:0;padding:1.25rem;overflow:auto;background:#181b22;border-left:1px solid #2c313c;font-size:16px;line-height:1.6}
+html[data-page="presenter"] #hinote-step{margin:0;color:#a1a1aa;font-size:13px;letter-spacing:.04em}
+html[data-page="presenter"] #hinote-notes{margin:0;font-size:16px;line-height:1.6}
 `.trim();
 
 // The HTML parser ends a script at the character sequence "</script".
@@ -80,15 +81,13 @@ export async function renderDeck(input: {
   theme?: ThemeOverride;
   title?: string;
   canvas?: { width: number; height: number };
-  role?: Role;
-  mode?: "serve" | "static";
+  page?: Page;
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
     input.theme === undefined ? undefined : parseThemeOverride(input.theme),
   );
-  const role = input.role ?? "view";
-  const mode = input.mode ?? "static";
+  const page = input.page ?? "view";
   const canvas = input.canvas ?? { width: 1920, height: 1080 };
   const title =
     input.title ||
@@ -124,7 +123,7 @@ export async function renderDeck(input: {
   const deck = jsx("div", { id: "deck" }, stage);
   const document = jsx(
     "html",
-    { "data-role": role, "data-mode": mode },
+    { "data-page": page },
     jsx(
       "head",
       {},
@@ -140,17 +139,19 @@ export async function renderDeck(input: {
       "body",
       {},
       deck,
-      jsx(
-        "aside",
-        { id: "hinote-panel" },
-        jsx(
-          "p",
-          { id: "hinote-step" },
-          slides.length > 0 ? `1 / ${slides.length}` : "",
-        ),
-        jsx("div", { id: "hinote-notes" }, firstNotes),
-      ),
-      jsx("div", { id: "hinote-pointer" }),
+      page === "presenter"
+        ? jsx(
+            "aside",
+            { id: "hinote-panel" },
+            jsx(
+              "p",
+              { id: "hinote-step" },
+              slides.length > 0 ? `1 / ${slides.length}` : "",
+            ),
+            jsx("div", { id: "hinote-notes" }, firstNotes),
+          )
+        : null,
+      page === "static" ? null : jsx("div", { id: "hinote-pointer" }),
       jsx("script", { dangerouslySetInnerHTML: { __html: SCRIPT } }),
     ),
   );

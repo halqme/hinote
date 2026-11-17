@@ -202,7 +202,7 @@ describe("theme and output", () => {
       createSlide({ theme: { colors: { bg: "#abc123" } } }, () => <p>one</p>),
       createSlide(() => <img src="./pic.png" alt="会場" />),
     ]);
-    const html = await deck.render("view", "static");
+    const html = await deck.render("static");
     expect(html).toContain("--hinote-accent:#111111");
     expect(html).toContain("--hinote-bg:#abc123");
     const first = html.indexOf("#abc123");
@@ -213,7 +213,8 @@ describe("theme and output", () => {
     expect(html).not.toContain("data:image");
     expect(html).not.toContain("<script src");
     expect(html).not.toContain('<link rel="stylesheet"');
-    expect(html).toContain('data-mode="static"');
+    // The single file is an audience view only.
+    expect(html).not.toContain('id="hinote-panel"');
   });
 
   test("inlines a runtime the browser can parse", async () => {
@@ -257,10 +258,12 @@ describe("deck as a Hono app", () => {
       expect(response.headers.get("content-type")).toContain("text/html");
       const html = await response.text();
       expect(html).toContain("two");
-      expect(html).toContain('data-mode="serve"');
     }
     expect(await (await deck.request("/presenter")).text()).toContain(
-      'data-role="presenter"',
+      'id="hinote-panel"',
+    );
+    expect(await (await deck.request("/")).text()).not.toContain(
+      'id="hinote-panel"',
     );
     // Paths do not nest below the slide number.
     expect((await deck.request("/2/1")).status).toBe(404);

@@ -2,8 +2,7 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { HinoteError } from "./errors.ts";
 import { SyncHub } from "./hub.ts";
-import type { Role } from "./player.ts";
-import { renderDeck } from "./render.ts";
+import { renderDeck, type Page } from "./render.ts";
 import type { Slide } from "./slide.ts";
 import { parseThemeOverride, type ThemeOverride } from "./theme.ts";
 
@@ -71,19 +70,19 @@ export class Deck extends Hono {
   readonly config: DeckOptions;
   // Replaced by `hinote dev` so pages stay connected across reloads.
   hub = new SyncHub();
-  readonly #pages = new Map<Role, Promise<string>>();
+  readonly #pages = new Map<Page, Promise<string>>();
 
   constructor(slides: readonly Slide[], options: DeckOptions = {}) {
     super();
     this.slides = slides;
     this.config = options;
 
-    const page = (role: Role) => async () => {
-      let html = this.#pages.get(role);
+    const page = (kind: "view" | "presenter") => async () => {
+      let html = this.#pages.get(kind);
       if (!html) {
-        html = this.render(role);
-        this.#pages.set(role, html);
-        html.catch(() => this.#pages.delete(role));
+        html = this.render(kind);
+        this.#pages.set(kind, html);
+        html.catch(() => this.#pages.delete(kind));
       }
       return new Response(await html, {
         headers: {
@@ -139,16 +138,14 @@ export class Deck extends Hono {
     return parseAspect(this.config.aspect ?? "16:9");
   }
 
-  // Renders the whole deck as one HTML document. `static` pages sync over
-  // BroadcastChannel instead of this server.
-  render(role: Role = "view", mode: "serve" | "static" = "serve") {
+  // Renders the whole deck as one HTML document.
+  render(page: Page = "view") {
     return renderDeck({
       slides: this.slides,
       theme: this.config.theme,
       title: this.config.title,
       canvas: this.canvas,
-      role,
-      mode,
+      page,
     });
   }
 }

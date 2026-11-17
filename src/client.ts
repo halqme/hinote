@@ -9,7 +9,6 @@ import {
 import {
   createPlayer,
   normalizePointer,
-  SYNC_CHANNEL,
   type Position,
   type Role,
   type SyncMessage,
@@ -20,16 +19,8 @@ type Port = {
   listen(handler: (message: unknown) => void): void;
 };
 
-// The built file has no server, so windows of the same origin talk directly.
-function broadcastPort(): Port {
-  const channel = new BroadcastChannel(SYNC_CHANNEL);
-  return {
-    post: (message) => channel.postMessage(message),
-    listen: (handler) => {
-      channel.onmessage = (event) => handler(event.data);
-    },
-  };
-}
+// The built file is one audience view with nothing to sync with.
+const NO_PORT: Port = { post() {}, listen() {} };
 
 // A served page listens on the deck's SSE stream and sends with POST, so pages
 // on other devices follow too. The server sends `reload` after `hinote dev` reloads.
@@ -69,17 +60,10 @@ function stepCount(slide: Element): number {
 }
 
 function boot(): void {
-  const root = document.documentElement;
+  const page = document.documentElement.dataset.page;
   const served =
-    root.dataset.mode === "serve"
-      ? parseServedPath(location.pathname)
-      : undefined;
-  const role: Role =
-    served?.role ??
-    (new URLSearchParams(location.search).has("presenter")
-      ? "presenter"
-      : "view");
-  root.dataset.role = role;
+    page === "static" ? undefined : parseServedPath(location.pathname);
+  const role: Role = page === "presenter" ? "presenter" : "view";
 
   const deck = document.getElementById("deck");
   const stage = document.querySelector<HTMLElement>(".hinote-stage");
@@ -88,7 +72,7 @@ function boot(): void {
   const notesEl = document.getElementById("hinote-notes");
   const stepEl = document.getElementById("hinote-step");
   const pointerEl = document.getElementById("hinote-pointer");
-  const port = served ? serverPort(served.base) : broadcastPort();
+  const port = served ? serverPort(served.base) : NO_PORT;
 
   const fit = () => {
     if (!deck || !stage) return;

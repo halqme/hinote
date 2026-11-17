@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-Write slides with Hono and Hono/JSX. A deck is a Hono app: any way of running Hono serves it. `build` writes one HTML file and leaves image URLs as they are.
+Write slides with Hono and Hono/JSX. A deck is a Hono app: any way of running Hono serves it. `build` writes the audience view as one HTML file.
 
 ## Slides
 
@@ -63,9 +63,9 @@ Because the deck is a Hono app, `bun deck.tsx` serves it too (on port 3000), and
 
 Advance with the left, right, up, and down arrows, Page Up, Page Down, Space, Enter, Backspace, Home, and End. Going forward reveals the next step before moving on; going back from a slide lands on the previous slide with every step revealed.
 
-The presenter sends the pointer to the audience. Either window can move, and the other follows. A window opened later jumps to the presenter's position. Served pages sync through the deck itself (an SSE stream at `/_hinote/events` and POST to `/_hinote/sync`), so pages on other devices that reach the server follow too. The built HTML file syncs with `BroadcastChannel` (`hinote-sync`) between windows of the same origin; two copies opened with `file://` do not sync. On the built file, the position is in the hash (`#3`) and `?presenter` opens the presenter view.
+The presenter sends the pointer to the audience. Either window can move, and the other follows. A window opened later jumps to the presenter's position. Pages sync through the deck itself (an SSE stream at `/_hinote/events` and POST to `/_hinote/sync`), so pages on other devices that reach the server follow too.
 
-`build` does not rewrite image URLs. Put the images where the HTML file can load them.
+`build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). `build` does not rewrite image URLs. Put the images where the HTML file can load them.
 
 ## Developing hinote
 

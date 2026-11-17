@@ -93,7 +93,7 @@ test("build writes one html file and leaves nothing behind on failure", async ()
     expect(html).toContain("Built");
     expect(html).toContain("--hinote-accent:#222222");
     expect(html).not.toContain("<script src");
-    expect(html).toContain('data-mode="static"');
+    expect(html).not.toContain('id="hinote-panel"');
 
     const missing = join(dir, "missing.html");
     const failed = await run(
@@ -176,10 +176,10 @@ test(
       expect(view.status).toBe(200);
       const html = await view.text();
       expect(html).toContain("Live");
-      expect(html).toContain('data-role="view"');
+      expect(html).not.toContain('id="hinote-panel"');
 
       const presenter = await fetch(`http://127.0.0.1:${port}/presenter`);
-      expect(await presenter.text()).toContain('data-role="presenter"');
+      expect(await presenter.text()).toContain('id="hinote-panel"');
       expect(
         await (await fetch(`http://127.0.0.1:${port}/pic.txt`)).text(),
       ).toBe("picture");

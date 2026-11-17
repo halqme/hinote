@@ -1,5 +1,3 @@
-export const SYNC_CHANNEL = "hinote-sync";
-
 export type Role = "view" | "presenter";
 
 export type Pointer = { x: number; y: number; active: boolean };

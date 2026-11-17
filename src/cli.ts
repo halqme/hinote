@@ -114,7 +114,7 @@ async function buildCommand(argv: string[]): Promise<void> {
   const deckFile = resolve(args.positionals[0] ?? "deck.tsx");
   const output = resolve(args.output ?? "dist/index.html");
   const deck = await loadDeckFile(deckFile);
-  const html = await deck.render("view", "static");
+  const html = await deck.render("static");
   await mkdir(dirname(output), { recursive: true });
   const temporary = `${output}.${process.pid}.tmp`;
   await writeFile(temporary, html);
