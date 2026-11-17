@@ -1,10 +1,4 @@
-import {
-  codeToHtml,
-  isSupportedLanguage,
-  type Lang,
-  type Theme as CodeTheme,
-  type ThemeFamily,
-} from "@pierre/highlights";
+import type { Lang, Theme as CodeTheme, ThemeFamily } from "@pierre/highlights";
 import { pierreDark } from "@pierre/highlights/themes";
 import { raw } from "hono/html";
 import { HinoteError } from "./errors.ts";
@@ -34,9 +28,14 @@ export function dedent(source: string): string {
   return lines.map((line) => line.slice(indent)).join("\n");
 }
 
+// The highlighter compiles WebAssembly as soon as it loads, which some hosts
+// refuse. It loads on the first <Code>, so a deck without code runs anywhere
+// Hono runs.
+let highlighter: Promise<typeof import("@pierre/highlights")> | undefined;
+
 // Highlighted while the slide renders, with colors inline, so the page needs no
 // highlighter of its own and the built file shows the same colors.
-export function Code(props: CodeProps) {
+export async function Code(props: CodeProps) {
   const source =
     props.code ??
     (Array.isArray(props.children) ? props.children.join("") : props.children);
@@ -44,6 +43,8 @@ export function Code(props: CodeProps) {
     throw new HinoteError(
       "<Code> needs its source as `code` or as text children.",
     );
+  highlighter ??= import("@pierre/highlights");
+  const { codeToHtml, isSupportedLanguage } = await highlighter;
   if (!isSupportedLanguage(props.lang))
     throw new HinoteError(
       `<Code lang="${props.lang}"> is not a supported language.`,

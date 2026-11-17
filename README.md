@@ -150,7 +150,7 @@ To make a PDF, print any page and choose "Save as PDF". Each slide becomes one p
 
 ## Serving the deck as a Hono app
 
-A deck is a Hono app, so you can also serve it without the CLI: on its own, mounted in another app with `app.route("/talk", deck)`, or with routes of your own added by `deck.get(...)`. Without `dev`, nothing serves the files next to the deck; add `serveStatic` if the slides use images. The package ships JavaScript and type declarations, so any runtime that runs Hono can serve it.
+A deck is a Hono app, so you can also serve it without the CLI: on its own, mounted in another app with `app.route("/talk", deck)`, or with routes of your own added by `deck.get(...)`. Without `dev`, nothing serves the files next to the deck; add `serveStatic` if the slides use images. The package ships JavaScript and type declarations, so any runtime that runs Hono can serve it. Only `<Code>` needs more: its highlighter compiles WebAssembly, and it loads on the first `<Code>`, so a deck without code also runs on hosts that refuse WebAssembly.
 
 ### Bun
 
