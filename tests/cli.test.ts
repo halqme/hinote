@@ -62,6 +62,35 @@ test("loads a changed deck again instead of the cached module", async () => {
   }
 });
 
+test("import.meta in deck files points at the files, not the bundle", async () => {
+  const dir = await tempDir();
+  try {
+    await mkdir(join(dir, "slides"));
+    await mkdir(join(dir, "data"));
+    await writeFile(join(dir, "data/talk.json"), '{"title":"from data"}');
+    await writeFile(
+      join(dir, "slides/data.tsx"),
+      deckSource(`
+async function Title() {
+  const data = await Bun.file(new URL("../data/talk.json", import.meta.url)).json();
+  return <h1>{data.title}</h1>;
+}
+export default createSlide(() => <div><Title /><p>{import.meta.dir}</p></div>)`),
+    );
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(
+        `import data from "./slides/data.tsx"\nexport default createSlide([data])`,
+      ),
+    );
+    const html = await (await loadDeckFile(join(dir, "deck.tsx"))).render();
+    expect(html).toContain("<h1>from data</h1>");
+    expect(html).toContain(`<p>${join(dir, "slides")}</p>`);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("a default export that is not a deck is refused", async () => {
   const dir = await tempDir();
   try {
