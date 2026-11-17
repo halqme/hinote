@@ -24,7 +24,8 @@ function usage(): string {
   return `hinote init [dir] [--no-install]
 hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]
-hinote prerender [deck.tsx] [-o dist] [--base /path]`;
+hinote prerender [deck.tsx] [-o dist] [--base /path]
+hinote assets [deck.tsx] [-o public]`;
 }
 
 type Args = {
@@ -230,6 +231,27 @@ async function initCommand(argv: string[]): Promise<void> {
   console.log(`\nNext: cd ${dir} && ${next}\n${guide}`);
 }
 
+// Copies only the files the slides refer to (images, url() in CSS) into one
+// directory, for a server of your own to serve beside the deck: Workers
+// Static Assets, or serveStatic on Bun and Node. Nothing else in the deck
+// directory, such as its source, ends up there.
+async function assetsCommand(argv: string[]): Promise<void> {
+  const args = parseArgs(argv);
+  if (args.positionals.length > 1)
+    throw new HinoteError("assets accepts one deck file.");
+  const deckFile = resolve(args.positionals[0] ?? "deck.tsx");
+  const outDir = resolve(args.output ?? "public");
+  const deck = await loadDeckFile(deckFile);
+  // Every page refers to the same files, and the presenter page to no more.
+  const copied = await copyAssets(
+    await deck.render("static"),
+    dirname(deckFile),
+    outDir,
+  );
+  for (const file of copied) console.log(file);
+  if (copied.length === 0) console.log("The slides refer to no files.");
+}
+
 async function prerenderCommand(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
   if (args.positionals.length > 1)
@@ -264,6 +286,7 @@ export async function main(argv: string[]): Promise<void> {
   else if (command === "dev") await devCommand(rest);
   else if (command === "build") await buildCommand(rest);
   else if (command === "prerender") await prerenderCommand(rest);
+  else if (command === "assets") await assetsCommand(rest);
   else throw new HinoteError(`Unknown command "${command}".\n${usage()}`);
 }
 
@@ -272,7 +295,10 @@ export async function main(argv: string[]): Promise<void> {
 // when Node is installed) has neither, so hand the run to Bun when it is there.
 async function handOffToBun(argv: string[]): Promise<boolean> {
   const needsBundler =
-    argv[0] === "dev" || argv[0] === "build" || argv[0] === "prerender";
+    argv[0] === "dev" ||
+    argv[0] === "build" ||
+    argv[0] === "prerender" ||
+    argv[0] === "assets";
   if (isBun || !needsBundler || (await hasNodePackages())) return false;
   const probe = spawnSync("bun", ["--version"], { stdio: "ignore" });
   if (probe.status !== 0) return false;

@@ -108,12 +108,15 @@ test("CSS imported as text reaches the page, under hinote and in a server of you
     await writeFile(
       join(dir, "deck.tsx"),
       deckSource(`import style from "./style.css" with { type: "text" }
-export default createSlide({ css: style }, [createSlide(() => <h1>x</h1>)])`),
+export default createSlide({ css: style }, [createSlide(() => <div><h1>x</h1><img src="./logo.svg" /></div>)])`),
     );
     const html = await (await loadDeckFile(join(dir, "deck.tsx"))).render();
     expect(html).toContain("h1 { color: teal; }");
 
-    // The README's Bun server: the deck mounted next to the files beside it.
+    // The README's Bun server: the deck mounted next to what hinote assets copied.
+    expect((await run(["assets", "deck.tsx", "-o", "public"], dir)).code).toBe(
+      0,
+    );
     // Bun reads JSX settings from tsconfig.json, as a project from init has.
     await writeFile(
       join(dir, "tsconfig.json"),
@@ -128,7 +131,7 @@ import { serveStatic } from "hono/bun";
 import deck from "./deck.tsx";
 const app = new Hono();
 app.route("/", deck);
-app.use("/*", serveStatic({ root: "./" }));
+app.use("/*", serveStatic({ root: "./public" }));
 Bun.serve({ fetch: app.fetch, port: ${port} });`,
     );
     const proc = Bun.spawn(["bun", "server.ts"], {
@@ -142,6 +145,9 @@ Bun.serve({ fetch: app.fetch, port: ${port} });`,
       expect(
         await (await fetch(`http://127.0.0.1:${port}/logo.svg`)).text(),
       ).toBe("<svg/>");
+      expect((await fetch(`http://127.0.0.1:${port}/deck.tsx`)).status).toBe(
+        404,
+      );
     } finally {
       proc.kill();
       await proc.exited;
@@ -253,6 +259,32 @@ test("build copies the files the page refers to, and only those", async () => {
     expect(beside.code).toBe(0);
     expect(beside.stdout).not.toContain("copied");
     expect(await readFile(join(dir, "images/logo.svg"), "utf8")).toBe("<svg/>");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("assets copies only the files the slides refer to", async () => {
+  const dir = await tempDir();
+  try {
+    await mkdir(join(dir, "images"));
+    await writeFile(join(dir, "images/logo.svg"), "<svg/>");
+    await writeFile(join(dir, "bg.png"), "png");
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`export default createSlide({ css: "& { background: url(bg.png); }" }, [
+  createSlide(() => <img src="./images/logo.svg" />),
+])`),
+    );
+    const done = await run(["assets", "deck.tsx", "-o", "public"], dir);
+    expect(done.code).toBe(0);
+    expect(await readFile(join(dir, "public/images/logo.svg"), "utf8")).toBe(
+      "<svg/>",
+    );
+    expect(await readFile(join(dir, "public/bg.png"), "utf8")).toBe("png");
+    // No pages and no source: just what the slides load.
+    expect(await Bun.file(join(dir, "public/index.html")).exists()).toBe(false);
+    expect(await Bun.file(join(dir, "public/deck.tsx")).exists()).toBe(false);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

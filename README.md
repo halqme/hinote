@@ -172,6 +172,7 @@ if (hinote.role === "presenter") {
 hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]
 hinote prerender [deck.tsx] [-o dist] [--base /path]
+hinote assets [deck.tsx] [-o public]
 ```
 
 The CLI works the same on Bun and on Node. On Bun it uses Bun's own bundler and server; on Node it uses `esbuild` and `@hono/node-server`, which `init` adds there. If they are missing on Node, the CLI hands the run to Bun when Bun is installed, and otherwise says what to install.
@@ -196,7 +197,15 @@ To make a PDF, print any page and choose "Save as PDF". Each slide becomes one p
 
 ## Serving the deck as a Hono app
 
-`hinote dev` is the way to show a deck. A deck is also a Hono app, so when you want it inside a server of your own, mount it with `app.route("/", deck)` (or under any path) next to your other routes. Serve the files next to the deck as well, as `dev` does, or relative images and CSS will not load. The package ships JavaScript and type declarations, so any runtime that runs Hono can serve it. Only `<Code>` needs more: its highlighter compiles WebAssembly, and it loads on the first `<Code>`, so a deck without code also runs on hosts that refuse WebAssembly.
+`hinote dev` is the way to show a deck. A deck is also a Hono app, so when you want it inside a server of your own, mount it with `app.route("/", deck)` (or under any path) next to your other routes. The package ships JavaScript and type declarations, so any runtime that runs Hono can serve it. Only `<Code>` needs more: its highlighter compiles WebAssembly, and it loads on the first `<Code>`, so a deck without code also runs on hosts that refuse WebAssembly.
+
+The files the slides refer to, such as images, are served the same way everywhere. `hinote assets` copies them, and only them, into a directory:
+
+```bash
+hinote assets deck.tsx -o public
+```
+
+Then serve `public/` next to the deck. Run it again after adding images.
 
 ### Bun
 
@@ -208,7 +217,7 @@ import deck from "./deck.tsx";
 
 const app = new Hono();
 app.route("/", deck);
-app.use("/*", serveStatic({ root: "./" }));
+app.use("/*", serveStatic({ root: "./public" }));
 
 Bun.serve({ fetch: app.fetch, port: 4321 });
 ```
@@ -224,7 +233,7 @@ import deck from "./deck.js";
 
 const app = new Hono();
 app.route("/", deck);
-app.use("/*", serveStatic({ root: "./" }));
+app.use("/*", serveStatic({ root: "./public" }));
 
 serve({ fetch: app.fetch, port: 4321 });
 ```
@@ -238,17 +247,20 @@ esbuild deck.tsx --bundle --platform=node --format=esm --packages=external \
 
 ### Cloudflare Workers
 
-Export the deck as the Worker:
+Export the deck as the Worker, and give `public/` to Workers Static Assets. A request for a file there gets the file; every other request reaches the deck.
 
 ```toml
 # wrangler.toml
 main = "src/deck.tsx"
 compatibility_date = "2026-11-01"
+
+[assets]
+directory = "./public"
 ```
 
-The Worker serves the deck only; host the files the slides refer to separately. A deployed Worker may answer requests from several isolates, and sync only reaches pages connected to the same one. CSS passed as a file URL needs a file system, so import the file instead.
+A deployed Worker may answer requests from several isolates, and sync only reaches pages connected to the same one. CSS passed as a file URL needs a file system, so import the file instead.
 
-The deck, the presenter view, `<Code>`, CSS, and sync were checked on all three: Bun, Node with `@hono/node-server`, and Workers with `wrangler dev`. Deno has not been tried.
+The deck, the presenter view, `<Code>`, CSS, images, and sync were checked on all three: Bun, Node with `@hono/node-server`, and Workers with `wrangler dev`. Deno has not been tried.
 
 To show the deck farther away, put it behind whatever you already use: a deck is a Hono app, so [Tailscale](https://tailscale.com/kb/1312/serve), [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or any host that runs Hono can serve it. hinote does not choose one for you. Sync keeps pages in step only when they reach the same process.
 

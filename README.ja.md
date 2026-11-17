@@ -182,6 +182,7 @@ if (hinote.role === "presenter") {
 hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]
 hinote prerender [deck.tsx] [-o dist] [--base /path]
+hinote assets [deck.tsx] [-o public]
 ```
 
 CLI は Bun でも Node でも同じように動きます。Bun では Bun のバンドラとサーバーを使い、Node では `esbuild` と `@hono/node-server` を使います（Node で `init` すると追加されます）。Node でこの2つがないときは、Bun が入っていれば Bun に任せ、入っていなければ何を入れればよいかを知らせます。
@@ -206,7 +207,15 @@ PDF にするときは、どのページでも印刷して「PDF として保存
 
 ## Hono アプリとして配信する
 
-デッキを表示するのは `hinote dev` です。一方でデッキは Hono アプリでもあるので、自分のサーバーに組み込みたいときは、`app.route("/", deck)`（またはほかのパス）でほかのルートと並べて置けます。そのときは `dev` と同じように、デッキの隣のファイルも配信してください。配信しないと、相対パスの画像や CSS が読めません。パッケージには JavaScript と型定義が入っているので、Hono が動くランタイムならどれでも配信できます。それ以上のものが要るのは `<Code>` だけです。ハイライトの処理は WebAssembly を使い、最初の `<Code>` を描画するときに読み込みます。そのため、コードを使わないデッキは、WebAssembly を使えない環境でも動きます。
+デッキを表示するのは `hinote dev` です。一方でデッキは Hono アプリでもあるので、自分のサーバーに組み込みたいときは、`app.route("/", deck)`（またはほかのパス）でほかのルートと並べて置けます。パッケージには JavaScript と型定義が入っているので、Hono が動くランタイムならどれでも配信できます。それ以上のものが要るのは `<Code>` だけです。ハイライトの処理は WebAssembly を使い、最初の `<Code>` を描画するときに読み込みます。そのため、コードを使わないデッキは、WebAssembly を使えない環境でも動きます。
+
+スライドが参照している画像などのファイルは、どの環境でも同じやり方で配信します。`hinote assets` が、それらのファイルだけを1つのディレクトリに集めます。
+
+```bash
+hinote assets deck.tsx -o public
+```
+
+あとは、デッキと並べて `public/` を配信してください。画像を足したら、もう一度実行します。
 
 ### Bun
 
@@ -218,7 +227,7 @@ import deck from "./deck.tsx";
 
 const app = new Hono();
 app.route("/", deck);
-app.use("/*", serveStatic({ root: "./" }));
+app.use("/*", serveStatic({ root: "./public" }));
 
 Bun.serve({ fetch: app.fetch, port: 4321 });
 ```
@@ -234,7 +243,7 @@ import deck from "./deck.js";
 
 const app = new Hono();
 app.route("/", deck);
-app.use("/*", serveStatic({ root: "./" }));
+app.use("/*", serveStatic({ root: "./public" }));
 
 serve({ fetch: app.fetch, port: 4321 });
 ```
@@ -248,17 +257,20 @@ esbuild deck.tsx --bundle --platform=node --format=esm --packages=external \
 
 ### Cloudflare Workers
 
-デッキをそのまま Worker として export します。
+デッキをそのまま Worker として export し、`public/` を Workers の Static Assets に渡します。そこにあるファイルへのリクエストはファイルが返り、それ以外のリクエストはデッキに届きます。
 
 ```toml
 # wrangler.toml
 main = "src/deck.tsx"
 compatibility_date = "2026-11-01"
+
+[assets]
+directory = "./public"
 ```
 
-Worker が配信するのはデッキだけなので、スライドが参照するファイルは別に置いてください。本番の Worker は複数の isolate でリクエストを受けることがあり、同期は同じ isolate につながったページ同士にしか届きません。CSS をファイルの URL で渡す方法はファイルを読める環境が必要なので、import で渡してください。
+本番の Worker は複数の isolate でリクエストを受けることがあり、同期は同じ isolate につながったページ同士にしか届きません。CSS をファイルの URL で渡す方法はファイルを読める環境が必要なので、import で渡してください。
 
-デッキ、発表者画面、`<Code>`、CSS、同期が動くことは、3つすべてで確かめました。Bun、`@hono/node-server` を使った Node、`wrangler dev` を使った Workers です。Deno はまだ試していません。
+デッキ、発表者画面、`<Code>`、CSS、画像、同期が動くことは、3つすべてで確かめました。Bun、`@hono/node-server` を使った Node、`wrangler dev` を使った Workers です。Deno はまだ試していません。
 
 もっと遠くから見せたいときは、普段使っているものを前に置いてください。デッキは Hono アプリなので、[Tailscale](https://tailscale.com/kb/1312/serve)、[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)、Hono が動くホスティングのどれでも配信できます。どれを使うかは hinote では決めません。同期できるのは同じプロセスに届いたページ同士だけです。
 
