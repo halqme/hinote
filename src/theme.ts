@@ -1,41 +1,41 @@
 import { HinoteError } from "./errors.ts";
 
+// Each group holds named tokens. The listed names are the ones hinote's own CSS
+// reads; any other name is allowed and becomes a CSS variable the same way.
+type Tokens<Known extends string> = { [K in Known]?: string } & {
+  [name: string]: string | undefined;
+};
+
 export type Theme = {
-  colors: { bg: string; fg: string; accent: string; muted?: string };
-  fonts: { base: string; heading?: string; mono?: string };
-  typography: { h1?: string; h2?: string; body?: string; small?: string };
-  shadows: { sm?: string; md?: string; lg?: string };
-  spacing?: { unit?: string };
+  colors?: Tokens<"bg" | "fg" | "accent" | "muted">;
+  fonts?: Tokens<"base" | "heading" | "mono">;
+  typography?: Tokens<"h1" | "h2" | "body" | "small">;
+  shadows?: Tokens<"sm" | "md" | "lg">;
+  spacing?: Tokens<"unit">;
   radius?: string;
 };
 
-export type ThemeOverride = {
-  colors?: Partial<Theme["colors"]>;
-  fonts?: Partial<Theme["fonts"]>;
-  typography?: Partial<Theme["typography"]>;
-  shadows?: Partial<Theme["shadows"]>;
-  spacing?: { unit?: string };
-  radius?: string;
-};
+// Group to CSS variable prefix: `colors.bg` is `--hinote-color-bg`.
+const GROUPS = {
+  colors: "color",
+  fonts: "font",
+  typography: "text",
+  shadows: "shadow",
+  spacing: "space",
+} as const;
+
+type Group = keyof typeof GROUPS;
+
+const GROUP_NAMES = Object.keys(GROUPS) as Group[];
 
 export const defaultTheme: Theme = {
-  colors: {
-    bg: "#0f1115",
-    fg: "#f4f4f5",
-    accent: "#7dd3fc",
-    muted: "#a1a1aa",
-  },
+  colors: { bg: "#0f1115", fg: "#f4f4f5", accent: "#7dd3fc", muted: "#a1a1aa" },
   fonts: {
     base: "system-ui, sans-serif",
     heading: "system-ui, sans-serif",
     mono: "ui-monospace, monospace",
   },
-  typography: {
-    h1: "4.5rem",
-    h2: "2.5rem",
-    body: "1.5rem",
-    small: "1rem",
-  },
+  typography: { h1: "4.5rem", h2: "2.5rem", body: "1.5rem", small: "1rem" },
   shadows: {
     sm: "0 1px 2px rgb(0 0 0 / 0.3)",
     md: "0 8px 24px rgb(0 0 0 / 0.35)",
@@ -45,13 +45,8 @@ export const defaultTheme: Theme = {
   radius: "12px",
 };
 
-const GROUPS = {
-  colors: ["bg", "fg", "accent", "muted"],
-  fonts: ["base", "heading", "mono"],
-  typography: ["h1", "h2", "body", "small"],
-  shadows: ["sm", "md", "lg"],
-  spacing: ["unit"],
-} as const;
+// Token names become part of a CSS variable name.
+const TOKEN_NAME = /^[A-Za-z][A-Za-z0-9-]*$/;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -66,94 +61,64 @@ export function cssValue(value: string, label: string): string {
   return value;
 }
 
-export function parseThemeOverride(
-  value: unknown,
-  label = "theme",
-): ThemeOverride {
+export function parseTheme(value: unknown, label = "theme"): Theme {
   if (!isPlainObject(value))
     throw new HinoteError(`${label} must be an object.`);
-  const override: ThemeOverride = {};
-  for (const key of Object.keys(value)) {
+  const theme: Theme = {};
+  for (const [key, group] of Object.entries(value)) {
     if (key === "radius") {
-      if (typeof value.radius !== "string")
+      if (typeof group !== "string")
         throw new HinoteError(`${label}.radius must be a string.`);
-      override.radius = cssValue(value.radius, `${label}.radius`);
+      theme.radius = cssValue(group, `${label}.radius`);
       continue;
     }
     if (!Object.hasOwn(GROUPS, key))
-      throw new HinoteError(`${label}.${key} is not a theme field.`);
-    const group = value[key];
+      throw new HinoteError(
+        `${label}.${key} is not a theme group. Use ${GROUP_NAMES.join(", ")}, or radius.`,
+      );
     if (!isPlainObject(group))
       throw new HinoteError(`${label}.${key} must be an object.`);
-    const allowed = GROUPS[key as keyof typeof GROUPS] as readonly string[];
-    const parsed: Record<string, string> = {};
-    for (const prop of Object.keys(group)) {
-      if (!allowed.includes(prop)) {
-        throw new HinoteError(`${label}.${key}.${prop} is not a theme field.`);
-      }
-      const entry = group[prop];
-      if (typeof entry !== "string")
-        throw new HinoteError(`${label}.${key}.${prop} must be a string.`);
-      parsed[prop] = cssValue(entry, `${label}.${key}.${prop}`);
+    const tokens: Record<string, string> = {};
+    for (const [name, token] of Object.entries(group)) {
+      if (!TOKEN_NAME.test(name))
+        throw new HinoteError(
+          `${label}.${key}.${name} must start with a letter and use only letters, digits, and '-'.`,
+        );
+      if (typeof token !== "string")
+        throw new HinoteError(`${label}.${key}.${name} must be a string.`);
+      tokens[name] = cssValue(token, `${label}.${key}.${name}`);
     }
-    if (key === "colors") override.colors = parsed;
-    else if (key === "fonts") override.fonts = parsed;
-    else if (key === "typography") override.typography = parsed;
-    else if (key === "shadows") override.shadows = parsed;
-    else override.spacing = parsed;
+    theme[key as Group] = tokens;
   }
-  return override;
+  return theme;
 }
 
-export function mergeTheme(
-  base: Theme,
-  override: ThemeOverride | undefined,
-): Theme {
+// Tokens in `override` replace the same tokens in `base`; the rest are kept.
+export function mergeTheme(base: Theme, override: Theme | undefined): Theme {
   if (!override) return base;
-  return {
-    colors: { ...base.colors, ...override.colors },
-    fonts: { ...base.fonts, ...override.fonts },
-    typography: { ...base.typography, ...override.typography },
-    shadows: { ...base.shadows, ...override.shadows },
-    spacing: { ...base.spacing, ...override.spacing },
-    radius: override.radius ?? base.radius,
-  };
-}
-
-export function mergeOverride(
-  base: ThemeOverride,
-  override: ThemeOverride | undefined,
-): ThemeOverride {
-  if (!override) return base;
-  const merged: ThemeOverride = {};
-  for (const key of Object.keys(GROUPS) as (keyof typeof GROUPS)[]) {
-    if (base[key] || override[key])
-      Object.assign(merged, { [key]: { ...base[key], ...override[key] } });
+  const merged: Theme = {};
+  for (const group of GROUP_NAMES) {
+    if (base[group] || override[group])
+      merged[group] = { ...base[group], ...override[group] };
   }
   const radius = override.radius ?? base.radius;
   if (radius !== undefined) merged.radius = radius;
   return merged;
 }
 
+// Only the tokens present become declarations, so a slide theme sets just
+// what it changes and inherits the rest from the deck.
 export function themeDeclarations(theme: Theme): Record<string, string> {
-  return {
-    "--hinote-bg": theme.colors.bg,
-    "--hinote-fg": theme.colors.fg,
-    "--hinote-accent": theme.colors.accent,
-    "--hinote-muted": theme.colors.muted ?? theme.colors.fg,
-    "--hinote-font": theme.fonts.base,
-    "--hinote-font-heading": theme.fonts.heading ?? theme.fonts.base,
-    "--hinote-font-mono": theme.fonts.mono ?? "ui-monospace, monospace",
-    "--hinote-h1": theme.typography.h1 ?? "4.5rem",
-    "--hinote-h2": theme.typography.h2 ?? "2.5rem",
-    "--hinote-body": theme.typography.body ?? "1.5rem",
-    "--hinote-small": theme.typography.small ?? "1rem",
-    "--hinote-shadow-sm": theme.shadows.sm ?? "none",
-    "--hinote-shadow-md": theme.shadows.md ?? "none",
-    "--hinote-shadow-lg": theme.shadows.lg ?? "none",
-    "--hinote-space": theme.spacing?.unit ?? "8px",
-    "--hinote-radius": theme.radius ?? "0px",
-  };
+  const declarations: Record<string, string> = {};
+  for (const group of GROUP_NAMES) {
+    for (const [name, value] of Object.entries(theme[group] ?? {})) {
+      if (value !== undefined)
+        declarations[`--hinote-${GROUPS[group]}-${name}`] = value;
+    }
+  }
+  if (theme.radius !== undefined)
+    declarations["--hinote-radius"] = theme.radius;
+  return declarations;
 }
 
 export function themeCss(theme: Theme): string {

@@ -4,14 +4,14 @@ import { HinoteError } from "./errors.ts";
 import { SyncHub } from "./hub.ts";
 import { renderDeck, type Page } from "./render.ts";
 import type { Slide } from "./slide.ts";
-import { parseThemeOverride, type ThemeOverride } from "./theme.ts";
+import { parseTheme, type Theme } from "./theme.ts";
 
 export type Aspect = "16:9" | "4:3" | `${number}:${number}`;
 
 export type DeckOptions = {
   // Document title. Defaults to the first slide title.
   title?: string;
-  theme?: ThemeOverride;
+  theme?: Theme;
   // Canvas ratio, "16:9" by default. Only the top-level deck may set it.
   aspect?: Aspect;
 };
@@ -58,7 +58,7 @@ export function parseDeckOptions(value: Record<string, unknown>): DeckOptions {
     options.aspect = value.aspect as Aspect;
   }
   if (value.theme !== undefined)
-    options.theme = parseThemeOverride(value.theme, "deck theme");
+    options.theme = parseTheme(value.theme, "deck theme");
   return options;
 }
 

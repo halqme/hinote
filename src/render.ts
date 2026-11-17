@@ -9,11 +9,10 @@ import { withStepCounter } from "./step.tsx";
 import {
   defaultTheme,
   mergeTheme,
-  parseThemeOverride,
+  parseTheme,
   themeCss,
   themeDeclarations,
   type Theme,
-  type ThemeOverride,
 } from "./theme.ts";
 
 // Every slide is laid out on a fixed canvas and scaled as a whole, so a slide looks
@@ -22,22 +21,22 @@ import {
 // Center sets flex:1, which fills the slide only because .slide is a column flex container.
 const BASE_CSS = `
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;background:var(--hinote-bg);color:var(--hinote-fg);font-family:var(--hinote-font)}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-family:var(--hinote-font-base)}
 #deck{position:fixed;inset:0;display:grid;place-items:center;--hinote-scale:1}
 .hinote-stage{position:relative;overflow:hidden;width:calc(var(--hinote-canvas-width) * var(--hinote-scale));height:calc(var(--hinote-canvas-height) * var(--hinote-scale))}
-.slide{display:none;position:absolute;top:0;left:0;width:var(--hinote-canvas-width);height:var(--hinote-canvas-height);overflow:hidden;flex-direction:column;padding:calc(var(--hinote-space) * 6);transform-origin:0 0;transform:scale(var(--hinote-scale));background:var(--hinote-bg);color:var(--hinote-fg);font-size:var(--hinote-body)}
+.slide{display:none;position:absolute;top:0;left:0;width:var(--hinote-canvas-width);height:var(--hinote-canvas-height);overflow:hidden;flex-direction:column;padding:calc(var(--hinote-space-unit) * 6);transform-origin:0 0;transform:scale(var(--hinote-scale));background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
 .slide.is-active{display:flex}
 [data-hinote-step]{transition:opacity .2s ease}
 [data-hinote-step].is-hidden{opacity:0;visibility:hidden}
 h1,h2,h3,p{margin:0}
-h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-h1);line-height:1.1}
-h2,h3{font-family:var(--hinote-font-heading);font-size:var(--hinote-h2);line-height:1.2}
-p{font-size:var(--hinote-body);line-height:1.5}
-small{font-size:var(--hinote-small);color:var(--hinote-muted)}
+h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
+h2,h3{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}
+p{font-size:var(--hinote-text-body);line-height:1.5}
+small{font-size:var(--hinote-text-small);color:var(--hinote-color-muted)}
 code,pre{font-family:var(--hinote-font-mono)}
-a{color:var(--hinote-accent)}
+a{color:var(--hinote-color-accent)}
 #hinote-pointer{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 16px #ff2d2d;pointer-events:none;z-index:10;opacity:0}
-.hinote-thumb{position:relative;overflow:hidden;width:100%;aspect-ratio:var(--hinote-canvas-ratio);background:var(--hinote-bg);border-radius:6px}
+.hinote-thumb{position:relative;overflow:hidden;width:100%;aspect-ratio:var(--hinote-canvas-ratio);background:var(--hinote-color-bg);border-radius:6px}
 .hinote-thumb>.slide{display:flex}
 html[data-page="presenter"] body{display:grid;grid-template-columns:minmax(0,1fr) minmax(18rem,30vw);background:#111318;color:#f4f4f5;font:16px/1.6 system-ui,sans-serif}
 html[data-page="presenter"] #deck{position:relative;inset:auto;min-width:0;min-height:0;padding:1.25rem;background:#0b0d12}
@@ -83,13 +82,11 @@ function elementHtml(node: unknown): string {
   return rendered;
 }
 
-function slideStyle(theme: Theme, slide: Slide): Record<string, string> {
-  const style: Record<string, string> = {};
-  if (slide.options.theme)
-    Object.assign(
-      style,
-      themeDeclarations(mergeTheme(theme, slide.options.theme)),
-    );
+// A slide theme only declares the tokens it changes; the rest inherit from :root.
+function slideStyle(slide: Slide): Record<string, string> {
+  const style = slide.options.theme
+    ? themeDeclarations(slide.options.theme)
+    : {};
   if (slide.options.background) style.background = slide.options.background;
   return style;
 }
@@ -127,14 +124,14 @@ function presenterPanel(slideCount: number, notes: string) {
 
 export async function renderDeck(input: {
   slides: readonly Slide[];
-  theme?: ThemeOverride;
+  theme?: Theme;
   title?: string;
   canvas?: { width: number; height: number };
   page?: Page;
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
-    input.theme === undefined ? undefined : parseThemeOverride(input.theme),
+    input.theme === undefined ? undefined : parseTheme(input.theme),
   );
   const page = input.page ?? "view";
   const canvas = input.canvas ?? { width: 1920, height: 1080 };
@@ -160,7 +157,7 @@ ${BASE_CSS}`;
     return jsx("section", {
       class: className,
       "data-notes": slide.options.notes ?? "",
-      style: slideStyle(theme, slide),
+      style: slideStyle(slide),
       dangerouslySetInnerHTML: { __html: html },
     });
   });

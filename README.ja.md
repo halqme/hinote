@@ -48,7 +48,9 @@ export default createSlide(
 
 レイアウトは `Center`、`Column`、`Row` です。渡せる props は `gap`、`align`、`justify` です。`gap` に数値を渡すと、テーマの `spacing.unit` にその数を掛けた間隔になります。
 
-テーマは `--hinote-bg` のような CSS 変数になります。スライドに `theme` を書くと、その1枚の変数だけを上書きします。
+テーマには `colors`、`fonts`、`typography`、`shadows`、`spacing` のグループと `radius` があります。グループの中の値はそれぞれ `--hinote-<グループ>-<名前>` という CSS 変数になります。グループの部分は `color`、`font`、`text`、`shadow`、`space` と書きます。たとえば `colors.bg` は `--hinote-color-bg`、`typography.h1` は `--hinote-text-h1`、`radius` は `--hinote-radius` です。
+
+hinote 自身のスタイルが読むのは、`colors` の `bg`・`fg`・`accent`・`muted`、`fonts` の `base`・`heading`・`mono`、`typography` の `h1`・`h2`・`body`・`small`、それに `spacing.unit` です。それ以外の名前も同じように変数になります。`colors: { brand: "#f50" }` と書けば、スライドの中で `var(--hinote-color-brand)` を使えます。スライドに `theme` を書くと、その1枚で、書いた値だけを上書きします。
 
 ## 表示する
 

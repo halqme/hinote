@@ -91,7 +91,7 @@ test("build writes one html file and leaves nothing behind on failure", async ()
     expect(built.code).toBe(0);
     const html = await readFile(join(dir, "site/index.html"), "utf8");
     expect(html).toContain("Built");
-    expect(html).toContain("--hinote-accent:#222222");
+    expect(html).toContain("--hinote-color-accent:#222222");
     expect(html).not.toContain("<script src");
     expect(html).not.toContain('id="hinote-panel"');
 

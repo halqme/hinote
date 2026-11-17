@@ -69,8 +69,8 @@ describe("createSlide", () => {
     const html = await createSlide([textSlide("plain"), nested]).render();
     const sections = html.split("<section").slice(1);
     expect(sections[0]).not.toContain("#aaaaaa");
-    expect(sections[1]).toContain("--hinote-bg:#aaaaaa");
-    expect(sections[2]).toContain("--hinote-bg:#bbbbbb");
+    expect(sections[1]).toContain("--hinote-color-bg:#aaaaaa");
+    expect(sections[2]).toContain("--hinote-color-bg:#bbbbbb");
     expect(sections[2]).not.toContain("#aaaaaa");
   });
 
@@ -181,7 +181,7 @@ describe("layout", () => {
     expect(html).toContain("flex-direction:column");
     expect(html).toContain("align-items:center");
     expect(html).toContain("justify-content:space-between");
-    expect(html).toContain("gap:calc(var(--hinote-space) * 2)");
+    expect(html).toContain("gap:calc(var(--hinote-space-unit) * 2)");
     expect(html).toContain("flex-direction:row");
     expect(html).toContain("align-items:end");
     expect(html).toContain("gap:1rem");
@@ -203,8 +203,8 @@ describe("theme and output", () => {
       createSlide(() => <img src="./pic.png" alt="会場" />),
     ]);
     const html = await deck.render("static");
-    expect(html).toContain("--hinote-accent:#111111");
-    expect(html).toContain("--hinote-bg:#abc123");
+    expect(html).toContain("--hinote-color-accent:#111111");
+    expect(html).toContain("--hinote-color-bg:#abc123");
     const first = html.indexOf("#abc123");
     const image = html.indexOf("./pic.png");
     expect(first).toBeGreaterThan(-1);
@@ -227,6 +227,34 @@ describe("theme and output", () => {
     expect(script).not.toContain("</script");
     expect(() => new Function(script)).not.toThrow();
     expect(html).toContain('id="hinote-panel"');
+  });
+
+  test("tokens beyond the built-in names become CSS variables too", async () => {
+    const deck = createSlide(
+      { theme: { colors: { brand: "#ff5500" }, spacing: { gutter: "3rem" } } },
+      [
+        createSlide({ theme: { colors: { brand: "#00aa55" } } }, () => (
+          <p style="color:var(--hinote-color-brand)">x</p>
+        )),
+      ],
+    );
+    const html = await deck.render();
+    expect(html).toContain("--hinote-color-brand:#ff5500");
+    expect(html).toContain("--hinote-space-gutter:3rem");
+    const section = html.split("<section")[1] ?? "";
+    expect(section).toContain("--hinote-color-brand:#00aa55");
+    // A slide theme declares only what it changes.
+    expect(section).not.toContain("--hinote-color-fg");
+  });
+
+  test("rejects theme groups and token names it cannot turn into variables", () => {
+    const deckWith = (theme: unknown) => () =>
+      createSlide({ theme } as never, [textSlide("x")]);
+    expect(deckWith({ palette: { a: "red" } })).toThrow(HinoteError);
+    expect(deckWith({ colors: { "my color": "red" } })).toThrow(HinoteError);
+    expect(deckWith({ colors: { "1st": "red" } })).toThrow(HinoteError);
+    expect(deckWith({ colors: { bg: 1 } })).toThrow(HinoteError);
+    expect(deckWith({ radius: { md: "4px" } })).toThrow(HinoteError);
   });
 
   test("rejects theme values that would break out of the style tag", () => {

@@ -1,12 +1,7 @@
 import type { Child } from "hono/jsx";
 import { Deck, parseDeckOptions, type DeckOptions } from "./deck.ts";
 import { HinoteError } from "./errors.ts";
-import {
-  cssValue,
-  mergeOverride,
-  parseThemeOverride,
-  type ThemeOverride,
-} from "./theme.ts";
+import { cssValue, mergeTheme, parseTheme, type Theme } from "./theme.ts";
 
 export type SlideRender = () => Child;
 
@@ -15,7 +10,7 @@ export type SlideOptions = {
   title?: string;
   background?: string;
   class?: string;
-  theme?: ThemeOverride;
+  theme?: Theme;
 };
 
 export type Slide = {
@@ -71,7 +66,7 @@ function parseOptions(value: Record<string, unknown>): SlideOptions {
     options.class = value.class;
   }
   if (value.theme !== undefined)
-    options.theme = parseThemeOverride(value.theme, "slide theme");
+    options.theme = parseTheme(value.theme, "slide theme");
   return options;
 }
 
@@ -87,7 +82,7 @@ function nestedSlides(deck: Deck): Slide[] {
     ...slide,
     options: {
       ...slide.options,
-      theme: mergeOverride(theme, slide.options.theme),
+      theme: mergeTheme(theme, slide.options.theme),
     },
   }));
 }

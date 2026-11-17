@@ -22,7 +22,7 @@ function gapValue(gap: string | number | undefined): string | undefined {
   if (typeof gap === "number") {
     if (!Number.isFinite(gap))
       throw new HinoteError("gap must be a finite number or a CSS length.");
-    return `calc(var(--hinote-space) * ${gap})`;
+    return `calc(var(--hinote-space-unit) * ${gap})`;
   }
   return cssToken(gap, "gap");
 }
