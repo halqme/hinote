@@ -97,7 +97,7 @@ export default createSlide({ css: style }, [
 - それぞれの CSS は、自分のスライドだけに効きます。デッキの CSS は全部のスライドに、入れ子のデッキの CSS はその中のスライドに、スライドの CSS はその1枚に効きます。発表者画面のパネルには効きません。
 - 内側の CSS が勝ちます。スライドの CSS は入れ子のデッキの CSS に、入れ子のデッキの CSS は外のデッキの CSS に、セレクタの強さに関係なく勝ちます。hinote はそれぞれを [カスケードレイヤー](https://developer.mozilla.org/docs/Web/CSS/@layer) に入れ、自分の既定のスタイルを一番弱いレイヤーに置いています。そのため、渡した CSS は必ず既定のスタイルより優先されます。
 - セレクタはスライドの中に対して効きます。スライドそのものは `& { ... }` と書きます。`:root`、`html`、`body` には効きません。`@keyframes` や `@font-face` などは、ファイルのどこに書いても使えます。`@import` は使えないので、ファイルごとに配列で渡してください。
-- `.css` ファイルを import すると、中身の文字列（型は `string`）になります。`hinote dev` と `hinote build` は自分で処理します。`bun deck.tsx` で動かすときは、`bunfig.toml` に `preload = ["hinote/preload"]` を書いてください（`init` で作ったプロジェクトには入っています）。書かないと Bun は空のオブジェクトを渡すので、hinote がエラーで知らせます。ほかの環境では、バンドラで `.css` をテキストとして読む設定にしてください。
+- `.css` ファイルを import すると、中身の文字列（型は `string`）になります。`hinote dev` と `hinote build` は、Bun でも Node でもこれを処理します。デッキを自分で配信するときは、そのランタイムでも `.css` をテキストとして読む設定が必要です。[Hono アプリとして配信する](#hono-アプリとして配信する) を見てください。設定がないと import の結果がオブジェクトになり、hinote が何が足りないかを知らせます。
 - `new URL("./style.css", import.meta.url)` のようにファイルの URL を渡すこともできます。この場合はデッキを描画するときに読むので、ファイルを読めるランタイム（Bun、Node、Deno）が必要です。
 - CSS の中の `url()` は、ページ、つまり `deck.tsx` のあるディレクトリから解決されます。
 
@@ -140,17 +140,13 @@ export default createSlide({ css: style }, [
 ```bash
 hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]
-bun deck.tsx
-bun --hot deck.tsx
 ```
+
+CLI は Bun でも Node でも同じように動きます。Bun では Bun のバンドラとサーバーを使い、Node では `esbuild` と `@hono/node-server` を使います（Node で `init` すると追加されます）。Node でこの2つがないときは、Bun が入っていれば Bun に任せ、入っていなければ何を入れればよいかを知らせます。
 
 `dev` は <http://127.0.0.1:4321> にデッキを、`/presenter` に発表者画面を出します。発表者画面には、今のスライド、次に送ったときの画面のプレビュー、経過時間、時刻、ノートが出ます。経過時間は押すと 0 に戻り、ページを読み直しても続きから数えます。`O` で全スライドの一覧を開き、押したスライドへ移ります。デッキのディレクトリの中のファイルが変わるとデッキを読み直し、開いているページも読み直します。読み込みに失敗したときはエラーを出し、前のデッキを出したままにします。`dev` は、デッキのあるディレクトリの中のファイル（画像など）も配信します。ディレクトリの外へ出るパスは拒否します。
 
-デッキは Hono アプリなので、`bun deck.tsx` でも（ポート 3000 で）表示できます。別のアプリの中で `app.route("/talk", deck)` としても動きます。`deck.get(...)` で自分のルートも足せます。`bun --hot deck.tsx` で起動すると、保存したときに開いているページも読み直します（`dev` と同じです）。`dev` を使わないときは、ファイル配信はしません。画像が要るなら `serveStatic` を自分で足してください。
-
 `dev` は、このマシンからしか開けません。`--host 0.0.0.0` を付けると、同じネットワークのスマートフォンや別の PC からも開けるようになり、開くためのアドレスが表示されます。このとき、デッキのディレクトリの中のファイルはすべてネットワークから取得できるようになります。信頼できるネットワークで使ってください。
-
-もっと遠くから見せたいときは、普段使っているものを前に置いてください。デッキは Hono アプリなので、[Tailscale](https://tailscale.com/kb/1312/serve)、[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)、Hono が動くホスティングのどれでも配信できます。どれを使うかは hinote では決めません。同期できるのは同じプロセスに届いたページ同士だけです。Node や Workers で動かす方法は [Bun なしで使う](#bun-なしで使う) にあります。
 
 `/3` で3枚目を、`/presenter/3` でその発表者画面を開きます。パスはそれ以上入れ子にしません。ステップは URL に入らないので、読み直すとそのスライドは何も出ていない状態から始まります。
 
@@ -162,22 +158,33 @@ PDF にするときは、どのページでも印刷して「PDF として保存
 
 `build` が書き出すのは視聴画面だけです。発表者画面、ポインタ、同期はありません。位置はハッシュ（`#3`）に入ります。スライドが相対パスで参照している画像などのファイル（`src`、`href`、`srcset`、CSS の `url()`）は、パスを保ったまま HTML の隣にコピーします。デッキのディレクトリの外にあるファイル、絶対パス、ほかのサイトの URL はそのままです。
 
-## Bun なしで使う
+## Hono アプリとして配信する
 
-CLI は Bun だけでなく Node でも動きます。Node では、`dev` と `build` が `esbuild` と `@hono/node-server` を使います（`init` が追加します）。この2つがないときは、Bun が入っていれば Bun に任せ、入っていなければ何を入れればよいかを知らせます。`bun deck.tsx` と `bun --hot` は Bun の機能なので、Node では `hinote dev` を使ってください。
+デッキは Hono アプリなので、CLI を使わずに配信することもできます。単独で動かすことも、別のアプリの中に `app.route("/talk", deck)` で置くことも、`deck.get(...)` で自分のルートを足すこともできます。`dev` を使わないときは、デッキの隣のファイルを配信するものがないので、画像を使うなら `serveStatic` を足してください。パッケージには JavaScript と型定義が入っているので、Hono が動くランタイムならどれでも配信できます。
 
-デッキそのものは、どちらも必要としません。パッケージには JavaScript と型定義が入っているので、Hono が動くランタイムならどれでも配信できます。
+### Bun
 
-Node では [`@hono/node-server`](https://github.com/honojs/node-server) を使います。
+```bash
+bun deck.tsx        # ポート 3000 で配信する
+bun --hot deck.tsx  # 保存すると、開いているページも読み直す
+```
+
+`.css` を import するには、`bunfig.toml` に `preload = ["hinote/preload"]` が必要です（`init` が書き出します）。
+
+### Node
 
 ```ts
 import { serve } from "@hono/node-server";
-import deck from "./deck.js"; // 自分の TypeScript やバンドラの設定でコンパイルしたもの
+import deck from "./deck.js";
 
 serve({ fetch: deck.fetch, port: 4321 });
 ```
 
-Cloudflare Workers では、デッキをそのまま Worker として export し、Wrangler で `.css` をテキストとして読む設定にします。
+Node は TSX をそのまま動かせないので、`deck.tsx` は自分の TypeScript やバンドラの設定でコンパイルしてください。そのとき `.css` をテキストとして読む設定にします（esbuild なら `--loader:.css=text`）。
+
+### Cloudflare Workers
+
+デッキをそのまま Worker として export し、Wrangler で `.css` をテキストとして読む設定にします。
 
 ```toml
 # wrangler.toml
@@ -190,7 +197,11 @@ globs = ["**/*.css"]
 fallthrough = true
 ```
 
-どちらも、デッキ、発表者画面、`<Code>`、CSS、同期が動くことを確かめました。Node は `@hono/node-server` で、Workers は `wrangler dev` で確かめています。ただし、本番の Worker は複数の isolate でリクエストを受けることがあり、同期は同じ isolate につながったページ同士にしか届きません。CSS をファイルの URL で渡す方法はファイルを読める環境が必要なので、Workers では import で渡してください。Deno はまだ試していません。
+本番の Worker は複数の isolate でリクエストを受けることがあり、同期は同じ isolate につながったページ同士にしか届きません。CSS をファイルの URL で渡す方法はファイルを読める環境が必要なので、import で渡してください。
+
+デッキ、発表者画面、`<Code>`、CSS、同期が動くことは、3つすべてで確かめました。Bun、`@hono/node-server` を使った Node、`wrangler dev` を使った Workers です。Deno はまだ試していません。
+
+もっと遠くから見せたいときは、普段使っているものを前に置いてください。デッキは Hono アプリなので、[Tailscale](https://tailscale.com/kb/1312/serve)、[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)、Hono が動くホスティングのどれでも配信できます。どれを使うかは hinote では決めません。同期できるのは同じプロセスに届いたページ同士だけです。
 
 ## hinote を開発する
 

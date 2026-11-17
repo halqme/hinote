@@ -185,7 +185,7 @@ For a PDF, print the page and choose "Save as PDF". Each slide becomes one page 
 
 ## Next
 
-- The deck is a Hono app. `bun --hot deck.tsx` serves it too (on port 3000), and `deck.get("/api", ...)` adds routes.
+- The deck is a Hono app. You can serve it without the CLI on Bun, Node, or Workers, and add routes with `deck.get("/api", ...)`; see [Serving the deck as a Hono app](../README.md#serving-the-deck-as-a-hono-app) in the README.
 - Slides and components may be `async`, so they can read files or call APIs while rendering.
 - For a deck closer to a real talk, see [`examples/`](../examples/README.md) in the repository: a fictional talk that includes an async component reading data into a chart.
 - Everything else is in the [README](../README.md).
