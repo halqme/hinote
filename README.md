@@ -14,17 +14,15 @@ hinote runs on Bun or Node.
 # Bun
 bunx hinote init my-talk
 cd my-talk
-bun install
 bunx hinote dev
 
 # Node
 npx hinote init my-talk
 cd my-talk
-npm install
 npx hinote dev
 ```
 
-`init` writes `deck.tsx`, `style.css`, `tsconfig.json` (JSX from `hono/jsx`), and a `package.json` that depends on `hinote` and `hono`. Every command afterwards goes through the CLI the same way: `bunx hinote dev`, `npx hinote build`, and so on. Run on Node, it also adds `esbuild` and `@hono/node-server`, which the CLI uses there in place of Bun's bundler and server. It never overwrites a file, and it leaves an existing `package.json` alone; then add the packages yourself (`bun add hinote hono`, or `npm install hinote hono` and `npm install -D esbuild @hono/node-server`).
+`init` writes `deck.tsx`, `style.css`, `tsconfig.json` (JSX from `hono/jsx`), and a `package.json` that depends on `hinote` and `hono`, then installs them with the package manager that started it: `bunx` runs `bun install`, `npx` runs `npm install`, and `pnpm dlx` and `yarn dlx` use pnpm and yarn. Outside Bun it also adds `esbuild` and `@hono/node-server`, which the CLI uses there in place of Bun's bundler and server. It prints the command it runs; `--no-install` skips it, and a failed install keeps the files and says how to try again. It never overwrites a file. In a directory that already has a `package.json`, it leaves that file alone, installs nothing, and prints what to add. Every command afterwards goes through the CLI the same way: `bunx hinote dev`, `npx hinote build`, and so on.
 
 The [hands-on](docs/hands-on.md) walks from here through adding slides, images, steps, code, and a theme to presenting and handing the deck out.
 

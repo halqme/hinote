@@ -7,14 +7,19 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { copyAssets } from "./assets.ts";
 import { HinoteError } from "./errors.ts";
-import { initProject } from "./init.ts";
+import {
+  COMMANDS,
+  initProject,
+  NODE_DEV_PACKAGES,
+  packageManager,
+} from "./init.ts";
 import { loadDeckFile } from "./load.ts";
 import { hasNodePackages, isBun, serve } from "./runtime.ts";
 import { createDevApp } from "./server.ts";
 import { parseBase, prerender } from "./prerender.ts";
 
 function usage(): string {
-  return `hinote init [dir]
+  return `hinote init [dir] [--no-install]
 hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]
 hinote prerender [deck.tsx] [-o dist] [--base /path]`;
@@ -26,6 +31,7 @@ type Args = {
   host?: string;
   output?: string;
   base?: string;
+  install?: boolean;
 };
 
 function parseArgs(argv: string[]): Args {
@@ -37,6 +43,7 @@ function parseArgs(argv: string[]): Args {
       args.port = readNumber(argv, ++i, arg);
     else if (arg === "--host") args.host = readValue(argv, ++i, arg);
     else if (arg === "--base") args.base = readValue(argv, ++i, arg);
+    else if (arg === "--no-install") args.install = false;
     else if (arg === "--output" || arg === "-o")
       args.output = readValue(argv, ++i, arg);
     else if (arg.startsWith("-"))
@@ -167,14 +174,42 @@ async function initCommand(argv: string[]): Promise<void> {
   if (args.positionals.length > 1)
     throw new HinoteError("init accepts one directory.");
   const dir = args.positionals[0] ?? ".";
-  for (const file of await initProject(dir)) console.log(file);
-  const [install, run] = isBun
-    ? ["bun install", "bunx"]
-    : ["npm install", "npx"];
-  console.log(`\nNext: cd ${dir} && ${install} && ${run} hinote dev`);
-  console.log(
-    "Hands-on: node_modules/hinote/docs/hands-on.md (日本語: hands-on.ja.md)",
-  );
+  const pm = packageManager();
+  const commands = COMMANDS[pm];
+  const { files, wrotePackage } = await initProject(dir, pm);
+  for (const file of files) console.log(file);
+  const install = commands.install.join(" ");
+  const next = `${commands.hinote} dev`;
+  const guide =
+    "Hands-on: node_modules/hinote/docs/hands-on.md (日本語: hands-on.ja.md)";
+
+  // Someone else's package.json: say what to add instead of changing it.
+  if (!wrotePackage) {
+    console.log(`\npackage.json already exists, so add the packages yourself:`);
+    console.log(`  ${commands.add} hinote hono`);
+    if (pm !== "bun")
+      console.log(`  ${commands.addDev} ${NODE_DEV_PACKAGES.join(" ")}`);
+    console.log(`\nNext: ${next}\n${guide}`);
+    return;
+  }
+  if (args.install === false) {
+    console.log(`\nNext: cd ${dir} && ${install} && ${next}\n${guide}`);
+    return;
+  }
+
+  console.log(`\n> ${install}`);
+  const [bin = "", ...rest] = commands.install;
+  const code = await new Promise<number>((done) => {
+    const child = spawn(bin, rest, { cwd: resolve(dir), stdio: "inherit" });
+    child.on("error", () => done(1));
+    child.on("exit", (status) => done(status ?? 1));
+  });
+  if (code !== 0)
+    // The files stay: installing again is all that is left.
+    throw new HinoteError(
+      `${install} failed. The files are in place; to try again: cd ${dir} && ${install}`,
+    );
+  console.log(`\nNext: cd ${dir} && ${next}\n${guide}`);
 }
 
 async function prerenderCommand(argv: string[]): Promise<void> {

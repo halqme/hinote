@@ -4,17 +4,16 @@
 
 新しいプロジェクトを作り、スライドを足して見た目を整え、発表して配るところまでを順に試します。20分ほどで終わります。
 
-用意するのは [Bun](https://bun.com) か [Node.js](https://nodejs.org) です。以下は Bun のコマンドで書いています。Node では、`bunx` を `npx` に、`bun install` を `npm install` に読み替えてください。
+用意するのは [Bun](https://bun.com) か [Node.js](https://nodejs.org) です。以下は Bun のコマンドで書いています。Node では `bunx` を `npx` に読み替えてください。
 
 ## 1. プロジェクトを作る
 
 ```bash
 bunx hinote init my-talk
 cd my-talk
-bun install
 ```
 
-`my-talk` に次のファイルができます。
+`init` はファイルを書き出したあと、パッケージのインストールまで行います。`my-talk` に次のファイルができます。
 
 - `deck.tsx`: スライドを書くファイルです。3枚入っています。
 - `style.css`: 全部のスライドに効く CSS です。`deck.tsx` が import しています。

@@ -1,4 +1,5 @@
 import {
+  chmod,
   mkdtemp,
   mkdir,
   readFile,
@@ -26,9 +27,14 @@ function deckSource(body: string): string {
   return `import { createSlide } from ${JSON.stringify(api)}\n${body}\n`;
 }
 
-async function run(args: string[], cwd: string) {
+async function run(
+  args: string[],
+  cwd: string,
+  env: Record<string, string> = {},
+) {
   const proc = Bun.spawn(["bun", cli, ...args], {
     cwd,
+    env: { ...process.env, ...env },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -306,7 +312,7 @@ test("init writes a deck that renders, and never overwrites", async () => {
   const dir = await tempDir();
   try {
     const project = join(dir, "talk");
-    const created = await run(["init", "talk"], dir);
+    const created = await run(["init", "talk", "--no-install"], dir);
     expect(created.code).toBe(0);
     // Stand in for `bun install`: link this package and its hono into the project.
     await mkdir(join(project, "node_modules"));
@@ -327,17 +333,23 @@ test("init writes a deck that renders, and never overwrites", async () => {
     expect(Object.keys(pkg.dependencies)).toEqual(["hinote", "hono"]);
 
     const before = await readFile(join(project, "deck.tsx"), "utf8");
-    const again = await run(["init", "talk"], dir);
+    const again = await run(["init", "talk", "--no-install"], dir);
     expect(again.code).toBe(1);
     expect(await readFile(join(project, "deck.tsx"), "utf8")).toBe(before);
 
-    // An existing package.json is the author's; init adds only the deck.
+    // An existing package.json is the author's: init adds only the deck,
+    // installs nothing, and says what to add.
     const own = join(dir, "own");
     await mkdir(own);
     await writeFile(join(own, "package.json"), "{}\n");
-    expect((await run(["init", "own"], dir)).code).toBe(0);
+    const npm = await fakePackageManager(dir, "npm", 0);
+    const added = await run(["init", "own"], dir, npm);
+    expect(added.code).toBe(0);
+    expect(added.stdout).toContain("npm install hinote hono");
+    expect(added.stdout).toContain("npm install -D esbuild @hono/node-server");
     expect(await readFile(join(own, "package.json"), "utf8")).toBe("{}\n");
     expect(await Bun.file(join(own, "deck.tsx")).exists()).toBe(true);
+    expect(await Bun.file(join(own, "ran-npm")).exists()).toBe(false);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -400,6 +412,69 @@ test("dev --host 0.0.0.0 listens on the network and says so", async () => {
   } finally {
     proc.kill();
     await proc.exited;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// A stand-in for a package manager on PATH: it records its arguments in the
+// directory it runs in and exits with `code`. Returns the env that selects it.
+async function fakePackageManager(dir: string, name: string, code: number) {
+  const bin = join(dir, `bin-${name}-${code}`);
+  await mkdir(bin, { recursive: true });
+  const script = join(bin, name);
+  await writeFile(
+    script,
+    `#!/bin/sh\necho "$@" > "$PWD/ran-${name}"\nexit ${code}\n`,
+  );
+  await chmod(script, 0o755);
+  return {
+    PATH: `${bin}:${process.env.PATH}`,
+    npm_config_user_agent: `${name}/1.0.0 node/v26.0.0`,
+  };
+}
+
+test("init installs with the package manager that started it", async () => {
+  const dir = await tempDir();
+  try {
+    const installed = await run(
+      ["init", "talk"],
+      dir,
+      await fakePackageManager(dir, "npm", 0),
+    );
+    expect(installed.code).toBe(0);
+    expect(installed.stdout).toContain("> npm install");
+    expect(installed.stdout).toContain("npx hinote dev");
+    expect(await readFile(join(dir, "talk/ran-npm"), "utf8")).toBe("install\n");
+    // Outside Bun, the CLI needs these to bundle and serve.
+    const pkg = JSON.parse(
+      await readFile(join(dir, "talk/package.json"), "utf8"),
+    );
+    expect(Object.keys(pkg.devDependencies).sort()).toEqual([
+      "@hono/node-server",
+      "esbuild",
+    ]);
+
+    // A failed install keeps the files and says how to try again.
+    const failed = await run(
+      ["init", "broken"],
+      dir,
+      await fakePackageManager(dir, "pnpm", 3),
+    );
+    expect(failed.code).toBe(1);
+    expect(failed.stderr).toContain("cd broken && pnpm install");
+    expect(await Bun.file(join(dir, "broken/deck.tsx")).exists()).toBe(true);
+
+    // Started from bunx, the project needs no Node packages, even if the CLI
+    // itself ran on Node.
+    const bun = await run(["init", "bun", "--no-install"], dir, {
+      npm_config_user_agent: "bun/1.4.4 npm/? node/v24.3.0",
+    });
+    expect(bun.stdout).toContain("bun install && bunx hinote dev");
+    const bunPkg = JSON.parse(
+      await readFile(join(dir, "bun/package.json"), "utf8"),
+    );
+    expect(bunPkg.devDependencies).toBeUndefined();
+  } finally {
     await rm(dir, { recursive: true, force: true });
   }
 });

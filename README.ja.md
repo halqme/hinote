@@ -14,17 +14,15 @@ hinote は Bun でも Node でも動きます。
 # Bun
 bunx hinote init my-talk
 cd my-talk
-bun install
 bunx hinote dev
 
 # Node
 npx hinote init my-talk
 cd my-talk
-npm install
 npx hinote dev
 ```
 
-`init` は `deck.tsx`、`style.css`、`tsconfig.json`（JSX は `hono/jsx`）、`hinote` と `hono` に依存する `package.json` を書き出します。そのあとのコマンドも、すべて同じように CLI から実行します（`bunx hinote dev`、`npx hinote build` など）。Node で実行したときは、`esbuild` と `@hono/node-server` も足します。CLI は Node ではこの2つを、Bun のバンドラとサーバーの代わりに使います。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、パッケージは自分で追加してください（`bun add hinote hono`、または `npm install hinote hono` と `npm install -D esbuild @hono/node-server`）。
+`init` は `deck.tsx`、`style.css`、`tsconfig.json`（JSX は `hono/jsx`）、`hinote` と `hono` に依存する `package.json` を書き出し、起動したパッケージマネージャでインストールまで行います。`bunx` なら `bun install`、`npx` なら `npm install`、`pnpm dlx` と `yarn dlx` ならそれぞれ pnpm と yarn を使います。Bun 以外では `esbuild` と `@hono/node-server` も足します。CLI は Bun 以外ではこの2つを、Bun のバンドラとサーバーの代わりに使います。実行するコマンドは表示します。`--no-install` を付けるとインストールしません。インストールに失敗したときも書き出したファイルは残し、もう一度実行するためのコマンドを表示します。既にあるファイルは上書きしません。`package.json` が既にあるディレクトリでは、それに手を付けず、インストールもせずに、追加すべきパッケージを表示します。そのあとのコマンドも、すべて同じように CLI から実行します（`bunx hinote dev`、`npx hinote build` など）。
 
 [ハンズオン](docs/hands-on.ja.md) では、ここから順に、スライド・画像・ステップ・コード・テーマを足し、発表して配るところまでを試せます。
 

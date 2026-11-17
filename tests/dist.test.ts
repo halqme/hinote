@@ -125,6 +125,17 @@ console.log(await (await deck.request("/presenter/1")).text());`,
     );
   }, 30_000);
 
+  test("started from bunx but running on Node, init adds no Node packages", async () => {
+    const made = hinote(bare, ["init", "from-bunx", "--no-install"], {
+      npm_config_user_agent: "bun/1.4.4 npm/? node/v24.3.0",
+    });
+    expect(made.stderr.toString()).toBe("");
+    const pkg = JSON.parse(
+      await Bun.file(join(bare, "from-bunx/package.json")).text(),
+    );
+    expect(pkg.devDependencies).toBeUndefined();
+  });
+
   test("without those packages or Bun, the CLI says what to install", async () => {
     const onlyNode = join(dir, "only-node");
     await mkdir(onlyNode);

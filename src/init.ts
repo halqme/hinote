@@ -64,17 +64,64 @@ const TSCONFIG = `{
 }
 `;
 
-// On Node, the CLI also needs a bundler and a server; Bun has its own.
-function packageFile(name: string): string {
+export type PackageManager = "bun" | "npm" | "pnpm" | "yarn";
+
+// bunx, npx, pnpm dlx, and yarn dlx name themselves in npm_config_user_agent.
+// The CLI itself may run on Node even under bunx, which follows the node
+// shebang when Node is installed, so the runtime alone cannot tell.
+export function packageManager(
+  userAgent = process.env.npm_config_user_agent,
+): PackageManager {
+  const name = userAgent?.split("/")[0];
+  if (name === "bun" || name === "npm" || name === "pnpm" || name === "yarn")
+    return name;
+  return isBun ? "bun" : "npm";
+}
+
+export const COMMANDS: Record<
+  PackageManager,
+  { install: string[]; add: string; addDev: string; hinote: string }
+> = {
+  bun: {
+    install: ["bun", "install"],
+    add: "bun add",
+    addDev: "bun add -d",
+    hinote: "bunx hinote",
+  },
+  npm: {
+    install: ["npm", "install"],
+    add: "npm install",
+    addDev: "npm install -D",
+    hinote: "npx hinote",
+  },
+  pnpm: {
+    install: ["pnpm", "install"],
+    add: "pnpm add",
+    addDev: "pnpm add -D",
+    hinote: "pnpm exec hinote",
+  },
+  yarn: {
+    install: ["yarn", "install"],
+    add: "yarn add",
+    addDev: "yarn add -D",
+    hinote: "yarn hinote",
+  },
+};
+
+// Outside Bun, the CLI also needs a bundler and a server; Bun has its own.
+export const NODE_DEV_PACKAGES = ["esbuild", "@hono/node-server"] as const;
+
+function packageFile(name: string, pm: PackageManager): string {
   const peers = packageJson.peerDependencies;
-  const node = isBun
-    ? {}
-    : {
-        devDependencies: {
-          "@hono/node-server": peers["@hono/node-server"],
-          esbuild: peers.esbuild,
-        },
-      };
+  const node =
+    pm === "bun"
+      ? {}
+      : {
+          devDependencies: {
+            "@hono/node-server": peers["@hono/node-server"],
+            esbuild: peers.esbuild,
+          },
+        };
   return `${JSON.stringify(
     {
       name,
@@ -92,22 +139,27 @@ function packageFile(name: string): string {
 }
 
 // Writes a starter deck into `dir`. It never overwrites: if any file it would
-// write exists, it writes nothing. An existing package.json is left alone.
-export async function initProject(dir: string): Promise<string[]> {
+// write exists, it writes nothing. An existing package.json is left alone,
+// and `wrotePackage` says whether there is one of ours to install.
+export async function initProject(
+  dir: string,
+  pm: PackageManager,
+): Promise<{ files: string[]; wrotePackage: boolean }> {
   const root = resolve(dir);
   const files: [string, string][] = [
     ["deck.tsx", DECK],
     ["style.css", STYLE],
     ["tsconfig.json", TSCONFIG],
   ];
-  const hasPackage = existsSync(join(root, "package.json"));
-  if (!hasPackage)
+  const wrotePackage = !existsSync(join(root, "package.json"));
+  if (wrotePackage)
     files.push([
       "package.json",
       packageFile(
         basename(root)
           .toLowerCase()
           .replace(/[^a-z0-9-]/g, "-"),
+        pm,
       ),
     ]);
   for (const [name] of files) {
@@ -118,5 +170,5 @@ export async function initProject(dir: string): Promise<string[]> {
   for (const [name, content] of files) {
     await writeFile(join(root, name), content, { flag: "wx" });
   }
-  return files.map(([name]) => join(root, name));
+  return { files: files.map(([name]) => join(root, name)), wrotePackage };
 }

@@ -4,17 +4,16 @@
 
 Create a project, add slides, style them, present, and hand the deck out. It takes about 20 minutes.
 
-You need [Bun](https://bun.com) or [Node.js](https://nodejs.org). The commands below are for Bun; on Node, use `npx` for `bunx` and `npm install` for `bun install`.
+You need [Bun](https://bun.com) or [Node.js](https://nodejs.org). The commands below are for Bun; on Node, use `npx` for `bunx`.
 
 ## 1. Create a project
 
 ```bash
 bunx hinote init my-talk
 cd my-talk
-bun install
 ```
 
-`my-talk` now has these files:
+`init` also installs the packages. `my-talk` now has these files:
 
 - `deck.tsx`: the slides. It starts with three.
 - `style.css`: CSS for every slide, imported by `deck.tsx`.
