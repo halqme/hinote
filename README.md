@@ -15,16 +15,16 @@ hinote runs on Bun or Node.
 bunx hinote init my-talk
 cd my-talk
 bun install
-bun run dev
+bunx hinote dev
 
 # Node
 npx hinote init my-talk
 cd my-talk
 npm install
-npm run dev
+npx hinote dev
 ```
 
-`init` writes `deck.tsx`, `style.css`, `tsconfig.json` (JSX from `hono/jsx`), and a `package.json` that depends on `hinote` and `hono`. Run on Node, it also adds `esbuild` and `@hono/node-server`, which the CLI uses there in place of Bun's bundler and server. It never overwrites a file, and it leaves an existing `package.json` alone; then add the packages yourself (`bun add hinote hono`, or `npm install hinote hono` and `npm install -D esbuild @hono/node-server`).
+`init` writes `deck.tsx`, `style.css`, `tsconfig.json` (JSX from `hono/jsx`), and a `package.json` that depends on `hinote` and `hono`. Every command afterwards goes through the CLI the same way: `bunx hinote dev`, `npx hinote build`, and so on. Run on Node, it also adds `esbuild` and `@hono/node-server`, which the CLI uses there in place of Bun's bundler and server. It never overwrites a file, and it leaves an existing `package.json` alone; then add the packages yourself (`bun add hinote hono`, or `npm install hinote hono` and `npm install -D esbuild @hono/node-server`).
 
 The [hands-on](docs/hands-on.md) walks from here through adding slides, images, steps, code, and a theme to presenting and handing the deck out.
 
@@ -87,7 +87,7 @@ export default createSlide({ css: style }, [
 - Each CSS reaches only its own slides: the deck's reaches every slide, a nested deck's reaches its slides, and a slide's reaches that slide. It never touches the presenter panel.
 - Inner CSS wins: a slide's CSS beats its nested deck's, which beats the outer deck's, whatever the selectors. hinote puts each in a [cascade layer](https://developer.mozilla.org/docs/Web/CSS/@layer), and its own default styles sit in the weakest one, so any CSS you pass can override them.
 - Selectors match inside the slide. Write `& { ... }` for the slide itself; `:root`, `html`, and `body` do not match. `@keyframes`, `@font-face`, and similar rules work anywhere in the file. `@import` is refused; pass each file in the array instead.
-- `with { type: "text" }` imports the file as a string, typed as `string`. `hinote dev` and `hinote build`, `bun deck.tsx`, esbuild, and Wrangler all understand it, so serving the deck yourself needs no setup for CSS. Leave it out and the import is an object, which hinote refuses with a hint.
+- `with { type: "text" }` imports the file as a string, typed as `string`. The hinote CLI, Bun, esbuild, and Wrangler all understand it, so serving the deck yourself needs no setup for CSS. Leave it out and the import is an object, which hinote refuses with a hint.
 - A file URL, `new URL("./style.css", import.meta.url)`, also works. It is read when the deck renders, which needs a file system (Bun, Node, Deno).
 - `url()` in CSS resolves from the page, that is, from the directory of `deck.tsx`.
 
@@ -153,25 +153,40 @@ To make a PDF, print any page and choose "Save as PDF". Each slide becomes one p
 
 ## Serving the deck as a Hono app
 
-A deck is a Hono app, so you can also serve it without the CLI: on its own, mounted in another app with `app.route("/talk", deck)`, or with routes of your own added by `deck.get(...)`. Without `dev`, nothing serves the files next to the deck; add `serveStatic` if the slides use images. The package ships JavaScript and type declarations, so any runtime that runs Hono can serve it. Only `<Code>` needs more: its highlighter compiles WebAssembly, and it loads on the first `<Code>`, so a deck without code also runs on hosts that refuse WebAssembly.
+`hinote dev` is the way to show a deck. A deck is also a Hono app, so when you want it inside a server of your own, mount it with `app.route("/", deck)` (or under any path) next to your other routes. Serve the files next to the deck as well, as `dev` does, or relative images and CSS will not load. The package ships JavaScript and type declarations, so any runtime that runs Hono can serve it. Only `<Code>` needs more: its highlighter compiles WebAssembly, and it loads on the first `<Code>`, so a deck without code also runs on hosts that refuse WebAssembly.
 
 ### Bun
 
-```bash
-bun deck.tsx        # serves on port 3000
-bun --hot deck.tsx  # also reloads open pages when you save
+```ts
+// server.ts, run with `bun server.ts`
+import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
+import deck from "./deck.tsx";
+
+const app = new Hono();
+app.route("/", deck);
+app.use("/*", serveStatic({ root: "./" }));
+
+Bun.serve({ fetch: app.fetch, port: 4321 });
 ```
 
 ### Node
 
 ```ts
+// server.mjs, run with `node server.mjs`
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { Hono } from "hono";
 import deck from "./deck.js";
 
-serve({ fetch: deck.fetch, port: 4321 });
+const app = new Hono();
+app.route("/", deck);
+app.use("/*", serveStatic({ root: "./" }));
+
+serve({ fetch: app.fetch, port: 4321 });
 ```
 
-Node does not run TSX, so compile `deck.tsx` first. With esbuild:
+Node does not run TSX, so compile `deck.tsx` to `deck.js` first. With esbuild:
 
 ```bash
 esbuild deck.tsx --bundle --platform=node --format=esm --packages=external \
@@ -188,7 +203,7 @@ main = "src/deck.tsx"
 compatibility_date = "2026-11-01"
 ```
 
-A deployed Worker may answer requests from several isolates, and sync only reaches pages connected to the same one. CSS passed as a file URL needs a file system, so import the file instead.
+The Worker serves the deck only; host the files the slides refer to separately. A deployed Worker may answer requests from several isolates, and sync only reaches pages connected to the same one. CSS passed as a file URL needs a file system, so import the file instead.
 
 The deck, the presenter view, `<Code>`, CSS, and sync were checked on all three: Bun, Node with `@hono/node-server`, and Workers with `wrangler dev`. Deno has not been tried.
 

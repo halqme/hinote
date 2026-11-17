@@ -4,7 +4,7 @@
 
 Create a project, add slides, style them, present, and hand the deck out. It takes about 20 minutes.
 
-You need [Bun](https://bun.com) or [Node.js](https://nodejs.org). The commands below are for Bun; on Node, use `npx` for `bunx`, `npm install` for `bun install`, and `npm run` for `bun run`.
+You need [Bun](https://bun.com) or [Node.js](https://nodejs.org). The commands below are for Bun; on Node, use `npx` for `bunx` and `npm install` for `bun install`.
 
 ## 1. Create a project
 
@@ -19,12 +19,12 @@ bun install
 - `deck.tsx`: the slides. It starts with three.
 - `style.css`: CSS for every slide, imported by `deck.tsx`.
 - `tsconfig.json`: reads JSX with `hono/jsx`.
-- `package.json`: depends on `hinote` and `hono`, with `dev` and `build` scripts.
+- `package.json`: depends on `hinote` and `hono` (and, when made on Node, on `esbuild` and `@hono/node-server`, which the CLI uses there).
 
 ## 2. Show it
 
 ```bash
-bun run dev
+bunx hinote dev
 ```
 
 Open <http://127.0.0.1:4321>. Go forward with `→` or Space and back with `←`. On the second slide the list items appear one at a time before the next slide.
@@ -32,7 +32,7 @@ Open <http://127.0.0.1:4321>. Go forward with `→` or Space and back with `←`
 If you see `Port 4321 is in use`, pass another port:
 
 ```bash
-bun run dev -- --port 4322
+bunx hinote dev --port 4322
 ```
 
 ## 3. Edit the first slide
@@ -170,12 +170,12 @@ Open <http://127.0.0.1:4321/presenter>. The current slide is on the left; on the
 - Move the mouse over the slide in the presenter view and a red pointer appears in the audience view.
 - Press `O` for an overview of every slide; click one to jump to it.
 - Click the elapsed time to restart it.
-- To open the deck from a phone or another device, start it with `bun run dev -- --host 0.0.0.0` and open one of the addresses it prints.
+- To open the deck from a phone or another device, start it with `bunx hinote dev --host 0.0.0.0` and open one of the addresses it prints.
 
 ## 10. Hand it out
 
 ```bash
-bun run build
+bunx hinote build
 ```
 
 `dist/index.html` is one HTML file with the audience view only, and the images it uses are copied into `dist/`. Hand out the `dist/` directory as it is. The presenter view and sync are not included.

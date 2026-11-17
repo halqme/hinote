@@ -1,5 +1,5 @@
 // Reads the roast log while the slide renders. import.meta.url is this file,
-// under `hinote dev`, `hinote build`, and `bun deck.tsx` alike.
+// under `hinote dev` and `hinote build` alike.
 type Batch = { no: number; mode: "manual" | "auto"; firstCrack: number };
 type Log = { target: number; batches: Batch[] };
 

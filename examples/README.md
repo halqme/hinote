@@ -36,4 +36,4 @@ examples/
 | `slides/results.tsx`, `components/FirstCrackChart.tsx` | An async component reads `data/roasts.json`, computes the standard deviation, and draws a bar chart                        |
 | `slides/thanks.tsx`                                    | A slide with its own theme, transition, and CSS                                                                            |
 
-`FirstCrackChart.tsx` reads its data with `new URL("../data/roasts.json", import.meta.url)`. The path resolves from that file under `hinote dev`, `hinote build`, and `bun deck.tsx` alike.
+`FirstCrackChart.tsx` reads its data with `new URL("../data/roasts.json", import.meta.url)`. The path resolves from that file under `hinote dev` and `hinote build` alike.

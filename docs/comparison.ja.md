@@ -54,7 +54,7 @@ bun bench/run.ts --browser  # ブラウザに表示されるまでも測る（ag
 | 部品を作る           | JSX のコンポーネント。async にもできる                                                  | Vue コンポーネント                                                 | なし（CSS で見た目を変える）                                             |
 | 発表者画面           | サーバーで出すときだけ                                                                  | あり。スマートフォンから操作もできる                               | 書き出した HTML にもある                                                 |
 | 書き出し             | 視聴画面だけの HTML 1ファイル。PDF はブラウザの印刷で作る                               | 静的サイト。PDF・PNG・PPTX には `playwright-chromium` を別に入れる | HTML 1ファイル。PDF・PPTX・画像には Chrome・Edge・Firefox のどれかが要る |
-| サーバーとして動かす | デッキが Hono アプリなので、`bun deck.tsx` や `app.route()` でそのまま動く              | 開発サーバー                                                       | `-s` でディレクトリを配信する                                            |
+| サーバーとして動かす | デッキが Hono アプリなので、`app.route()` で自分のサーバーに組み込める                  | 開発サーバー                                                       | `-s` でディレクトリを配信する                                            |
 
 Slidev は、hinote にない機能をたくさん持っています。描き込み、録画、LaTeX、Mermaid の図、アイコン、テーマの共有、エディタとの連携などです。Marp は、Markdown だけで書けて、PowerPoint にも書き出せます。
 

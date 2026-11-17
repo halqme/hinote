@@ -54,7 +54,7 @@ Part of hinote's lightness comes from doing less. Keep that in mind when reading
 | Components     | JSX components, which may be async                                                                                           | Vue components                                                                    | None (style with CSS)                                              |
 | Presenter view | Only when the deck is served                                                                                                 | Yes, and a phone can control it                                                   | Also in the built HTML                                             |
 | Export         | One HTML file with the audience view, or a static site with the presenter view (`prerender`); PDF by printing in the browser | A static site; PDF, PNG, and PPTX need `playwright-chromium` installed separately | One HTML file; PDF, PPTX, and images need Chrome, Edge, or Firefox |
-| Serving        | The deck is a Hono app: `bun deck.tsx` serves it, and `app.route()` mounts it                                                | Dev server                                                                        | `-s` serves a directory                                            |
+| Serving        | The deck is a Hono app, so `app.route()` mounts it in a server of your own                                                   | Dev server                                                                        | `-s` serves a directory                                            |
 
 Slidev has many features hinote lacks: drawing, recording, LaTeX, Mermaid diagrams, icons, shared themes, and editor integration. Marp needs only Markdown and can export to PowerPoint.
 

@@ -168,8 +168,10 @@ async function initCommand(argv: string[]): Promise<void> {
     throw new HinoteError("init accepts one directory.");
   const dir = args.positionals[0] ?? ".";
   for (const file of await initProject(dir)) console.log(file);
-  const pm = isBun ? "bun" : "npm";
-  console.log(`\nNext: cd ${dir} && ${pm} install && ${pm} run dev`);
+  const [install, run] = isBun
+    ? ["bun install", "bunx"]
+    : ["npm install", "npx"];
+  console.log(`\nNext: cd ${dir} && ${install} && ${run} hinote dev`);
   console.log(
     "Hands-on: node_modules/hinote/docs/hands-on.md (日本語: hands-on.ja.md)",
   );

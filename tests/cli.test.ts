@@ -91,13 +91,14 @@ export default createSlide(() => <div><Title /><p>{import.meta.dir}</p></div>)`)
   }
 });
 
-test("CSS imported as text reaches the page, under hinote and under bun deck.tsx", async () => {
+test("CSS imported as text reaches the page, under hinote and in a server of your own", async () => {
   const dir = await tempDir();
   const probe = Bun.serve({ port: 0, fetch: () => new Response() });
   const port = probe.port;
   probe.stop(true);
   try {
     await writeFile(join(dir, "style.css"), "h1 { color: teal; }");
+    await writeFile(join(dir, "logo.svg"), "<svg/>");
     await writeFile(
       join(dir, "deck.tsx"),
       deckSource(`import style from "./style.css" with { type: "text" }
@@ -106,23 +107,35 @@ export default createSlide({ css: style }, [createSlide(() => <h1>x</h1>)])`),
     const html = await (await loadDeckFile(join(dir, "deck.tsx"))).render();
     expect(html).toContain("h1 { color: teal; }");
 
-    // bun deck.tsx needs no setup for it. It reads JSX settings from
-    // tsconfig.json, as a project from init has.
+    // The README's Bun server: the deck mounted next to the files beside it.
+    // Bun reads JSX settings from tsconfig.json, as a project from init has.
     await writeFile(
       join(dir, "tsconfig.json"),
       JSON.stringify({
         compilerOptions: { jsx: "react-jsx", jsxImportSource: "hono/jsx" },
       }),
     );
-    const proc = Bun.spawn(["bun", "deck.tsx"], {
+    await writeFile(
+      join(dir, "server.ts"),
+      `import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
+import deck from "./deck.tsx";
+const app = new Hono();
+app.route("/", deck);
+app.use("/*", serveStatic({ root: "./" }));
+Bun.serve({ fetch: app.fetch, port: ${port} });`,
+    );
+    const proc = Bun.spawn(["bun", "server.ts"], {
       cwd: dir,
-      env: { ...process.env, PORT: String(port) },
       stdout: "pipe",
       stderr: "pipe",
     });
     try {
-      const page = await waitFor(`http://127.0.0.1:${port}/`, proc);
+      const page = await waitFor(`http://127.0.0.1:${port}/presenter/1`, proc);
       expect(await page.text()).toContain("h1 { color: teal; }");
+      expect(
+        await (await fetch(`http://127.0.0.1:${port}/logo.svg`)).text(),
+      ).toBe("<svg/>");
     } finally {
       proc.kill();
       await proc.exited;

@@ -80,10 +80,6 @@ function packageFile(name: string): string {
       name,
       private: true,
       type: "module",
-      scripts: {
-        dev: "hinote dev",
-        build: "hinote build",
-      },
       dependencies: {
         hinote: `^${packageJson.version}`,
         hono: peers.hono,

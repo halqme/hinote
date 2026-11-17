@@ -15,16 +15,16 @@ hinote は Bun でも Node でも動きます。
 bunx hinote init my-talk
 cd my-talk
 bun install
-bun run dev
+bunx hinote dev
 
 # Node
 npx hinote init my-talk
 cd my-talk
 npm install
-npm run dev
+npx hinote dev
 ```
 
-`init` は `deck.tsx`、`style.css`、`tsconfig.json`（JSX は `hono/jsx`）、`hinote` と `hono` に依存する `package.json` を書き出します。Node で実行したときは、`esbuild` と `@hono/node-server` も足します。CLI は Node ではこの2つを、Bun のバンドラとサーバーの代わりに使います。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、パッケージは自分で追加してください（`bun add hinote hono`、または `npm install hinote hono` と `npm install -D esbuild @hono/node-server`）。
+`init` は `deck.tsx`、`style.css`、`tsconfig.json`（JSX は `hono/jsx`）、`hinote` と `hono` に依存する `package.json` を書き出します。そのあとのコマンドも、すべて同じように CLI から実行します（`bunx hinote dev`、`npx hinote build` など）。Node で実行したときは、`esbuild` と `@hono/node-server` も足します。CLI は Node ではこの2つを、Bun のバンドラとサーバーの代わりに使います。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、パッケージは自分で追加してください（`bun add hinote hono`、または `npm install hinote hono` と `npm install -D esbuild @hono/node-server`）。
 
 [ハンズオン](docs/hands-on.ja.md) では、ここから順に、スライド・画像・ステップ・コード・テーマを足し、発表して配るところまでを試せます。
 
@@ -97,7 +97,7 @@ export default createSlide({ css: style }, [
 - それぞれの CSS は、自分のスライドだけに効きます。デッキの CSS は全部のスライドに、入れ子のデッキの CSS はその中のスライドに、スライドの CSS はその1枚に効きます。発表者画面のパネルには効きません。
 - 内側の CSS が勝ちます。スライドの CSS は入れ子のデッキの CSS に、入れ子のデッキの CSS は外のデッキの CSS に、セレクタの強さに関係なく勝ちます。hinote はそれぞれを [カスケードレイヤー](https://developer.mozilla.org/docs/Web/CSS/@layer) に入れ、自分の既定のスタイルを一番弱いレイヤーに置いています。そのため、渡した CSS は必ず既定のスタイルより優先されます。
 - セレクタはスライドの中に対して効きます。スライドそのものは `& { ... }` と書きます。`:root`、`html`、`body` には効きません。`@keyframes` や `@font-face` などは、ファイルのどこに書いても使えます。`@import` は使えないので、ファイルごとに配列で渡してください。
-- `with { type: "text" }` を付けると、ファイルを文字列（型は `string`）として import します。`hinote dev`・`hinote build`、`bun deck.tsx`、esbuild、Wrangler のどれもこの書き方を理解するので、デッキを自分で配信するときも CSS のための設定は要りません。付け忘れると import の結果がオブジェクトになり、hinote が書き方を示して知らせます。
+- `with { type: "text" }` を付けると、ファイルを文字列（型は `string`）として import します。hinote の CLI、Bun、esbuild、Wrangler のどれもこの書き方を理解するので、デッキを自分で配信するときも CSS のための設定は要りません。付け忘れると import の結果がオブジェクトになり、hinote が書き方を示して知らせます。
 - `new URL("./style.css", import.meta.url)` のようにファイルの URL を渡すこともできます。この場合はデッキを描画するときに読むので、ファイルを読めるランタイム（Bun、Node、Deno）が必要です。
 - CSS の中の `url()` は、ページ、つまり `deck.tsx` のあるディレクトリから解決されます。
 
@@ -163,25 +163,40 @@ PDF にするときは、どのページでも印刷して「PDF として保存
 
 ## Hono アプリとして配信する
 
-デッキは Hono アプリなので、CLI を使わずに配信することもできます。単独で動かすことも、別のアプリの中に `app.route("/talk", deck)` で置くことも、`deck.get(...)` で自分のルートを足すこともできます。`dev` を使わないときは、デッキの隣のファイルを配信するものがないので、画像を使うなら `serveStatic` を足してください。パッケージには JavaScript と型定義が入っているので、Hono が動くランタイムならどれでも配信できます。それ以上のものが要るのは `<Code>` だけです。ハイライトの処理は WebAssembly を使い、最初の `<Code>` を描画するときに読み込みます。そのため、コードを使わないデッキは、WebAssembly を使えない環境でも動きます。
+デッキを表示するのは `hinote dev` です。一方でデッキは Hono アプリでもあるので、自分のサーバーに組み込みたいときは、`app.route("/", deck)`（またはほかのパス）でほかのルートと並べて置けます。そのときは `dev` と同じように、デッキの隣のファイルも配信してください。配信しないと、相対パスの画像や CSS が読めません。パッケージには JavaScript と型定義が入っているので、Hono が動くランタイムならどれでも配信できます。それ以上のものが要るのは `<Code>` だけです。ハイライトの処理は WebAssembly を使い、最初の `<Code>` を描画するときに読み込みます。そのため、コードを使わないデッキは、WebAssembly を使えない環境でも動きます。
 
 ### Bun
 
-```bash
-bun deck.tsx        # ポート 3000 で配信する
-bun --hot deck.tsx  # 保存すると、開いているページも読み直す
+```ts
+// server.ts（`bun server.ts` で起動）
+import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
+import deck from "./deck.tsx";
+
+const app = new Hono();
+app.route("/", deck);
+app.use("/*", serveStatic({ root: "./" }));
+
+Bun.serve({ fetch: app.fetch, port: 4321 });
 ```
 
 ### Node
 
 ```ts
+// server.mjs（`node server.mjs` で起動）
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { Hono } from "hono";
 import deck from "./deck.js";
 
-serve({ fetch: deck.fetch, port: 4321 });
+const app = new Hono();
+app.route("/", deck);
+app.use("/*", serveStatic({ root: "./" }));
+
+serve({ fetch: app.fetch, port: 4321 });
 ```
 
-Node は TSX をそのまま動かせないので、先に `deck.tsx` をコンパイルします。esbuild なら次のとおりです。
+Node は TSX をそのまま動かせないので、先に `deck.tsx` を `deck.js` にコンパイルします。esbuild なら次のとおりです。
 
 ```bash
 esbuild deck.tsx --bundle --platform=node --format=esm --packages=external \
@@ -198,7 +213,7 @@ main = "src/deck.tsx"
 compatibility_date = "2026-11-01"
 ```
 
-本番の Worker は複数の isolate でリクエストを受けることがあり、同期は同じ isolate につながったページ同士にしか届きません。CSS をファイルの URL で渡す方法はファイルを読める環境が必要なので、import で渡してください。
+Worker が配信するのはデッキだけなので、スライドが参照するファイルは別に置いてください。本番の Worker は複数の isolate でリクエストを受けることがあり、同期は同じ isolate につながったページ同士にしか届きません。CSS をファイルの URL で渡す方法はファイルを読める環境が必要なので、import で渡してください。
 
 デッキ、発表者画面、`<Code>`、CSS、同期が動くことは、3つすべてで確かめました。Bun、`@hono/node-server` を使った Node、`wrangler dev` を使った Workers です。Deno はまだ試していません。
 

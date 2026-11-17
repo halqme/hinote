@@ -83,8 +83,8 @@ export function parseDeckOptions(
   return options;
 }
 
-// A deck is a Hono app, so anything that runs Hono can serve it:
-// `export default deck` for `bun deck.tsx`, or `app.route("/talk", deck)`.
+// A deck is a Hono app: `hinote dev` serves it, and a server of your own on
+// any runtime that runs Hono can mount it with `app.route("/talk", deck)`.
 export class Deck extends Hono {
   readonly kind = "deck";
   readonly slides: readonly Slide[];

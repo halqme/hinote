@@ -1,5 +1,5 @@
 // A fictional five-minute talk, written the way a real one would be.
-// `bun run dev` in the repository shows it; `bun examples/deck.tsx` serves it too.
+// `bun run dev` in the repository shows it.
 import { createSlide } from "hinote";
 import agenda from "./slides/agenda.tsx";
 import code from "./slides/code.tsx";

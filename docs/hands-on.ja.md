@@ -4,7 +4,7 @@
 
 新しいプロジェクトを作り、スライドを足して見た目を整え、発表して配るところまでを順に試します。20分ほどで終わります。
 
-用意するのは [Bun](https://bun.com) か [Node.js](https://nodejs.org) です。以下は Bun のコマンドで書いています。Node では、`bunx` を `npx` に、`bun install` を `npm install` に、`bun run` を `npm run` に読み替えてください。
+用意するのは [Bun](https://bun.com) か [Node.js](https://nodejs.org) です。以下は Bun のコマンドで書いています。Node では、`bunx` を `npx` に、`bun install` を `npm install` に読み替えてください。
 
 ## 1. プロジェクトを作る
 
@@ -19,12 +19,12 @@ bun install
 - `deck.tsx`: スライドを書くファイルです。3枚入っています。
 - `style.css`: 全部のスライドに効く CSS です。`deck.tsx` が import しています。
 - `tsconfig.json`: JSX を `hono/jsx` で読む設定です。
-- `package.json`: `hinote` と `hono` に依存し、`dev` と `build` のスクリプトを持っています。
+- `package.json`: `hinote` と `hono` に依存しています（Node で作ったときは、CLI が使う `esbuild` と `@hono/node-server` も入ります）。
 
 ## 2. 表示する
 
 ```bash
-bun run dev
+bunx hinote dev
 ```
 
 ブラウザで <http://127.0.0.1:4321> を開きます。`→` や Space で進み、`←` で戻ります。2枚目では、箇条書きが1つずつ出てから次のスライドへ進みます。
@@ -32,7 +32,7 @@ bun run dev
 `Port 4321 is in use` と出たら、別の番号を渡してください。
 
 ```bash
-bun run dev -- --port 4322
+bunx hinote dev --port 4322
 ```
 
 ## 3. 1枚目を書き換える
@@ -167,12 +167,12 @@ h2 {
 - 発表者画面でスライドの上にマウスを置くと、視聴画面に赤いポインタが出ます。
 - `O` で全スライドの一覧を開き、押したスライドへ移ります。
 - 経過時間は押すと 0 に戻ります。
-- スマートフォンなど別の端末から開くときは、`bun run dev -- --host 0.0.0.0` で起動し、表示されたアドレスを開きます。
+- スマートフォンなど別の端末から開くときは、`bunx hinote dev --host 0.0.0.0` で起動し、表示されたアドレスを開きます。
 
 ## 10. 配る
 
 ```bash
-bun run build
+bunx hinote build
 ```
 
 `dist/index.html` に、視聴画面だけの HTML が1つできます。使っている画像は `dist/` にコピーされるので、`dist/` をそのまま配ってください。発表者画面と同期は入りません。
