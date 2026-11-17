@@ -48,6 +48,7 @@ h2,h3{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);lin
 p{font-size:var(--hinote-text-body);line-height:1.5}
 small{font-size:var(--hinote-text-small);color:var(--hinote-color-muted)}
 code,pre{font-family:var(--hinote-font-mono)}
+pre.highlights{margin:0;padding:1em 1.25em;border-radius:var(--hinote-radius);font-size:var(--hinote-text-code);line-height:1.5;text-align:left;white-space:pre;overflow:hidden}
 a{color:var(--hinote-color-accent)}
 #hinote-pointer{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 16px #ff2d2d;pointer-events:none;z-index:10;opacity:0}
 .hinote-thumb{position:relative;overflow:hidden;width:100%;aspect-ratio:var(--hinote-canvas-ratio);background:var(--hinote-color-bg);border-radius:6px}

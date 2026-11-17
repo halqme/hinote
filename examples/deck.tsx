@@ -1,4 +1,4 @@
-import { Center, Step, createSlide } from "hinote";
+import { Center, Code, Column, Step, createSlide } from "hinote";
 import points from "./slides/points.tsx";
 
 const title = createSlide({ title: "hinote", notes: "はじめる" }, () => (
@@ -17,6 +17,17 @@ const steps = createSlide({ title: "Step", notes: "一つずつ出す" }, () => 
       <Step as="li">最後に次のスライドへ</Step>
     </ul>
   </Center>
+));
+
+const code = createSlide({ title: "Code", notes: "色はビルド時に付く" }, () => (
+  <Column gap={3}>
+    <h2>コードを書く</h2>
+    <Code lang="tsx">{`
+      export default createSlide([
+        createSlide(() => <h1>hinote</h1>),
+      ]);
+    `}</Code>
+  </Column>
 ));
 
 const nested = createSlide({ theme: { colors: { bg: "#111827" } } }, [
@@ -44,5 +55,5 @@ export default createSlide(
       radius: "12px",
     },
   },
-  [title, points, steps, nested],
+  [title, points, steps, code, nested],
 );

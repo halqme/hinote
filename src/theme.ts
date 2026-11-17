@@ -9,7 +9,7 @@ type Tokens<Known extends string> = { [K in Known]?: string } & {
 export type Theme = {
   colors?: Tokens<"bg" | "fg" | "accent" | "muted">;
   fonts?: Tokens<"base" | "heading" | "mono">;
-  typography?: Tokens<"h1" | "h2" | "body" | "small">;
+  typography?: Tokens<"h1" | "h2" | "body" | "small" | "code">;
   shadows?: Tokens<"sm" | "md" | "lg">;
   spacing?: Tokens<"unit">;
   radius?: string;
@@ -35,7 +35,13 @@ export const defaultTheme: Theme = {
     heading: "system-ui, sans-serif",
     mono: "ui-monospace, monospace",
   },
-  typography: { h1: "4.5rem", h2: "2.5rem", body: "1.5rem", small: "1rem" },
+  typography: {
+    h1: "4.5rem",
+    h2: "2.5rem",
+    body: "1.5rem",
+    small: "1rem",
+    code: "1.25rem",
+  },
   shadows: {
     sm: "0 1px 2px rgb(0 0 0 / 0.3)",
     md: "0 8px 24px rgb(0 0 0 / 0.35)",

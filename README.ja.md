@@ -50,6 +50,8 @@ export default createSlide(
 
 `<Step>` は、中身を1ステップずつ出します。番号は書いた順に増えます。`at={n}` を付けると n 番目のステップで出し、`as="li"` で要素の種類を選べます。`data-hinote-step="n"` を付けた要素も同じように扱います。
 
+`<Code lang="ts">{`...`}</Code>`（または `code={source}`）は、[`@pierre/highlights`](https://diffs.com/highlights) でコードに色を付けます。色はスライドを描画するときにインラインで付くので、ページでも書き出した HTML でもハイライト用の処理は動きません。周りの JSX の字下げは取り除きます。`theme` には `hinote/code-themes` のテーマ（`githubLight` など）を渡せます。既定は Pierre のダークテーマです。文字の大きさはテーマの `typography.code` です。
+
 レイアウトは `Center`、`Column`、`Row` です。渡せる props は `gap`、`align`、`justify` です。`gap` に数値を渡すと、テーマの `spacing.unit` にその数を掛けた間隔になります。
 
 テーマには `colors`、`fonts`、`typography`、`shadows`、`spacing` のグループと `radius` があります。グループの中の値はそれぞれ `--hinote-<グループ>-<名前>` という CSS 変数になります。グループの部分は `color`、`font`、`text`、`shadow`、`space` と書きます。たとえば `colors.bg` は `--hinote-color-bg`、`typography.h1` は `--hinote-text-h1`、`radius` は `--hinote-radius` です。

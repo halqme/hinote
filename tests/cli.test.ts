@@ -260,7 +260,8 @@ test("the example deck renders its slides", async () => {
     resolve(import.meta.dir, "../examples/deck.tsx"),
   );
   const html = await deck.render();
-  expect(deck.slides).toHaveLength(4);
+  expect(deck.slides).toHaveLength(5);
+  expect(html).toContain('<pre class="highlights"');
   expect(html).toContain("Column と Row");
   expect(html).toContain("data-hinote-step");
   expect(html).toContain("#111827");
