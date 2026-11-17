@@ -45,6 +45,28 @@ export function clampPosition(
   return { slide, step };
 }
 
+// Reveal the next step, or move to the next slide with nothing revealed.
+// Undefined at the very end.
+export function nextPosition(
+  { slide, step }: Position,
+  steps: readonly number[],
+): Position | undefined {
+  if (step < (steps[slide] ?? 0)) return { slide, step: step + 1 };
+  if (slide < steps.length - 1) return { slide: slide + 1, step: 0 };
+  return undefined;
+}
+
+// Hide the last step, or move to the previous slide fully revealed.
+// Undefined at the very start.
+export function prevPosition(
+  { slide, step }: Position,
+  steps: readonly number[],
+): Position | undefined {
+  if (step > 0) return { slide, step: step - 1 };
+  if (slide > 0) return { slide: slide - 1, step: steps[slide - 1] ?? 0 };
+  return undefined;
+}
+
 export function normalizePointer(
   rect: { left: number; top: number; width: number; height: number },
   clientX: number,
@@ -116,19 +138,13 @@ export function createPlayer(options: PlayerOptions): Player {
       options.show(position);
       if (source === "local") options.post({ type: "navigate", ...position });
     },
-    // Reveal the next step, or move to the next slide with nothing revealed.
     next() {
-      const { slide, step } = position;
-      if (step < stepsAt(slide)) player.go({ slide, step: step + 1 }, "local");
-      else if (slide < steps.length - 1)
-        player.go({ slide: slide + 1, step: 0 }, "local");
+      const next = nextPosition(position, steps);
+      if (next) player.go(next, "local");
     },
-    // Hide the last step, or move to the previous slide fully revealed.
     prev() {
-      const { slide, step } = position;
-      if (step > 0) player.go({ slide, step: step - 1 }, "local");
-      else if (slide > 0)
-        player.go({ slide: slide - 1, step: stepsAt(slide - 1) }, "local");
+      const prev = prevPosition(position, steps);
+      if (prev) player.go(prev, "local");
     },
     key(key) {
       if (NEXT_KEYS.has(key)) player.next();

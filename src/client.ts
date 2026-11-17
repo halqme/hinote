@@ -8,6 +8,7 @@ import {
 } from "./location.ts";
 import {
   createPlayer,
+  nextPosition,
   normalizePointer,
   type Position,
   type Role,
@@ -59,6 +60,138 @@ function stepCount(slide: Element): number {
   return count;
 }
 
+// Hides the steps of one slide that come after `revealed`.
+function revealSteps(slide: ParentNode, revealed: number): void {
+  for (const el of slide.querySelectorAll<HTMLElement>("[data-hinote-step]")) {
+    el.classList.toggle("is-hidden", Number(el.dataset.hinoteStep) > revealed);
+  }
+}
+
+// A copy of a slide scaled into `box`, which keeps the canvas ratio in CSS.
+function fillThumb(box: HTMLElement, slide: HTMLElement, revealed: number) {
+  const copy = slide.cloneNode(true) as HTMLElement;
+  revealSteps(copy, revealed);
+  box.replaceChildren(copy);
+}
+
+function formatElapsed(ms: number): string {
+  const total = Math.floor(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = String(total % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
+}
+
+// The timer survives reloads from `hinote dev`, so editing during a rehearsal
+// does not restart it. Storage can be unavailable; then it starts at load.
+const TIMER_KEY = "hinote-timer-start";
+
+function timerStart(reset = false): number {
+  const now = Date.now();
+  try {
+    const saved = Number(sessionStorage.getItem(TIMER_KEY));
+    if (!reset && saved > 0 && saved <= now) return saved;
+    sessionStorage.setItem(TIMER_KEY, String(now));
+  } catch {}
+  return now;
+}
+
+type PresenterView = {
+  show(position: Position): void;
+  // Returns true when it used the key.
+  key(key: string): boolean;
+};
+
+function presenterView(
+  slides: HTMLElement[],
+  steps: readonly number[],
+  canvasWidth: number,
+  go: (position: Position) => void,
+): PresenterView {
+  const nextEl = document.getElementById("hinote-next");
+  const timerEl = document.getElementById("hinote-timer");
+  const clockEl = document.getElementById("hinote-clock");
+  const overview = document.getElementById("hinote-overview");
+
+  const sizes = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const box = entry.target as HTMLElement;
+      box.style.setProperty(
+        "--hinote-scale",
+        String(box.clientWidth / canvasWidth),
+      );
+    }
+  });
+  if (nextEl) sizes.observe(nextEl);
+
+  let start = timerStart();
+  const tick = () => {
+    if (timerEl) timerEl.textContent = formatElapsed(Date.now() - start);
+    if (clockEl)
+      clockEl.textContent = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+  };
+  tick();
+  setInterval(tick, 1000);
+  timerEl?.addEventListener("click", () => {
+    start = timerStart(true);
+    tick();
+  });
+
+  const items = slides.map((slide, index) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "hinote-overview-item";
+    const box = document.createElement("div");
+    box.className = "hinote-thumb";
+    fillThumb(box, slide, steps[index] ?? 0);
+    const label = document.createElement("span");
+    label.textContent = `${index + 1}`;
+    item.append(box, label);
+    item.addEventListener("click", () => {
+      go({ slide: index, step: 0 });
+      setOverview(false);
+    });
+    sizes.observe(box);
+    return item;
+  });
+  overview?.replaceChildren(...items);
+
+  const setOverview = (open: boolean) => {
+    overview?.classList.toggle("is-open", open);
+    if (open)
+      overview
+        ?.querySelector(".is-current")
+        ?.scrollIntoView({ block: "center" });
+  };
+
+  return {
+    show(position) {
+      for (const [index, item] of items.entries())
+        item.classList.toggle("is-current", index === position.slide);
+      if (!nextEl) return;
+      const next = nextPosition(position, steps);
+      const slide = next && slides[next.slide];
+      if (next && slide) {
+        nextEl.removeAttribute("data-end");
+        fillThumb(nextEl, slide, next.step);
+      } else {
+        nextEl.setAttribute("data-end", "");
+        nextEl.replaceChildren();
+      }
+    },
+    key(key) {
+      const open = overview?.classList.contains("is-open") ?? false;
+      if (key === "o" || key === "O") setOverview(!open);
+      else if (key === "Escape" && open) setOverview(false);
+      else return false;
+      return true;
+    },
+  };
+}
+
 function boot(): void {
   const page = document.documentElement.dataset.page;
   const served =
@@ -102,19 +235,23 @@ function boot(): void {
     history.replaceState(null, "", url);
   };
 
+  // Assigned once the player exists, since the overview navigates through it.
+  let presenter: PresenterView | undefined;
+
   const show = (position: Position) => {
     for (const [index, slide] of slides.entries()) {
       slide.classList.toggle("is-active", index === position.slide);
-      for (const el of slide.querySelectorAll<HTMLElement>(
-        "[data-hinote-step]",
-      )) {
-        const hidden =
-          index > position.slide ||
-          (index === position.slide &&
-            Number(el.dataset.hinoteStep) > position.step);
-        el.classList.toggle("is-hidden", hidden);
-      }
+      // Earlier slides show every step, later slides none.
+      revealSteps(
+        slide,
+        index < position.slide
+          ? Infinity
+          : index === position.slide
+            ? position.step
+            : 0,
+      );
     }
+    presenter?.show(position);
     if (stepEl) {
       const total = steps[position.slide] ?? 0;
       stepEl.textContent =
@@ -151,9 +288,20 @@ function boot(): void {
   });
   port.listen((message) => player.onMessage(message));
 
+  if (role === "presenter" && stage) {
+    presenter = presenterView(
+      slides,
+      steps,
+      Number(stage.dataset.width),
+      (position) => player.go(position, "local"),
+    );
+    presenter.show(player.position);
+  }
+
   document.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
-    if (player.key(event.key)) event.preventDefault();
+    if (presenter?.key(event.key) || player.key(event.key))
+      event.preventDefault();
   });
 
   if (role === "presenter" && deck) {

@@ -37,13 +37,22 @@ small{font-size:var(--hinote-small);color:var(--hinote-muted)}
 code,pre{font-family:var(--hinote-font-mono)}
 a{color:var(--hinote-accent)}
 #hinote-pointer{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 16px #ff2d2d;pointer-events:none;z-index:10;opacity:0}
-#hinote-notes{white-space:pre-wrap}
-html[data-page="presenter"] body{display:grid;grid-template-columns:minmax(0,1fr) minmax(14rem,22rem);background:#111318;color:#f4f4f5}
+.hinote-thumb{position:relative;overflow:hidden;width:100%;aspect-ratio:var(--hinote-canvas-ratio);background:var(--hinote-bg);border-radius:6px}
+.hinote-thumb>.slide{display:flex}
+html[data-page="presenter"] body{display:grid;grid-template-columns:minmax(0,1fr) minmax(18rem,30vw);background:#111318;color:#f4f4f5;font:16px/1.6 system-ui,sans-serif}
 html[data-page="presenter"] #deck{position:relative;inset:auto;min-width:0;min-height:0;padding:1.25rem;background:#0b0d12}
 html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45)}
-html[data-page="presenter"] #hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;margin:0;padding:1.25rem;overflow:auto;background:#181b22;border-left:1px solid #2c313c;font-size:16px;line-height:1.6}
-html[data-page="presenter"] #hinote-step{margin:0;color:#a1a1aa;font-size:13px;letter-spacing:.04em}
-html[data-page="presenter"] #hinote-notes{margin:0;font-size:16px;line-height:1.6}
+#hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;padding:1.25rem;overflow:auto;background:#181b22;border-left:1px solid #2c313c}
+.hinote-label{margin:0;color:#a1a1aa;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+#hinote-next[data-end]::after{content:"End";position:absolute;inset:0;display:grid;place-items:center;color:#71717a;background:#0b0d12}
+#hinote-meta{display:flex;align-items:baseline;justify-content:space-between;gap:1rem}
+#hinote-timer{all:unset;cursor:pointer;font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
+#hinote-step,#hinote-clock{margin:0;color:#a1a1aa;font-size:13px;font-variant-numeric:tabular-nums}
+#hinote-notes{white-space:pre-wrap;flex:1}
+#hinote-overview{display:none;position:fixed;inset:0;z-index:20;overflow:auto;padding:2rem;background:rgb(10 12 16 / .96);grid-template-columns:repeat(auto-fill,minmax(16rem,1fr));gap:1.25rem;align-content:start}
+#hinote-overview.is-open{display:grid}
+.hinote-overview-item{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:.4rem;color:#d4d4d8;font:13px system-ui,sans-serif}
+.hinote-overview-item.is-current .hinote-thumb{outline:3px solid #38bdf8;outline-offset:2px}
 @media print{
 html,body{height:auto;overflow:visible;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 html[data-page] body{display:block}
@@ -85,6 +94,37 @@ function slideStyle(theme: Theme, slide: Slide): Record<string, string> {
   return style;
 }
 
+// Filled in by the client: the next preview, the timer, and the overview.
+function presenterPanel(slideCount: number, notes: string) {
+  return [
+    jsx(
+      "aside",
+      { id: "hinote-panel" },
+      jsx("p", { class: "hinote-label" }, "Next"),
+      jsx("div", { id: "hinote-next", class: "hinote-thumb" }),
+      jsx(
+        "div",
+        { id: "hinote-meta" },
+        jsx(
+          "button",
+          { id: "hinote-timer", type: "button", title: "Click to restart" },
+          "0:00",
+        ),
+        jsx("p", { id: "hinote-clock" }),
+      ),
+      jsx(
+        "p",
+        { id: "hinote-step" },
+        slideCount > 0 ? `1 / ${slideCount}` : "",
+      ),
+      jsx("p", { class: "hinote-label" }, "Notes"),
+      jsx("div", { id: "hinote-notes" }, notes),
+      jsx("p", { class: "hinote-label" }, "O: overview"),
+    ),
+    jsx("div", { id: "hinote-overview" }),
+  ];
+}
+
 export async function renderDeck(input: {
   slides: readonly Slide[];
   theme?: ThemeOverride;
@@ -105,7 +145,7 @@ export async function renderDeck(input: {
   const firstNotes = input.slides[0]?.options.notes ?? "";
   // Printing gives one page per slide at canvas size, which "Save as PDF" turns into a PDF.
   const css = `${themeCss(theme)}
-:root{--hinote-canvas-width:${canvas.width}px;--hinote-canvas-height:${canvas.height}px}
+:root{--hinote-canvas-width:${canvas.width}px;--hinote-canvas-height:${canvas.height}px;--hinote-canvas-ratio:${canvas.width} / ${canvas.height}}
 @page{size:${canvas.width}px ${canvas.height}px;margin:0}
 ${BASE_CSS}`;
   const slides = input.slides.map((slide, index) => {
@@ -152,18 +192,7 @@ ${BASE_CSS}`;
       "body",
       {},
       deck,
-      page === "presenter"
-        ? jsx(
-            "aside",
-            { id: "hinote-panel" },
-            jsx(
-              "p",
-              { id: "hinote-step" },
-              slides.length > 0 ? `1 / ${slides.length}` : "",
-            ),
-            jsx("div", { id: "hinote-notes" }, firstNotes),
-          )
-        : null,
+      page === "presenter" ? presenterPanel(slides.length, firstNotes) : null,
       page === "static" ? null : jsx("div", { id: "hinote-pointer" }),
       jsx("script", { dangerouslySetInnerHTML: { __html: SCRIPT } }),
     ),
