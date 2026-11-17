@@ -195,12 +195,57 @@ describe("Step", () => {
     expect(html.match(/data-hinote-step="1"/g)).toHaveLength(2);
   });
 
-  test("rejects use outside a slide and bad props", async () => {
-    expect(() => (<Step>x</Step>).toString()).toThrow(HinoteError);
+  test("rejects bad props", async () => {
     const bad = createSlide(() => <Step at={0}>x</Step>);
     await expect(deckOf(bad).render()).rejects.toThrow(HinoteError);
     const tag = createSlide(() => <Step as="li onclick">x</Step>);
     await expect(deckOf(tag).render()).rejects.toThrow(HinoteError);
+  });
+
+  test("numbers steps in document order across async components", async () => {
+    async function Late() {
+      await Bun.sleep(5);
+      return <Step>late</Step>;
+    }
+    const slide = createSlide(() => (
+      <div>
+        <Late />
+        <Step>after</Step>
+      </div>
+    ));
+    const html = await deckOf(slide).render();
+    expect(html).toContain('<div data-hinote-step="1">late</div>');
+    expect(html).toContain('<div data-hinote-step="2">after</div>');
+  });
+});
+
+describe("async rendering", () => {
+  test("a slide may await data and use async components", async () => {
+    async function Count(props: { of: Promise<string[]> }) {
+      return <p>{(await props.of).length} items</p>;
+    }
+    const slide = createSlide(async () => {
+      const title = await Promise.resolve("非同期");
+      return (
+        <div>
+          <h2>{title}</h2>
+          <Count of={Promise.resolve(["a", "b"])} />
+        </div>
+      );
+    });
+    const deck = deckOf(slide);
+    const html = await deck.render();
+    expect(html).toContain("<h2>非同期</h2>");
+    expect(html).toContain("<p>2 items</p>");
+    expect(await (await deck.request("/")).text()).toContain("2 items");
+  });
+
+  test("a rejected async component fails the render", async () => {
+    async function Broken(): Promise<never> {
+      throw new Error("no data");
+    }
+    const slide = createSlide(() => <Broken />);
+    await expect(deckOf(slide).render()).rejects.toThrow("no data");
   });
 });
 

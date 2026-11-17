@@ -4,7 +4,8 @@ import { HinoteError } from "./errors.ts";
 import { parseTransition, type Transition } from "./transition.ts";
 import { cssValue, mergeTheme, parseTheme, type Theme } from "./theme.ts";
 
-export type SlideRender = () => Child;
+// A render function may be async, and so may the components it uses.
+export type SlideRender = () => Child | Promise<Child>;
 
 export type SlideOptions = {
   notes?: string;

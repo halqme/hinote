@@ -1,11 +1,12 @@
 import { jsx } from "hono/jsx";
+import { HtmlEscapedCallbackPhase, resolveCallback } from "hono/utils/html";
 import clientScript from "./client.generated.ts";
 import { HinoteError } from "./errors.ts";
 // `view` and `presenter` are served by the deck and sync through it. `static` is
 // the single file from `hinote build`: one audience view with no sync.
 export type Page = "view" | "presenter" | "static";
 import type { Slide } from "./slide.ts";
-import { withStepCounter } from "./step.tsx";
+import { numberSteps } from "./step.tsx";
 import type { Transition } from "./transition.ts";
 import {
   defaultTheme,
@@ -80,7 +81,8 @@ html[data-page] body{display:block}
 // Replacing every "<" would also rewrite operators such as "<=".
 const SCRIPT = clientScript.replace(/<\/script/gi, "\\u003c/script");
 
-function elementHtml(node: unknown): string {
+// Hono/JSX renders to a string, or to a promise of one when a component is async.
+async function elementHtml(node: unknown): Promise<string> {
   if (
     !node ||
     typeof node !== "object" ||
@@ -89,10 +91,17 @@ function elementHtml(node: unknown): string {
   ) {
     throw new HinoteError("Slide renderers must return JSX.");
   }
-  const rendered = node.toString();
-  if (typeof rendered !== "string")
-    throw new HinoteError("Slide renderers must be synchronous.");
-  return rendered;
+  // An escaped String object can carry callbacks (Suspense, ErrorBoundary);
+  // resolving them is what Hono itself does before sending a response.
+  const rendered = (await node.toString()) as unknown;
+  if (typeof rendered !== "string" && !(rendered instanceof String))
+    throw new HinoteError("Slide renderers must return JSX.");
+  return resolveCallback(
+    rendered as string,
+    HtmlEscapedCallbackPhase.Stringify,
+    false,
+    {},
+  );
 }
 
 // A slide theme only declares the tokens it changes; the rest inherit from :root.
@@ -159,7 +168,9 @@ export async function renderDeck(input: {
 :root{--hinote-canvas-width:${canvas.width}px;--hinote-canvas-height:${canvas.height}px;--hinote-canvas-ratio:${canvas.width} / ${canvas.height}}
 @page{size:${canvas.width}px ${canvas.height}px;margin:0}
 ${BASE_CSS}`;
-  const slides = input.slides.map((slide, index) => {
+  // Slides render one after another, so an error names the first broken slide.
+  const slides = [];
+  for (const [index, slide] of input.slides.entries()) {
     const className = [
       "slide",
       index === 0 ? "is-active" : "",
@@ -167,15 +178,18 @@ ${BASE_CSS}`;
     ]
       .filter(Boolean)
       .join(" ");
-    const html = withStepCounter(() => elementHtml(slide.render()));
-    return jsx("section", {
-      class: className,
-      "data-notes": slide.options.notes ?? "",
-      "data-transition": slide.options.transition ?? input.transition ?? "none",
-      style: slideStyle(slide),
-      dangerouslySetInnerHTML: { __html: html },
-    });
-  });
+    const html = numberSteps(await elementHtml(await slide.render()));
+    slides.push(
+      jsx("section", {
+        class: className,
+        "data-notes": slide.options.notes ?? "",
+        "data-transition":
+          slide.options.transition ?? input.transition ?? "none",
+        style: slideStyle(slide),
+        dangerouslySetInnerHTML: { __html: html },
+      }),
+    );
+  }
   const stage = jsx(
     "div",
     {
@@ -209,5 +223,5 @@ ${BASE_CSS}`;
       jsx("script", { dangerouslySetInnerHTML: { __html: SCRIPT } }),
     ),
   );
-  return `<!doctype html>${elementHtml(document)}`;
+  return `<!doctype html>${await elementHtml(document)}`;
 }
