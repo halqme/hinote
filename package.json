@@ -6,7 +6,7 @@
   "license": "MIT",
   "author": "HALQME",
   "bin": {
-    "hinote": "src/cli.ts"
+    "hinote": "dist/cli.js"
   },
   "files": [
     "src",
@@ -47,12 +47,16 @@
     "@pierre/highlights": "^0.5.1"
   },
   "devDependencies": {
-    "hono": "^4.13.19",
+    "@hono/node-server": "^2.1.9",
     "@types/bun": "^1.4.4",
+    "esbuild": "^0.28.2",
+    "hono": "^4.13.19",
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
-    "hono": "^4.13.19"
+    "hono": "^4.13.19",
+    "esbuild": "^0.28.2",
+    "@hono/node-server": "^2.1.9"
   },
   "keywords": [
     "slides",
@@ -60,5 +64,13 @@
     "hono",
     "jsx",
     "bun"
-  ]
+  ],
+  "peerDependenciesMeta": {
+    "esbuild": {
+      "optional": true
+    },
+    "@hono/node-server": {
+      "optional": true
+    }
+  }
 }

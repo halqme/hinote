@@ -4,7 +4,7 @@
 
 Create a project, add slides, style them, present, and hand the deck out. It takes about 20 minutes.
 
-All you need is [Bun](https://bun.com).
+You need [Bun](https://bun.com) or [Node.js](https://nodejs.org). The commands below are for Bun; on Node, use `npx` for `bunx`, `npm install` for `bun install`, and `npm run` for `bun run`.
 
 ## 1. Create a project
 

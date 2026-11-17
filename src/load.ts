@@ -1,11 +1,12 @@
+import { existsSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { BunPlugin } from "bun";
 import { cssAsText } from "./css-text.ts";
-import { HinoteError } from "./errors.ts";
 import type { Deck } from "./deck.ts";
+import { HinoteError } from "./errors.ts";
+import { bundle, loaderFor, readText, type LoadPlugin } from "./runtime.ts";
 import { isDeck } from "./slide.ts";
 
 // Bundle the deck so hinote and hono resolve from this package. The bundle is a
@@ -16,11 +17,12 @@ import { isDeck } from "./slide.ts";
 // path first, so `new URL("./data.json", import.meta.url)` still finds the data.
 const META = /\bimport\.meta\.(url|dir|dirname|path|filename|file)\b/g;
 
-const sourceMeta: BunPlugin = {
+const sourceMeta: LoadPlugin = {
   name: "hinote-source-meta",
   setup(build) {
-    build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, async ({ path, loader }) => {
-      const contents = await Bun.file(path).text();
+    build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, async ({ path }) => {
+      const contents = await readText(path);
+      const loader = loaderFor(path);
       if (
         path.includes(`${sep}node_modules${sep}`) ||
         !contents.includes("import.meta")
@@ -46,31 +48,19 @@ const sourceMeta: BunPlugin = {
 
 export async function loadDeckFile(file: string): Promise<Deck> {
   const absolute = resolve(file);
-  if (!(await Bun.file(absolute).exists()))
+  if (!existsSync(absolute))
     throw new HinoteError(`Could not load ${absolute}: file does not exist.`);
-  const built = await Bun.build({
-    entrypoints: [absolute],
-    format: "esm",
-    target: "bun",
-    packages: "bundle",
-    plugins: [sourceMeta, cssAsText],
-    jsx: { runtime: "automatic", importSource: "hono/jsx", development: false },
-  });
-  if (!built.success) {
-    const message = built.logs.map((log) => log.message).join("\n");
-    throw new HinoteError(
-      `Could not load ${absolute}: ${message || "build failed."}`,
-    );
+  let code: string;
+  try {
+    code = await bundle(absolute, [sourceMeta, cssAsText]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new HinoteError(`Could not load ${absolute}: ${message}`);
   }
-  const artifact = built.outputs[0];
-  if (!artifact)
-    throw new HinoteError(
-      `Could not load ${absolute}: build produced no output.`,
-    );
   const dir = await mkdtemp(join(tmpdir(), "hinote-deck-"));
   const outfile = join(dir, "deck.mjs");
   try {
-    await writeFile(outfile, await artifact.text());
+    await writeFile(outfile, code);
     const loaded = (await import(pathToFileURL(outfile).href)) as Record<
       string,
       unknown

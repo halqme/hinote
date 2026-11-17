@@ -4,7 +4,7 @@
 
 新しいプロジェクトを作り、スライドを足して見た目を整え、発表して配るところまでを順に試します。20分ほどで終わります。
 
-用意するのは [Bun](https://bun.com) だけです。
+用意するのは [Bun](https://bun.com) か [Node.js](https://nodejs.org) です。以下は Bun のコマンドで書いています。Node では、`bunx` を `npx` に、`bun install` を `npm install` に、`bun run` を `npm run` に読み替えてください。
 
 ## 1. プロジェクトを作る
 

@@ -8,16 +8,23 @@ New to hinote? Start with the [hands-on](docs/hands-on.md). For a deck written l
 
 ## Getting started
 
-hinote runs on Bun.
+hinote runs on Bun or Node.
 
 ```bash
+# Bun
 bunx hinote init my-talk
 cd my-talk
 bun install
 bun run dev
+
+# Node
+npx hinote init my-talk
+cd my-talk
+npm install
+npm run dev
 ```
 
-`init` writes `deck.tsx`, `tsconfig.json` (JSX from `hono/jsx`), and a `package.json` that depends on `hinote` and `hono`. It never overwrites a file, and it leaves an existing `package.json` alone; then add the packages with `bun add hinote hono`.
+`init` writes `deck.tsx`, `style.css`, `tsconfig.json` (JSX from `hono/jsx`), `bunfig.toml`, and a `package.json` that depends on `hinote` and `hono`. Run on Node, it also adds `esbuild` and `@hono/node-server`, which the CLI uses there in place of Bun's bundler and server. It never overwrites a file, and it leaves an existing `package.json` alone; then add the packages yourself (`bun add hinote hono`, or `npm install hinote hono` and `npm install -D esbuild @hono/node-server`).
 
 The [hands-on](docs/hands-on.md) walks from here through adding slides, images, steps, code, and a theme to presenting and handing the deck out.
 
@@ -147,7 +154,9 @@ To make a PDF, print any page and choose "Save as PDF". Each slide becomes one p
 
 ## Without Bun
 
-The CLI (`init`, `dev`, `build`) runs on Bun. The deck itself does not need Bun: the package ships JavaScript and type declarations, so any runtime that runs Hono can serve it.
+The CLI runs on Node as well as Bun. On Node, `dev` and `build` use `esbuild` and `@hono/node-server`, which `init` adds; without them, the CLI hands the run to Bun if Bun is installed, and otherwise says what to install. `bun deck.tsx` and `bun --hot` are Bun's own, so on Node use `hinote dev`.
+
+The deck itself needs neither: the package ships JavaScript and type declarations, so any runtime that runs Hono can serve it.
 
 On Node, with [`@hono/node-server`](https://github.com/honojs/node-server):
 
@@ -179,4 +188,4 @@ In this repository, `bun run dev` shows the example in [`examples/`](examples/RE
 
 `src/client.ts` runs in the browser. Pages inline the generated `src/client.generated.ts`, so rendering never needs a bundler. After editing the client, run `bun run build:client`; `bun test` fails while the generated file is stale.
 
-`bun run build:lib` writes `dist/`, the JavaScript and type declarations other runtimes load; `prepack` runs it before packing. Bun loads `src/` directly through the `bun` export condition.
+`bun run build:lib` writes `dist/`: the library and the CLI (`dist/cli.js`, the package's `bin`) as JavaScript, with type declarations. `prepack` runs it before packing. Bun loads `src/` directly through the `bun` export condition. `bun test` also builds `dist/` and runs it under Node when Node is installed.

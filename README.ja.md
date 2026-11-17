@@ -8,16 +8,23 @@ Hono / Hono/JSX でスライドを書くツールです。デッキそのもの�
 
 ## はじめる
 
-hinote は Bun で動きます。
+hinote は Bun でも Node でも動きます。
 
 ```bash
+# Bun
 bunx hinote init my-talk
 cd my-talk
 bun install
 bun run dev
+
+# Node
+npx hinote init my-talk
+cd my-talk
+npm install
+npm run dev
 ```
 
-`init` は `deck.tsx`、`tsconfig.json`（JSX は `hono/jsx`）、`hinote` と `hono` に依存する `package.json` を書き出します。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、`bun add hinote hono` で追加してください。
+`init` は `deck.tsx`、`style.css`、`tsconfig.json`（JSX は `hono/jsx`）、`bunfig.toml`、`hinote` と `hono` に依存する `package.json` を書き出します。Node で実行したときは、`esbuild` と `@hono/node-server` も足します。CLI は Node ではこの2つを、Bun のバンドラとサーバーの代わりに使います。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、パッケージは自分で追加してください（`bun add hinote hono`、または `npm install hinote hono` と `npm install -D esbuild @hono/node-server`）。
 
 [ハンズオン](docs/hands-on.ja.md) では、ここから順に、スライド・画像・ステップ・コード・テーマを足し、発表して配るところまでを試せます。
 
@@ -157,7 +164,9 @@ PDF にするときは、どのページでも印刷して「PDF として保存
 
 ## Bun なしで使う
 
-CLI（`init`、`dev`、`build`）は Bun で動きます。一方、デッキそのものは Bun を必要としません。パッケージには JavaScript と型定義が入っているので、Hono が動くランタイムならどれでも配信できます。
+CLI は Bun だけでなく Node でも動きます。Node では、`dev` と `build` が `esbuild` と `@hono/node-server` を使います（`init` が追加します）。この2つがないときは、Bun が入っていれば Bun に任せ、入っていなければ何を入れればよいかを知らせます。`bun deck.tsx` と `bun --hot` は Bun の機能なので、Node では `hinote dev` を使ってください。
+
+デッキそのものは、どちらも必要としません。パッケージには JavaScript と型定義が入っているので、Hono が動くランタイムならどれでも配信できます。
 
 Node では [`@hono/node-server`](https://github.com/honojs/node-server) を使います。
 
@@ -189,4 +198,4 @@ fallthrough = true
 
 `src/client.ts` はブラウザで動くコードです。ページには、ここから生成した `src/client.generated.ts` を埋め込みます。そのため、描画のたびにバンドラを動かすことはありません。クライアントを変えたら `bun run build:client` を実行してください。生成ファイルが古いままだと `bun test` が失敗します。
 
-`bun run build:lib` は、ほかのランタイムが読む JavaScript と型定義を `dist/` に書き出します。パッケージにまとめる前に `prepack` が自動で実行します。Bun は `bun` の export 条件を通して `src/` を直接読みます。
+`bun run build:lib` は、ライブラリと CLI（パッケージの `bin` である `dist/cli.js`）の JavaScript と型定義を `dist/` に書き出します。パッケージにまとめる前に `prepack` が自動で実行します。Bun は `bun` の export 条件を通して `src/` を直接読みます。Node が入っている環境では、`bun test` が `dist/` をビルドして Node でも動かします。

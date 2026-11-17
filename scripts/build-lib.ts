@@ -10,7 +10,12 @@ const dist = process.argv[2] ?? `${root}dist`;
 
 await rm(dist, { recursive: true, force: true });
 const built = await Bun.build({
-  entrypoints: [`${root}src/index.ts`, `${root}src/code-themes.ts`],
+  // The CLI too, so `npx hinote` runs on Node; bin points at dist/cli.js.
+  entrypoints: [
+    `${root}src/index.ts`,
+    `${root}src/code-themes.ts`,
+    `${root}src/cli.ts`,
+  ],
   outdir: dist,
   root: `${root}src`,
   format: "esm",

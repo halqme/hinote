@@ -1,7 +1,9 @@
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import packageJson from "../package.json" with { type: "json" };
 import { HinoteError } from "./errors.ts";
+import { isBun } from "./runtime.ts";
 
 const DECK = `import { Center, Code, Column, Step, createSlide } from "hinote";
 import style from "./style.css";
@@ -66,8 +68,17 @@ const TSCONFIG = `{
 }
 `;
 
+// On Node, the CLI also needs a bundler and a server; Bun has its own.
 function packageFile(name: string): string {
-  const hono = packageJson.peerDependencies.hono;
+  const peers = packageJson.peerDependencies;
+  const node = isBun
+    ? {}
+    : {
+        devDependencies: {
+          "@hono/node-server": peers["@hono/node-server"],
+          esbuild: peers.esbuild,
+        },
+      };
   return `${JSON.stringify(
     {
       name,
@@ -79,8 +90,9 @@ function packageFile(name: string): string {
       },
       dependencies: {
         hinote: `^${packageJson.version}`,
-        hono,
+        hono: peers.hono,
       },
+      ...node,
     },
     null,
     2,
@@ -97,7 +109,7 @@ export async function initProject(dir: string): Promise<string[]> {
     ["tsconfig.json", TSCONFIG],
     ["bunfig.toml", BUNFIG],
   ];
-  const hasPackage = await Bun.file(join(root, "package.json")).exists();
+  const hasPackage = existsSync(join(root, "package.json"));
   if (!hasPackage)
     files.push([
       "package.json",
@@ -108,7 +120,7 @@ export async function initProject(dir: string): Promise<string[]> {
       ),
     ]);
   for (const [name] of files) {
-    if (await Bun.file(join(root, name)).exists())
+    if (existsSync(join(root, name)))
       throw new HinoteError(`${join(root, name)} already exists.`);
   }
   await mkdir(root, { recursive: true });

@@ -1,5 +1,6 @@
 import { existsSync, realpathSync, statSync } from "node:fs";
-import { resolve, sep } from "node:path";
+import { readFile } from "node:fs/promises";
+import { extname, resolve, sep } from "node:path";
 import { Hono } from "hono";
 
 export function resolveInside(root: string, urlPath: string): string | null {
@@ -22,6 +23,32 @@ export function resolveInside(root: string, urlPath: string): string | null {
   return real;
 }
 
+// Types for the files a deck usually sits next to; anything else is a download.
+const TYPES: Record<string, string> = {
+  ".avif": "image/avif",
+  ".css": "text/css; charset=utf-8",
+  ".gif": "image/gif",
+  ".html": "text/html; charset=utf-8",
+  ".ico": "image/x-icon",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".mp3": "audio/mpeg",
+  ".mp4": "video/mp4",
+  ".pdf": "application/pdf",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".webm": "video/webm",
+  ".webp": "image/webp",
+  ".woff2": "font/woff2",
+};
+
+function contentType(file: string): string {
+  return TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
+}
+
 export type FetchApp = {
   fetch(request: Request): Response | Promise<Response>;
 };
@@ -34,7 +61,10 @@ export function createDevApp(current: () => FetchApp, rootDir: string) {
     const response = await current().fetch(c.req.raw);
     if (response.status !== 404 || c.req.method !== "GET") return response;
     const file = resolveInside(rootDir, new URL(c.req.url).pathname);
-    return file ? new Response(Bun.file(file)) : response;
+    if (!file) return response;
+    return new Response(await readFile(file), {
+      headers: { "content-type": contentType(file) },
+    });
   });
   return app;
 }

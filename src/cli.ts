@@ -1,12 +1,15 @@
-#!/usr/bin/env bun
-import { watch } from "node:fs";
+#!/usr/bin/env node
+import { spawn, spawnSync } from "node:child_process";
+import { realpathSync, watch } from "node:fs";
 import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import { dirname, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { copyAssets } from "./assets.ts";
 import { HinoteError } from "./errors.ts";
 import { initProject } from "./init.ts";
 import { loadDeckFile } from "./load.ts";
+import { hasNodePackages, isBun, serve } from "./runtime.ts";
 import { createDevApp } from "./server.ts";
 
 function usage(): string {
@@ -91,16 +94,7 @@ async function devCommand(argv: string[]): Promise<void> {
   const host = args.host ?? "127.0.0.1";
   let deck = await loadDeckFile(deckFile);
   const app = createDevApp(() => deck, root);
-  let server: ReturnType<typeof Bun.serve>;
-  try {
-    server = Bun.serve({ port, hostname: host, fetch: app.fetch });
-  } catch (error) {
-    if ((error as { code?: unknown }).code === "EADDRINUSE")
-      throw new HinoteError(
-        `Port ${port} is in use. Stop the other server or pass --port <number>.`,
-      );
-    throw error;
-  }
+  const server = await serve({ port, hostname: host, fetch: app.fetch });
 
   for (const address of reachableAddresses(host)) {
     console.log(`hinote dev http://${address}:${server.port}`);
@@ -133,7 +127,7 @@ async function devCommand(argv: string[]): Promise<void> {
 
   const shutdown = () => {
     watcher.close();
-    server.stop(true);
+    server.stop();
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
@@ -170,7 +164,8 @@ async function initCommand(argv: string[]): Promise<void> {
     throw new HinoteError("init accepts one directory.");
   const dir = args.positionals[0] ?? ".";
   for (const file of await initProject(dir)) console.log(file);
-  console.log(`\nNext: cd ${dir} && bun install && bun run dev`);
+  const pm = isBun ? "bun" : "npm";
+  console.log(`\nNext: cd ${dir} && ${pm} install && ${pm} run dev`);
   console.log(
     "Hands-on: node_modules/hinote/docs/hands-on.md (日本語: hands-on.ja.md)",
   );
@@ -189,9 +184,42 @@ export async function main(argv: string[]): Promise<void> {
   else throw new HinoteError(`Unknown command "${command}".\n${usage()}`);
 }
 
-if (import.meta.path === Bun.main) {
-  main(process.argv.slice(2)).catch((error: unknown) => {
-    console.error(error instanceof HinoteError ? error.message : error);
-    process.exitCode = 1;
+// Under Node, dev and build need esbuild and @hono/node-server. A Bun user who
+// runs the CLI through Node (bunx and package scripts follow the node shebang
+// when Node is installed) has neither, so hand the run to Bun when it is there.
+async function handOffToBun(argv: string[]): Promise<boolean> {
+  const needsBundler = argv[0] === "dev" || argv[0] === "build";
+  if (isBun || !needsBundler || (await hasNodePackages())) return false;
+  const probe = spawnSync("bun", ["--version"], { stdio: "ignore" });
+  if (probe.status !== 0) return false;
+  const child = spawn("bun", [fileURLToPath(import.meta.url), ...argv], {
+    stdio: "inherit",
   });
+  const code = await new Promise<number>((done) =>
+    child.on("exit", (status) => done(status ?? 1)),
+  );
+  process.exitCode = code;
+  return true;
+}
+
+function isMain(): boolean {
+  const script = process.argv[1];
+  if (!script) return false;
+  try {
+    return (
+      realpathSync(script) === realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+}
+
+if (isMain()) {
+  const argv = process.argv.slice(2);
+  handOffToBun(argv)
+    .then((handed) => (handed ? undefined : main(argv)))
+    .catch((error: unknown) => {
+      console.error(error instanceof HinoteError ? error.message : error);
+      process.exitCode = 1;
+    });
 }
