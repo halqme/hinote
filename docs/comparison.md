@@ -33,7 +33,7 @@ hinote reproduced what each of the other tools does well, with the same look. Ea
 
 | Tool       | Strength                           | In that tool                       | In hinote                                                                                                | Added   |
 | ---------- | ---------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------- | ------- |
-| Slidev     | LaTeX formulas                     | `$$ ... $$`                        | A small component that renders MathML with KaTeX while the slide renders (`<Math tex="..." />`, 7 lines) | `katex` |
+| Slidev     | LaTeX formulas                     | `$$ ... $$`                        | A small component that renders MathML with KaTeX while the slide renders (`<Math tex="..." />`, 9 lines) | `katex` |
 | Marp       | A background image beside the text | `![bg left:40%](./photo.svg)`      | The slide's `css` makes a two-column grid with the image as the left column                              | Nothing |
 | hono-decks | A two-column layout                | `layout: two-cols` and `::right::` | Two `Column`s in a `Row`                                                                                 | Nothing |
 
