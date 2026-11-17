@@ -1,6 +1,6 @@
 import { HinoteError } from "./errors.ts";
 
-// CSS text, usually `import style from "./style.css"`, or a file as
+// CSS text, usually `import style from "./style.css" with { type: "text" }`, or a file as
 // `new URL("./style.css", import.meta.url)`. A file URL is read when the deck
 // renders, so it needs a runtime with a file system.
 export type CssSource = string | URL;
@@ -15,7 +15,7 @@ export function parseCss(value: unknown, label: string): readonly CssSource[] {
   for (const source of sources) {
     if (source && typeof source === "object" && !(source instanceof URL))
       throw new HinoteError(
-        `${label} got an object, which is what Bun makes of a .css import on its own. Run the deck with hinote dev or hinote build, or add preload = ["hinote/preload"] to bunfig.toml for bun deck.tsx.`,
+        `${label} got an object, not CSS text. Import the file as text: import style from "./style.css" with { type: "text" }.`,
       );
     if (typeof source !== "string" && !(source instanceof URL))
       throw new HinoteError(

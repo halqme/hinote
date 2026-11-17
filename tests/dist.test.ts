@@ -28,7 +28,7 @@ describe.skipIf(!node)("the built package under Node", () => {
     await writeFile(
       join(path, "deck.tsx"),
       `import { Code, createSlide } from "hinote";
-import style from "./style.css";
+import style from "./style.css" with { type: "text" };
 export default createSlide({ css: style }, [
   createSlide(() => <div><h1>node</h1><Code lang="ts">{"let a = 1"}</Code></div>),
 ]);`,

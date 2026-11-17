@@ -19,7 +19,6 @@ bun install
 - `deck.tsx`: スライドを書くファイルです。3枚入っています。
 - `style.css`: 全部のスライドに効く CSS です。`deck.tsx` が import しています。
 - `tsconfig.json`: JSX を `hono/jsx` で読む設定です。
-- `bunfig.toml`: `bun deck.tsx` で動かすときに、`.css` を文字列として読む設定です。
 - `package.json`: `hinote` と `hono` に依存し、`dev` と `build` のスクリプトを持っています。
 
 ## 2. 表示する
@@ -144,7 +143,7 @@ export default createSlide(
 - `transition` はスライドが入ってくるときの動きです。`"none"`、`"fade"`、`"slide"` から選びます。
 - `theme` の値は CSS 変数になります。`colors.brand` のように自分で名前を足すと `var(--hinote-color-brand)` として使えます。
 
-- `css` は全部のスライドに効く CSS です。`style.css` に書いて import しています。
+- `css` は全部のスライドに効く CSS です。`deck.tsx` の先頭で、`style.css` を `import style from "./style.css" with { type: "text" }` と文字列として読み込んでいます。
 
 `style.css` には普通の CSS を書けます。セレクタはスライドの中に効き、`&` はスライドそのものです。`theme` で足した値も使えます。
 

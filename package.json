@@ -25,8 +25,7 @@
       "types": "./dist/code-themes.d.ts",
       "bun": "./src/code-themes.ts",
       "default": "./dist/code-themes.js"
-    },
-    "./preload": "./src/preload.ts"
+    }
   },
   "devEngines": {
     "runtime": {

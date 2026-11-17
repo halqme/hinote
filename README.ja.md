@@ -24,7 +24,7 @@ npm install
 npm run dev
 ```
 
-`init` は `deck.tsx`、`style.css`、`tsconfig.json`（JSX は `hono/jsx`）、`bunfig.toml`、`hinote` と `hono` に依存する `package.json` を書き出します。Node で実行したときは、`esbuild` と `@hono/node-server` も足します。CLI は Node ではこの2つを、Bun のバンドラとサーバーの代わりに使います。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、パッケージは自分で追加してください（`bun add hinote hono`、または `npm install hinote hono` と `npm install -D esbuild @hono/node-server`）。
+`init` は `deck.tsx`、`style.css`、`tsconfig.json`（JSX は `hono/jsx`）、`hinote` と `hono` に依存する `package.json` を書き出します。Node で実行したときは、`esbuild` と `@hono/node-server` も足します。CLI は Node ではこの2つを、Bun のバンドラとサーバーの代わりに使います。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、パッケージは自分で追加してください（`bun add hinote hono`、または `npm install hinote hono` と `npm install -D esbuild @hono/node-server`）。
 
 [ハンズオン](docs/hands-on.ja.md) では、ここから順に、スライド・画像・ステップ・コード・テーマを足し、発表して配るところまでを試せます。
 
@@ -82,10 +82,10 @@ hinote 自身のスタイルが読むのは、`colors` の `bg`・`fg`・`accent
 
 ## CSS
 
-デッキにもスライドにも `css` を渡せます。import した `.css` ファイル、CSS の文字列、またはその配列です。
+デッキにもスライドにも `css` を渡せます。CSS の文字列（ふつうは `.css` ファイルをテキストとして import したもの）か、その配列です。
 
 ```tsx
-import style from "./style.css";
+import style from "./style.css" with { type: "text" };
 
 export default createSlide({ css: style }, [
   title,
@@ -97,7 +97,7 @@ export default createSlide({ css: style }, [
 - それぞれの CSS は、自分のスライドだけに効きます。デッキの CSS は全部のスライドに、入れ子のデッキの CSS はその中のスライドに、スライドの CSS はその1枚に効きます。発表者画面のパネルには効きません。
 - 内側の CSS が勝ちます。スライドの CSS は入れ子のデッキの CSS に、入れ子のデッキの CSS は外のデッキの CSS に、セレクタの強さに関係なく勝ちます。hinote はそれぞれを [カスケードレイヤー](https://developer.mozilla.org/docs/Web/CSS/@layer) に入れ、自分の既定のスタイルを一番弱いレイヤーに置いています。そのため、渡した CSS は必ず既定のスタイルより優先されます。
 - セレクタはスライドの中に対して効きます。スライドそのものは `& { ... }` と書きます。`:root`、`html`、`body` には効きません。`@keyframes` や `@font-face` などは、ファイルのどこに書いても使えます。`@import` は使えないので、ファイルごとに配列で渡してください。
-- `.css` ファイルを import すると、中身の文字列（型は `string`）になります。`hinote dev` と `hinote build` は、Bun でも Node でもこれを処理します。デッキを自分で配信するときは、そのランタイムでも `.css` をテキストとして読む設定が必要です。[Hono アプリとして配信する](#hono-アプリとして配信する) を見てください。設定がないと import の結果がオブジェクトになり、hinote が何が足りないかを知らせます。
+- `with { type: "text" }` を付けると、ファイルを文字列（型は `string`）として import します。`hinote dev`・`hinote build`、`bun deck.tsx`、esbuild、Wrangler のどれもこの書き方を理解するので、デッキを自分で配信するときも CSS のための設定は要りません。付け忘れると import の結果がオブジェクトになり、hinote が書き方を示して知らせます。
 - `new URL("./style.css", import.meta.url)` のようにファイルの URL を渡すこともできます。この場合はデッキを描画するときに読むので、ファイルを読めるランタイム（Bun、Node、Deno）が必要です。
 - CSS の中の `url()` は、ページ、つまり `deck.tsx` のあるディレクトリから解決されます。
 
@@ -169,8 +169,6 @@ bun deck.tsx        # ポート 3000 で配信する
 bun --hot deck.tsx  # 保存すると、開いているページも読み直す
 ```
 
-`.css` を import するには、`bunfig.toml` に `preload = ["hinote/preload"]` が必要です（`init` が書き出します）。
-
 ### Node
 
 ```ts
@@ -180,21 +178,21 @@ import deck from "./deck.js";
 serve({ fetch: deck.fetch, port: 4321 });
 ```
 
-Node は TSX をそのまま動かせないので、`deck.tsx` は自分の TypeScript やバンドラの設定でコンパイルしてください。そのとき `.css` をテキストとして読む設定にします（esbuild なら `--loader:.css=text`）。
+Node は TSX をそのまま動かせないので、先に `deck.tsx` をコンパイルします。esbuild なら次のとおりです。
+
+```bash
+esbuild deck.tsx --bundle --platform=node --format=esm --packages=external \
+  --jsx=automatic --jsx-import-source=hono/jsx --outfile=deck.js
+```
 
 ### Cloudflare Workers
 
-デッキをそのまま Worker として export し、Wrangler で `.css` をテキストとして読む設定にします。
+デッキをそのまま Worker として export します。
 
 ```toml
 # wrangler.toml
 main = "src/deck.tsx"
 compatibility_date = "2026-11-01"
-
-[[rules]]
-type = "Text"
-globs = ["**/*.css"]
-fallthrough = true
 ```
 
 本番の Worker は複数の isolate でリクエストを受けることがあり、同期は同じ isolate につながったページ同士にしか届きません。CSS をファイルの URL で渡す方法はファイルを読める環境が必要なので、import で渡してください。

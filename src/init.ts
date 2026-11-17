@@ -6,7 +6,7 @@ import { HinoteError } from "./errors.ts";
 import { isBun } from "./runtime.ts";
 
 const DECK = `import { Center, Code, Column, Step, createSlide } from "hinote";
-import style from "./style.css";
+import style from "./style.css" with { type: "text" };
 
 const title = createSlide({ title: "My talk", notes: "What to say first" }, () => (
   <Center>
@@ -47,10 +47,6 @@ const STYLE = `/* CSS for every slide. Selectors match inside a slide; & is the 
 h2 {
   color: var(--hinote-color-accent);
 }
-`;
-
-// Lets `bun deck.tsx` import .css as text, as `hinote dev` does.
-const BUNFIG = `preload = ["hinote/preload"]
 `;
 
 const TSCONFIG = `{
@@ -107,7 +103,6 @@ export async function initProject(dir: string): Promise<string[]> {
     ["deck.tsx", DECK],
     ["style.css", STYLE],
     ["tsconfig.json", TSCONFIG],
-    ["bunfig.toml", BUNFIG],
   ];
   const hasPackage = existsSync(join(root, "package.json"));
   if (!hasPackage)

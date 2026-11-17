@@ -19,7 +19,6 @@ bun install
 - `deck.tsx`: the slides. It starts with three.
 - `style.css`: CSS for every slide, imported by `deck.tsx`.
 - `tsconfig.json`: reads JSX with `hono/jsx`.
-- `bunfig.toml`: lets `bun deck.tsx` import `.css` as text.
 - `package.json`: depends on `hinote` and `hono`, with `dev` and `build` scripts.
 
 ## 2. Show it
@@ -147,7 +146,7 @@ export default createSlide(
 - `transition` is how slides enter: `"none"`, `"fade"`, or `"slide"`.
 - `theme` values become CSS variables. A name of your own, such as `colors.brand`, is available as `var(--hinote-color-brand)`.
 
-- `css` is CSS for every slide, written in `style.css` and imported.
+- `css` is CSS for every slide. The top of `deck.tsx` reads `style.css` as a string with `import style from "./style.css" with { type: "text" }`.
 
 `style.css` holds plain CSS. Selectors match inside a slide, `&` is the slide itself, and the tokens you added to `theme` are there too:
 

@@ -24,7 +24,7 @@ npm install
 npm run dev
 ```
 
-`init` writes `deck.tsx`, `style.css`, `tsconfig.json` (JSX from `hono/jsx`), `bunfig.toml`, and a `package.json` that depends on `hinote` and `hono`. Run on Node, it also adds `esbuild` and `@hono/node-server`, which the CLI uses there in place of Bun's bundler and server. It never overwrites a file, and it leaves an existing `package.json` alone; then add the packages yourself (`bun add hinote hono`, or `npm install hinote hono` and `npm install -D esbuild @hono/node-server`).
+`init` writes `deck.tsx`, `style.css`, `tsconfig.json` (JSX from `hono/jsx`), and a `package.json` that depends on `hinote` and `hono`. Run on Node, it also adds `esbuild` and `@hono/node-server`, which the CLI uses there in place of Bun's bundler and server. It never overwrites a file, and it leaves an existing `package.json` alone; then add the packages yourself (`bun add hinote hono`, or `npm install hinote hono` and `npm install -D esbuild @hono/node-server`).
 
 The [hands-on](docs/hands-on.md) walks from here through adding slides, images, steps, code, and a theme to presenting and handing the deck out.
 
@@ -72,10 +72,10 @@ export default createSlide(
 
 ## CSS
 
-Pass `css` to a deck or a slide: an imported `.css` file, CSS text, or an array of them.
+Pass `css` to a deck or a slide: CSS text, usually a `.css` file imported as text, or an array of them.
 
 ```tsx
-import style from "./style.css";
+import style from "./style.css" with { type: "text" };
 
 export default createSlide({ css: style }, [
   title,
@@ -87,7 +87,7 @@ export default createSlide({ css: style }, [
 - Each CSS reaches only its own slides: the deck's reaches every slide, a nested deck's reaches its slides, and a slide's reaches that slide. It never touches the presenter panel.
 - Inner CSS wins: a slide's CSS beats its nested deck's, which beats the outer deck's, whatever the selectors. hinote puts each in a [cascade layer](https://developer.mozilla.org/docs/Web/CSS/@layer), and its own default styles sit in the weakest one, so any CSS you pass can override them.
 - Selectors match inside the slide. Write `& { ... }` for the slide itself; `:root`, `html`, and `body` do not match. `@keyframes`, `@font-face`, and similar rules work anywhere in the file. `@import` is refused; pass each file in the array instead.
-- Importing a `.css` file gives its text, typed as `string`. `hinote dev` and `hinote build` take care of this on Bun and on Node. When you serve the deck yourself, the runtime has to load `.css` as text too; see [Serving the deck as a Hono app](#serving-the-deck-as-a-hono-app). Without that, the import is an object and hinote says what is missing.
+- `with { type: "text" }` imports the file as a string, typed as `string`. `hinote dev` and `hinote build`, `bun deck.tsx`, esbuild, and Wrangler all understand it, so serving the deck yourself needs no setup for CSS. Leave it out and the import is an object, which hinote refuses with a hint.
 - A file URL, `new URL("./style.css", import.meta.url)`, also works. It is read when the deck renders, which needs a file system (Bun, Node, Deno).
 - `url()` in CSS resolves from the page, that is, from the directory of `deck.tsx`.
 
@@ -159,8 +159,6 @@ bun deck.tsx        # serves on port 3000
 bun --hot deck.tsx  # also reloads open pages when you save
 ```
 
-`.css` imports need `preload = ["hinote/preload"]` in `bunfig.toml`, which `init` writes.
-
 ### Node
 
 ```ts
@@ -170,21 +168,21 @@ import deck from "./deck.js";
 serve({ fetch: deck.fetch, port: 4321 });
 ```
 
-Node does not run TSX, so compile `deck.tsx` with your own TypeScript or bundler setup, and have it load `.css` as text (with esbuild, `--loader:.css=text`).
+Node does not run TSX, so compile `deck.tsx` first. With esbuild:
+
+```bash
+esbuild deck.tsx --bundle --platform=node --format=esm --packages=external \
+  --jsx=automatic --jsx-import-source=hono/jsx --outfile=deck.js
+```
 
 ### Cloudflare Workers
 
-Export the deck as the Worker, and have Wrangler load `.css` as text:
+Export the deck as the Worker:
 
 ```toml
 # wrangler.toml
 main = "src/deck.tsx"
 compatibility_date = "2026-11-01"
-
-[[rules]]
-type = "Text"
-globs = ["**/*.css"]
-fallthrough = true
 ```
 
 A deployed Worker may answer requests from several isolates, and sync only reaches pages connected to the same one. CSS passed as a file URL needs a file system, so import the file instead.

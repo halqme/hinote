@@ -8,7 +8,7 @@ import results from "./slides/results.tsx";
 import setup from "./slides/setup.tsx";
 import thanks from "./slides/thanks.tsx";
 import title from "./slides/title.tsx";
-import style from "./style.css";
+import style from "./style.css" with { type: "text" };
 
 // The build part of the talk is a deck of its own; it lends its transition to its slides.
 const build = createSlide({ transition: "slide" }, [setup, code]);

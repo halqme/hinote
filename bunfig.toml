@@ -1,2 +1,0 @@
-# Lets `bun examples/deck.tsx` import .css as text, as hinote dev does.
-preload = ["./src/preload.ts"]

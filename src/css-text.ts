@@ -1,10 +1,9 @@
 import { readText, type LoadPlugin } from "./runtime.ts";
 
-// Bun imports a .css file as a CSS module, which is an empty object here, and
-// esbuild bundles it as CSS. hinote wants the text, so
-// `import style from "./style.css"` gives a string: `hinote dev` and `build`
-// bundle with this plugin, and `bun deck.tsx` loads it through
-// `preload = ["hinote/preload"]` in bunfig.toml.
+// `import style from "./style.css" with { type: "text" }` gives text in Bun,
+// esbuild, and Wrangler alike, but Bun.build drops the attribute and hands back
+// a CSS module object. When `hinote dev` and `build` bundle with Bun, this
+// plugin loads .css as text instead.
 export const cssAsText: LoadPlugin = {
   name: "hinote-css-text",
   setup(build) {

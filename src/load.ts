@@ -6,7 +6,13 @@ import { pathToFileURL } from "node:url";
 import { cssAsText } from "./css-text.ts";
 import type { Deck } from "./deck.ts";
 import { HinoteError } from "./errors.ts";
-import { bundle, loaderFor, readText, type LoadPlugin } from "./runtime.ts";
+import {
+  bundle,
+  isBun,
+  loaderFor,
+  readText,
+  type LoadPlugin,
+} from "./runtime.ts";
 import { isDeck } from "./slide.ts";
 
 // Bundle the deck so hinote and hono resolve from this package. The bundle is a
@@ -52,7 +58,10 @@ export async function loadDeckFile(file: string): Promise<Deck> {
     throw new HinoteError(`Could not load ${absolute}: file does not exist.`);
   let code: string;
   try {
-    code = await bundle(absolute, [sourceMeta, cssAsText]);
+    code = await bundle(
+      absolute,
+      isBun ? [sourceMeta, cssAsText] : [sourceMeta],
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new HinoteError(`Could not load ${absolute}: ${message}`);
