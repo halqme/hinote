@@ -1,7 +1,8 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import { HinoteError } from "./errors.ts";
 import { syncHub } from "./hub.ts";
+import { parseServedPath } from "./location.ts";
 import { renderDeck, type Page } from "./render.ts";
 import type { Slide } from "./slide.ts";
 import { parseTheme, type Theme } from "./theme.ts";
@@ -76,7 +77,7 @@ export class Deck extends Hono {
   readonly kind = "deck";
   readonly slides: readonly Slide[];
   readonly config: DeckOptions;
-  readonly #pages = new Map<Page, Promise<string>>();
+  readonly #pages = new Map<string, Promise<string>>();
 
   constructor(slides: readonly Slide[], options: DeckOptions = {}) {
     super();
@@ -85,12 +86,15 @@ export class Deck extends Hono {
     // A deck built while pages are open is an edited deck (`bun --hot`, `hinote dev`).
     syncHub().reloadAll();
 
-    const page = (kind: "view" | "presenter") => async () => {
-      let html = this.#pages.get(kind);
+    const page = (kind: "view" | "presenter") => async (c: Context) => {
+      // Relative URLs in slides resolve against the deck root, not /presenter/3.
+      const base = parseServedPath(new URL(c.req.url).pathname).base;
+      const key = `${kind} ${base}`;
+      let html = this.#pages.get(key);
       if (!html) {
-        html = this.render(kind);
-        this.#pages.set(kind, html);
-        html.catch(() => this.#pages.delete(kind));
+        html = this.render(kind, base);
+        this.#pages.set(key, html);
+        html.catch(() => this.#pages.delete(key));
       }
       return new Response(await html, {
         headers: {
@@ -157,8 +161,11 @@ export class Deck extends Hono {
   }
 
   // Renders the whole deck as one HTML document.
-  render(page: Page = "view") {
+  // `base` is the path the deck is served under; served pages resolve relative
+  // URLs against it. The static file resolves them against itself.
+  render(page: Page = "view", base?: string) {
     return renderDeck({
+      base,
       slides: this.slides,
       theme: this.config.theme,
       title: this.config.title,

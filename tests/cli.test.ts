@@ -165,6 +165,30 @@ test("init writes a deck that renders, and never overwrites", async () => {
   }
 });
 
+test("dev explains a port that is already in use", async () => {
+  const dir = await tempDir();
+  const busy = Bun.serve({
+    port: 0,
+    hostname: "127.0.0.1",
+    fetch: () => new Response("busy"),
+  });
+  try {
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`export default createSlide([createSlide(() => <p>x</p>)])`),
+    );
+    const result = await run(
+      ["dev", "deck.tsx", "--port", String(busy.port)],
+      dir,
+    );
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(`Port ${busy.port} is in use`);
+  } finally {
+    busy.stop(true);
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("help succeeds and a missing command fails", async () => {
   const dir = await tempDir();
   try {

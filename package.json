@@ -1,6 +1,6 @@
 {
   "name": "hinote",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": false,
   "description": "Local slide tool using Hono and Hono/JSX",
   "license": "MIT",
@@ -10,6 +10,7 @@
   },
   "files": [
     "src",
+    "docs",
     "README.ja.md"
   ],
   "type": "module",

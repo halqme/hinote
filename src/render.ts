@@ -152,6 +152,7 @@ export async function renderDeck(input: {
   canvas?: { width: number; height: number };
   transition?: Transition;
   page?: Page;
+  base?: string;
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
@@ -212,6 +213,7 @@ ${BASE_CSS}`;
         name: "viewport",
         content: "width=device-width, initial-scale=1",
       }),
+      input.base === undefined ? null : jsx("base", { href: `${input.base}/` }),
       jsx("title", {}, title),
       jsx("style", { dangerouslySetInnerHTML: { __html: css } }),
     ),

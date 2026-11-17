@@ -68,11 +68,16 @@ async function devCommand(argv: string[]): Promise<void> {
     throw new HinoteError("--port must be from 1 to 65535.");
   let deck = await loadDeckFile(deckFile);
   const app = createDevApp(() => deck, root);
-  const server = Bun.serve({
-    port,
-    hostname: "127.0.0.1",
-    fetch: app.fetch,
-  });
+  let server: ReturnType<typeof Bun.serve>;
+  try {
+    server = Bun.serve({ port, hostname: "127.0.0.1", fetch: app.fetch });
+  } catch (error) {
+    if ((error as { code?: unknown }).code === "EADDRINUSE")
+      throw new HinoteError(
+        `Port ${port} is in use. Stop the other server or pass --port <number>.`,
+      );
+    throw error;
+  }
 
   console.log(`hinote dev http://127.0.0.1:${server.port}`);
   console.log(`presenter http://127.0.0.1:${server.port}/presenter`);
@@ -132,6 +137,9 @@ async function initCommand(argv: string[]): Promise<void> {
   const dir = args.positionals[0] ?? ".";
   for (const file of await initProject(dir)) console.log(file);
   console.log(`\nNext: cd ${dir} && bun install && bun run dev`);
+  console.log(
+    "Hands-on: node_modules/hinote/docs/hands-on.md (日本語: hands-on.ja.md)",
+  );
 }
 
 export async function main(argv: string[]): Promise<void> {

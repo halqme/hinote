@@ -4,6 +4,23 @@
 
 Hono / Hono/JSX でスライドを書くツールです。デッキそのものが Hono アプリなので、Hono を動かせる方法ならどれでも表示できます。配るときは、視聴画面を画像以外まとめて1つの HTML にします。
 
+はじめての方は [ハンズオン](docs/hands-on.ja.md) からどうぞ。
+
+## はじめる
+
+hinote は Bun で動きます。
+
+```bash
+bunx hinote init my-talk
+cd my-talk
+bun install
+bun run dev
+```
+
+`init` は `deck.tsx`、`tsconfig.json`（JSX は `hono/jsx`）、`hinote` と `hono` に依存する `package.json` を書き出します。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、`bun add hinote hono` で追加してください。
+
+[ハンズオン](docs/hands-on.ja.md) では、ここから順に、スライド・画像・ステップ・コード・テーマを足し、発表して配るところまでを試せます。
+
 ## スライドを書く
 
 `deck.tsx` の default export がデッキです。
@@ -48,8 +65,6 @@ export default createSlide(
 
 `transition` は、スライドが入ってくるときの動きです。`"none"`（既定）、`"fade"`、`"slide"` から選びます。デッキに書くと全部のスライドに、スライドに書くとその1枚に効きます。入れ子のデッキに書くと中のスライドに効きます。ステップを出すときには動かず、OS で視差効果を減らす設定にしているときも動きません。
 
-`<Step>` は、中身を1ステップずつ出します。番号は書いた順に増えます。`at={n}` を付けると n 番目のステップで出し、`as="li"` で要素の種類を選べます。`data-hinote-step="n"` を付けた要素も同じように扱います。
-
 `<Code lang="ts">{`...`}</Code>`（または `code={source}`）は、[`@pierre/highlights`](https://diffs.com/highlights) でコードに色を付けます。色はスライドを描画するときにインラインで付くので、ページでも書き出した HTML でもハイライト用の処理は動きません。周りの JSX の字下げは取り除きます。`theme` には `hinote/code-themes` のテーマ（`githubLight` など）を渡せます。既定は Pierre のダークテーマです。文字の大きさはテーマの `typography.code` です。
 
 レイアウトは `Center`、`Column`、`Row` です。渡せる props は `gap`、`align`、`justify` です。`gap` に数値を渡すと、テーマの `spacing.unit` にその数を掛けた間隔になります。
@@ -58,18 +73,39 @@ export default createSlide(
 
 hinote 自身のスタイルが読むのは、`colors` の `bg`・`fg`・`accent`・`muted`、`fonts` の `base`・`heading`・`mono`、`typography` の `h1`・`h2`・`body`・`small`、それに `spacing.unit` です。それ以外の名前も同じように変数になります。`colors: { brand: "#f50" }` と書けば、スライドの中で `var(--hinote-color-brand)` を使えます。スライドに `theme` を書くと、その1枚で、書いた値だけを上書きします。
 
-## はじめる
+## ステップ
 
-hinote は Bun で動きます。
+`<Step>` は、1枚のスライドの中身を、キーを押すたびに少しずつ見せるためのコンポーネントです。PowerPoint の「クリックで表示」アニメーションと同じ役割です。
 
-```bash
-bunx hinote init my-talk
-cd my-talk
-bun install
-bun run dev
+```tsx
+<ul>
+  <Step as="li">一つ目</Step>
+  <Step as="li">二つ目</Step>
+  <Step as="li">三つ目</Step>
+</ul>
 ```
 
-`init` は `deck.tsx`、`tsconfig.json`（JSX は `hono/jsx`）、`hinote` と `hono` に依存する `package.json` を書き出します。既にあるファイルは上書きしません。`package.json` が既にあるときはそれに手を付けないので、`bun add hinote hono` で追加してください。
+スライドを開いた時点では、3つとも隠れています。`→` を押すたびに1つずつ出て、全部出たあとにもう一度押すと次のスライドへ進みます。`←` を押すと逆順に1つずつ隠れ、最初まで戻ったあとにもう一度押すと、前のスライドに全部出た状態で戻ります。
+
+| prop    | 意味                                                                                           |
+| ------- | ---------------------------------------------------------------------------------------------- |
+| `as`    | 出力する要素の種類です。既定は `div` です。リストの中なら `"li"`、文中なら `"span"` にします。 |
+| `at`    | 何番目のステップで出すかを数字で指定します。省略すると、書いた順に 1, 2, 3… と振られます。     |
+| `class` | 要素に付ける class です。                                                                      |
+
+`at` で番号を揃えると、複数の要素を同時に出せます。
+
+```tsx
+<Step>図</Step>              {/* 1 */}
+<Step at={1}>図の説明</Step>  {/* 図と同時に出る */}
+<Step>まとめ</Step>           {/* 2 */}
+```
+
+- 描画すると `data-hinote-step="2"` のような属性が付いた要素になります。属性を手で書いた要素も同じように扱うので、`<img data-hinote-step="1">` のようにも書けます。
+- 隠れている間は `opacity:0` と `visibility:hidden` で見えなくするだけなので、レイアウトは最初から確保されています。要素が出たときに周りの位置がずれることはありません。表示は 0.2 秒でフェードインします。
+- async のコンポーネントの中に書いても、番号は書いた順に振られます。
+- 発表者画面と視聴画面のあいだでは、ステップの位置まで同期します。URL に入るのはスライド番号だけなので、ページを読み直すと、そのスライドは何も出ていない状態から始まります。
+- 発表者画面の「Next」には次のステップが出た状態が映ります。印刷するときは全ステップを出した状態になります。ステップを出すときには `transition` の動きは付きません。
 
 ## 表示する
 

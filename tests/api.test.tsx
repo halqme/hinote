@@ -381,6 +381,26 @@ describe("deck as a Hono app", () => {
     expect((await deck.request("/2/1")).status).toBe(404);
   });
 
+  test("relative URLs in slides resolve against the deck root on every page", async () => {
+    const deck = deckOf(createSlide(() => <img src="./pic.png" alt="" />));
+    const baseOf = async (
+      app: { request(path: string): Response | Promise<Response> },
+      path: string,
+    ) =>
+      /<base href="([^"]*)"/.exec(await (await app.request(path)).text())?.[1];
+    for (const path of ["/", "/1", "/presenter", "/presenter/1"])
+      expect(
+        new URL(
+          "./pic.png",
+          new URL((await baseOf(deck, path)) ?? "", `http://h${path}`),
+        ).pathname,
+      ).toBe("/pic.png");
+    const app = new Hono().route("/talk", deck);
+    expect(await baseOf(app, "/talk/presenter/1")).toBe("/talk/");
+    // The built file resolves images next to itself.
+    expect(await deck.render("static")).not.toContain("<base");
+  });
+
   test("keeps Hono routing, including routes the author adds and mounting", async () => {
     const deck = deckOf(textSlide("one"));
     deck.get("/hello", (c) => c.text("hi"));
