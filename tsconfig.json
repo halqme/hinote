@@ -26,7 +26,13 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+
+    // The examples import "hinote"; check them against src/, not a built dist/.
+    "paths": {
+      "hinote": ["./src/index.ts"],
+      "hinote/code-themes": ["./src/code-themes.ts"]
+    }
   },
   // Each bench/ project resolves hinote only after bench/run.ts installs it.
   "exclude": ["node_modules", "bench"]

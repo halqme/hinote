@@ -143,7 +143,7 @@ bun --hot deck.tsx
 
 `dev` は、このマシンからしか開けません。`--host 0.0.0.0` を付けると、同じネットワークのスマートフォンや別の PC からも開けるようになり、開くためのアドレスが表示されます。このとき、デッキのディレクトリの中のファイルはすべてネットワークから取得できるようになります。信頼できるネットワークで使ってください。
 
-もっと遠くから見せたいときは、普段使っているものを前に置いてください。デッキは Hono アプリなので、[Tailscale](https://tailscale.com/kb/1312/serve)、[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)、Hono が動くホスティングのどれでも配信できます。どれを使うかは hinote では決めません。同期できるのは同じプロセスに届いたページ同士だけです。Cloudflare Workers で動かすことは、まだ試していません。
+もっと遠くから見せたいときは、普段使っているものを前に置いてください。デッキは Hono アプリなので、[Tailscale](https://tailscale.com/kb/1312/serve)、[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)、Hono が動くホスティングのどれでも配信できます。どれを使うかは hinote では決めません。同期できるのは同じプロセスに届いたページ同士だけです。Node や Workers で動かす方法は [Bun なしで使う](#bun-なしで使う) にあります。
 
 `/3` で3枚目を、`/presenter/3` でその発表者画面を開きます。パスはそれ以上入れ子にしません。ステップは URL に入らないので、読み直すとそのスライドは何も出ていない状態から始まります。
 
@@ -155,8 +155,38 @@ PDF にするときは、どのページでも印刷して「PDF として保存
 
 `build` が書き出すのは視聴画面だけです。発表者画面、ポインタ、同期はありません。位置はハッシュ（`#3`）に入ります。スライドが相対パスで参照している画像などのファイル（`src`、`href`、`srcset`、CSS の `url()`）は、パスを保ったまま HTML の隣にコピーします。デッキのディレクトリの外にあるファイル、絶対パス、ほかのサイトの URL はそのままです。
 
+## Bun なしで使う
+
+CLI（`init`、`dev`、`build`）は Bun で動きます。一方、デッキそのものは Bun を必要としません。パッケージには JavaScript と型定義が入っているので、Hono が動くランタイムならどれでも配信できます。
+
+Node では [`@hono/node-server`](https://github.com/honojs/node-server) を使います。
+
+```ts
+import { serve } from "@hono/node-server";
+import deck from "./deck.js"; // 自分の TypeScript やバンドラの設定でコンパイルしたもの
+
+serve({ fetch: deck.fetch, port: 4321 });
+```
+
+Cloudflare Workers では、デッキをそのまま Worker として export し、Wrangler で `.css` をテキストとして読む設定にします。
+
+```toml
+# wrangler.toml
+main = "src/deck.tsx"
+compatibility_date = "2026-11-01"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.css"]
+fallthrough = true
+```
+
+どちらも、デッキ、発表者画面、`<Code>`、CSS、同期が動くことを確かめました。Node は `@hono/node-server` で、Workers は `wrangler dev` で確かめています。ただし、本番の Worker は複数の isolate でリクエストを受けることがあり、同期は同じ isolate につながったページ同士にしか届きません。CSS をファイルの URL で渡す方法はファイルを読める環境が必要なので、Workers では import で渡してください。Deno はまだ試していません。
+
 ## hinote を開発する
 
 このリポジトリでは、`bun run dev` で [`examples/`](examples/README.ja.md) のサンプルを表示できます。実際の発表と同じ書き方で作った、架空の5分 LT です。
 
 `src/client.ts` はブラウザで動くコードです。ページには、ここから生成した `src/client.generated.ts` を埋め込みます。そのため、描画のたびにバンドラを動かすことはありません。クライアントを変えたら `bun run build:client` を実行してください。生成ファイルが古いままだと `bun test` が失敗します。
+
+`bun run build:lib` は、ほかのランタイムが読む JavaScript と型定義を `dist/` に書き出します。パッケージにまとめる前に `prepack` が自動で実行します。Bun は `bun` の export 条件を通して `src/` を直接読みます。

@@ -10,13 +10,22 @@
   },
   "files": [
     "src",
+    "dist",
     "docs",
     "README.ja.md"
   ],
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./code-themes": "./src/code-themes.ts",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./code-themes": {
+      "types": "./dist/code-themes.d.ts",
+      "bun": "./src/code-themes.ts",
+      "default": "./dist/code-themes.js"
+    },
     "./preload": "./src/preload.ts"
   },
   "devEngines": {
@@ -30,7 +39,9 @@
     "build:client": "bun scripts/build-client.ts",
     "test": "bun test",
     "typecheck": "bun check",
-    "format": "bun fmt"
+    "format": "bun fmt",
+    "build:lib": "bun scripts/build-lib.ts",
+    "prepack": "bun scripts/build-lib.ts"
   },
   "dependencies": {
     "@pierre/highlights": "^0.5.1"

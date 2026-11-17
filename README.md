@@ -133,7 +133,7 @@ Because the deck is a Hono app, `bun deck.tsx` serves it too (on port 3000), and
 
 `dev` listens on this machine only. Pass `--host 0.0.0.0` to open the deck from a phone or another laptop on the same network; it prints the addresses to use. Every file in the deck directory can then be fetched from the network, so use it on networks you trust.
 
-To show the deck farther away, put it behind whatever you already use: a deck is a Hono app, so [Tailscale](https://tailscale.com/kb/1312/serve), [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or any host that runs Hono can serve it. hinote does not choose one for you. Sync keeps pages in step only when they reach the same process, and running on Cloudflare Workers has not been tried yet.
+To show the deck farther away, put it behind whatever you already use: a deck is a Hono app, so [Tailscale](https://tailscale.com/kb/1312/serve), [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or any host that runs Hono can serve it. hinote does not choose one for you. Sync keeps pages in step only when they reach the same process; see [Without Bun](#without-bun) for Node and Workers.
 
 `/3` opens the third slide and `/presenter/3` its presenter view. Paths do not nest further: steps are not in the URL, so a reload starts the slide with no step revealed.
 
@@ -145,8 +145,38 @@ To make a PDF, print any page and choose "Save as PDF". Each slide becomes one p
 
 `build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). Images and other files the slides refer to by relative path (`src`, `href`, `srcset`, and `url()` in CSS) are copied next to the HTML file, keeping their paths. Files outside the deck directory, absolute paths, and other sites are left as they are.
 
+## Without Bun
+
+The CLI (`init`, `dev`, `build`) runs on Bun. The deck itself does not need Bun: the package ships JavaScript and type declarations, so any runtime that runs Hono can serve it.
+
+On Node, with [`@hono/node-server`](https://github.com/honojs/node-server):
+
+```ts
+import { serve } from "@hono/node-server";
+import deck from "./deck.js"; // compiled by your own TypeScript or bundler setup
+
+serve({ fetch: deck.fetch, port: 4321 });
+```
+
+On Cloudflare Workers, export the deck as the Worker and have Wrangler import `.css` as text:
+
+```toml
+# wrangler.toml
+main = "src/deck.tsx"
+compatibility_date = "2026-11-01"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.css"]
+fallthrough = true
+```
+
+Both were checked with the deck, the presenter view, `<Code>`, CSS, and sync: Node with `@hono/node-server`, and Workers with `wrangler dev`. A deployed Worker may answer requests from several isolates, and sync only reaches pages connected to the same one. CSS passed as a file URL needs a file system, so on Workers import the file instead. Deno has not been tried.
+
 ## Developing hinote
 
 In this repository, `bun run dev` shows the example in [`examples/`](examples/README.md): a fictional five-minute talk written the way a real one would be.
 
 `src/client.ts` runs in the browser. Pages inline the generated `src/client.generated.ts`, so rendering never needs a bundler. After editing the client, run `bun run build:client`; `bun test` fails while the generated file is stale.
+
+`bun run build:lib` writes `dist/`, the JavaScript and type declarations other runtimes load; `prepack` runs it before packing. Bun loads `src/` directly through the `bun` export condition.
