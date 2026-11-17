@@ -11,11 +11,13 @@ import { initProject } from "./init.ts";
 import { loadDeckFile } from "./load.ts";
 import { hasNodePackages, isBun, serve } from "./runtime.ts";
 import { createDevApp } from "./server.ts";
+import { parseBase, prerender } from "./prerender.ts";
 
 function usage(): string {
   return `hinote init [dir]
 hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
-hinote build [deck.tsx] [-o dist/index.html]`;
+hinote build [deck.tsx] [-o dist/index.html]
+hinote prerender [deck.tsx] [-o dist] [--base /path]`;
 }
 
 type Args = {
@@ -23,6 +25,7 @@ type Args = {
   port?: number;
   host?: string;
   output?: string;
+  base?: string;
 };
 
 function parseArgs(argv: string[]): Args {
@@ -33,6 +36,7 @@ function parseArgs(argv: string[]): Args {
     if (arg === "--port" || arg === "-p")
       args.port = readNumber(argv, ++i, arg);
     else if (arg === "--host") args.host = readValue(argv, ++i, arg);
+    else if (arg === "--base") args.base = readValue(argv, ++i, arg);
     else if (arg === "--output" || arg === "-o")
       args.output = readValue(argv, ++i, arg);
     else if (arg.startsWith("-"))
@@ -171,6 +175,29 @@ async function initCommand(argv: string[]): Promise<void> {
   );
 }
 
+async function prerenderCommand(argv: string[]): Promise<void> {
+  const args = parseArgs(argv);
+  if (args.positionals.length > 1)
+    throw new HinoteError("prerender accepts one deck file.");
+  const deckFile = resolve(args.positionals[0] ?? "deck.tsx");
+  const outDir = resolve(args.output ?? "dist");
+  const base = parseBase(args.base);
+  const deck = await loadDeckFile(deckFile);
+  const { pages, copied } = await prerender(
+    deck,
+    dirname(deckFile),
+    outDir,
+    base,
+  );
+  console.log(outDir);
+  console.log(
+    `${pages.length} pages` +
+      (copied.length > 0
+        ? `, copied ${copied.length} file${copied.length > 1 ? "s" : ""}`
+        : ""),
+  );
+}
+
 export async function main(argv: string[]): Promise<void> {
   if (argv.length === 0) throw new HinoteError(usage());
   if (argv[0] === "--help" || argv[0] === "help") {
@@ -181,6 +208,7 @@ export async function main(argv: string[]): Promise<void> {
   if (command === "init") await initCommand(rest);
   else if (command === "dev") await devCommand(rest);
   else if (command === "build") await buildCommand(rest);
+  else if (command === "prerender") await prerenderCommand(rest);
   else throw new HinoteError(`Unknown command "${command}".\n${usage()}`);
 }
 
@@ -188,7 +216,8 @@ export async function main(argv: string[]): Promise<void> {
 // runs the CLI through Node (bunx and package scripts follow the node shebang
 // when Node is installed) has neither, so hand the run to Bun when it is there.
 async function handOffToBun(argv: string[]): Promise<boolean> {
-  const needsBundler = argv[0] === "dev" || argv[0] === "build";
+  const needsBundler =
+    argv[0] === "dev" || argv[0] === "build" || argv[0] === "prerender";
   if (isBun || !needsBundler || (await hasNodePackages())) return false;
   const probe = spawnSync("bun", ["--version"], { stdio: "ignore" });
   if (probe.status !== 0) return false;

@@ -19,9 +19,15 @@ export function parseServedPath(pathname: string): ServedLocation {
   return { base, role, slide: Number(match[3]) - 1 };
 }
 
-export function servedPath(base: string, role: Role, slide: number): string {
+// Prerendered pages are directories on a static host, so their paths end in "/".
+export function servedPath(
+  base: string,
+  role: Role,
+  slide: number,
+  trailingSlash = false,
+): string {
   const presenter = role === "presenter" ? "/presenter" : "";
-  return `${base}${presenter}/${slide + 1}`;
+  return `${base}${presenter}/${slide + 1}${trailingSlash ? "/" : ""}`;
 }
 
 export function parseHash(hash: string): number | undefined {

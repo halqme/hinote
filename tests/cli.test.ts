@@ -239,6 +239,56 @@ test("build copies the files the page refers to, and only those", async () => {
   }
 });
 
+test("prerender writes every page a static host needs, under a base path", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(join(dir, "logo.svg"), "<svg/>");
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`export default createSlide([
+  createSlide(() => <img src="./logo.svg" />),
+  createSlide(() => <p>two</p>),
+])`),
+    );
+    const done = await run(
+      ["prerender", "deck.tsx", "-o", "site", "--base", "/talk/"],
+      dir,
+    );
+    expect(done.code).toBe(0);
+    for (const path of [
+      "",
+      "1",
+      "2",
+      "presenter",
+      "presenter/1",
+      "presenter/2",
+    ]) {
+      const html = await readFile(
+        join(dir, "site", path, "index.html"),
+        "utf8",
+      );
+      expect(html).toContain('<base href="/talk/"');
+      expect(html).toContain('data-sync="broadcast"');
+    }
+    expect(
+      await readFile(join(dir, "site/presenter/2/index.html"), "utf8"),
+    ).toContain('id="hinote-panel"');
+    expect(
+      await readFile(join(dir, "site/2/index.html"), "utf8"),
+    ).not.toContain('id="hinote-panel"');
+    expect(await readFile(join(dir, "site/logo.svg"), "utf8")).toBe("<svg/>");
+
+    const bad = await run(
+      ["prerender", "deck.tsx", "-o", "bad", "--base", "talk"],
+      dir,
+    );
+    expect(bad.code).toBe(1);
+    expect(await Bun.file(join(dir, "bad")).exists()).toBe(false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("init writes a deck that renders, and never overwrites", async () => {
   const dir = await tempDir();
   try {

@@ -130,6 +130,7 @@ Give several elements the same `at` to reveal them together:
 ```bash
 hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]
+hinote prerender [deck.tsx] [-o dist] [--base /path]
 ```
 
 The CLI works the same on Bun and on Node. On Bun it uses Bun's own bundler and server; on Node it uses `esbuild` and `@hono/node-server`, which `init` adds there. If they are missing on Node, the CLI hands the run to Bun when Bun is installed, and otherwise says what to install.
@@ -147,6 +148,8 @@ The presenter sends the pointer to the audience. Either window can move, and the
 To make a PDF, print any page and choose "Save as PDF". Each slide becomes one page at canvas size with every step revealed.
 
 `build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). Images and other files the slides refer to by relative path (`src`, `href`, `srcset`, and `url()` in CSS) are copied next to the HTML file, keeping their paths. Files outside the deck directory, absolute paths, and other sites are left as they are.
+
+`prerender` writes the pages a server would answer, for a static host: an `index.html` at `/`, `/3/`, `/presenter/`, and `/presenter/3/` for every slide, plus the files the slides refer to. Unlike `build`, the presenter view is there, and its pages sync between windows of one browser through `BroadcastChannel`: present from the presenter view on your laptop with the audience view on the projector. With no server behind them, other devices do not follow. Pass `--base /repo` when the site lives under a path, such as a GitHub Pages project site, then upload the directory to any static host (GitHub Pages, Cloudflare Pages, Netlify, and so on).
 
 ## Serving the deck as a Hono app
 

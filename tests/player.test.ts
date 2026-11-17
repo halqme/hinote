@@ -121,6 +121,14 @@ describe("sync", () => {
     expect(presenter.player.position).toEqual({ slide: 1, step: 1 });
   });
 
+  test("a presenter opened later brings open viewers to its position", () => {
+    const viewer = player("view", [0, 0, 0]);
+    viewer.sent.length = 0;
+    const presenter = player("presenter", [0, 0, 0], { slide: 2, step: 0 });
+    for (const message of presenter.sent) viewer.player.onMessage(message);
+    expect(viewer.player.position).toEqual({ slide: 2, step: 0 });
+  });
+
   test("only the presenter sends the pointer", () => {
     const { presenter, viewer, flush } = pair([0], { slide: 0, step: 0 });
     flush();

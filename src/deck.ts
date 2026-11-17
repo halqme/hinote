@@ -4,7 +4,7 @@ import { parseCss, type CssInput, type CssSource } from "./css.ts";
 import { HinoteError } from "./errors.ts";
 import { syncHub } from "./hub.ts";
 import { parseServedPath } from "./location.ts";
-import { renderDeck, type Page } from "./render.ts";
+import { renderDeck, type Page, type Sync } from "./render.ts";
 import type { Slide } from "./slide.ts";
 import { parseTheme, type Theme } from "./theme.ts";
 import { parseTransition, type Transition } from "./transition.ts";
@@ -175,9 +175,10 @@ export class Deck extends Hono {
   // Renders the whole deck as one HTML document.
   // `base` is the path the deck is served under; served pages resolve relative
   // URLs against it. The static file resolves them against itself.
-  render(page: Page = "view", base?: string) {
+  render(page: Page = "view", base?: string, sync?: Sync) {
     return renderDeck({
       base,
+      sync,
       slides: this.slides,
       theme: this.config.theme,
       title: this.config.title,

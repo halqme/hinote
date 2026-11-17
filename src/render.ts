@@ -6,6 +6,8 @@ import { HinoteError } from "./errors.ts";
 // `view` and `presenter` are served by the deck and sync through it. `static` is
 // the single file from `hinote build`: one audience view with no sync.
 export type Page = "view" | "presenter" | "static";
+
+export type Sync = "server" | "broadcast";
 import type { Slide } from "./slide.ts";
 import { numberSteps } from "./step.tsx";
 import type { Transition } from "./transition.ts";
@@ -213,6 +215,9 @@ export async function renderDeck(input: {
   css?: readonly CssSource[];
   page?: Page;
   base?: string;
+  // How served pages sync: through the deck's server, or, for pages
+  // prerendered onto a static host, between windows of one browser.
+  sync?: Sync;
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
@@ -267,7 +272,13 @@ ${FRAME_CSS}`;
   const deck = jsx("div", { id: "deck" }, stage);
   const document = jsx(
     "html",
-    { "data-page": page },
+    {
+      "data-page": page,
+      "data-sync":
+        page !== "static" && input.sync === "broadcast"
+          ? "broadcast"
+          : undefined,
+    },
     jsx(
       "head",
       {},

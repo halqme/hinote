@@ -122,7 +122,13 @@ export function createPlayer(options: PlayerOptions): Player {
 
   options.show(position);
   options.showPointer({ x: 0, y: 0, active: false });
-  options.post({ type: "hello" });
+  // A viewer asks where the presenter is; a presenter says where it is, so
+  // open views follow a presenter that was just opened or reloaded.
+  options.post(
+    options.role === "presenter"
+      ? { type: "navigate", ...position }
+      : { type: "hello" },
+  );
 
   const player: Player = {
     get position() {

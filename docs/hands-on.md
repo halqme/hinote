@@ -180,6 +180,8 @@ bun run build
 
 `dist/index.html` is one HTML file with the audience view only, and the images it uses are copied into `dist/`. Hand out the `dist/` directory as it is. The presenter view and sync are not included.
 
+To put the deck on the web with its presenter view, `bunx hinote prerender` writes it as a static site you can upload to GitHub Pages or any static host.
+
 For a PDF, print the page and choose "Save as PDF". Each slide becomes one page with every step revealed.
 
 ## Next

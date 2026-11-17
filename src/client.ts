@@ -23,6 +23,18 @@ type Port = {
 // The built file is one audience view with nothing to sync with.
 const NO_PORT: Port = { post() {}, listen() {} };
 
+// Prerendered pages have no server behind them, so windows of one browser
+// talk directly: a presenter on the laptop, the audience view on the projector.
+function broadcastPort(base: string): Port {
+  const channel = new BroadcastChannel(`hinote-sync:${base}`);
+  return {
+    post: (message) => channel.postMessage(message),
+    listen: (handler) => {
+      channel.onmessage = (event) => handler(event.data);
+    },
+  };
+}
+
 // A served page listens on the deck's SSE stream and sends with POST, so pages
 // on other devices follow too. The server sends `reload` after `hinote dev` reloads.
 function serverPort(base: string): Port {
@@ -205,7 +217,12 @@ function boot(): void {
   const notesEl = document.getElementById("hinote-notes");
   const stepEl = document.getElementById("hinote-step");
   const pointerEl = document.getElementById("hinote-pointer");
-  const port = served ? serverPort(served.base) : NO_PORT;
+  const prerendered = document.documentElement.dataset.sync === "broadcast";
+  const port = !served
+    ? NO_PORT
+    : prerendered
+      ? broadcastPort(served.base)
+      : serverPort(served.base);
 
   const fit = () => {
     if (!deck || !stage) return;
@@ -230,7 +247,7 @@ function boot(): void {
   const writeUrl = (position: Position) => {
     if (slides.length === 0) return;
     const url = served
-      ? `${servedPath(served.base, role, position.slide)}${location.search}`
+      ? `${servedPath(served.base, role, position.slide, prerendered)}${location.search}`
       : `${location.search}${slideHash(position.slide)}`;
     history.replaceState(null, "", url);
   };

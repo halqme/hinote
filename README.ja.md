@@ -140,6 +140,7 @@ export default createSlide({ css: style }, [
 ```bash
 hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]
+hinote prerender [deck.tsx] [-o dist] [--base /path]
 ```
 
 CLI は Bun でも Node でも同じように動きます。Bun では Bun のバンドラとサーバーを使い、Node では `esbuild` と `@hono/node-server` を使います（Node で `init` すると追加されます）。Node でこの2つがないときは、Bun が入っていれば Bun に任せ、入っていなければ何を入れればよいかを知らせます。
@@ -157,6 +158,8 @@ CLI は Bun でも Node でも同じように動きます。Bun では Bun の�
 PDF にするときは、どのページでも印刷して「PDF として保存」を選んでください。スライド1枚が、キャンバスの大きさの1ページになります。ステップはすべて出した状態です。
 
 `build` が書き出すのは視聴画面だけです。発表者画面、ポインタ、同期はありません。位置はハッシュ（`#3`）に入ります。スライドが相対パスで参照している画像などのファイル（`src`、`href`、`srcset`、CSS の `url()`）は、パスを保ったまま HTML の隣にコピーします。デッキのディレクトリの外にあるファイル、絶対パス、ほかのサイトの URL はそのままです。
+
+`prerender` は、サーバーが返すページを、静的ホスティング向けのディレクトリとして書き出します。全スライドの `/`、`/3/`、`/presenter/`、`/presenter/3/` に `index.html` を置き、スライドが参照しているファイルもコピーします。`build` と違って発表者画面があり、同じブラウザのウィンドウ同士は `BroadcastChannel` で同期します。ノート PC で発表者画面を開き、プロジェクタに視聴画面を映して発表できます。サーバーがないので、別の端末は追従しません。GitHub Pages のプロジェクトサイトのようにパスの下に置くときは `--base /repo` を付けてください。できたディレクトリは、どの静的ホスティング（GitHub Pages、Cloudflare Pages、Netlify など）にもそのまま置けます。
 
 ## Hono アプリとして配信する
 
