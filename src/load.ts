@@ -13,7 +13,7 @@ import {
   readText,
   type LoadPlugin,
 } from "./runtime.ts";
-import { isDeck } from "./slide.ts";
+import { isDeck } from "./create.ts";
 
 // Bundle the deck so hinote and hono resolve from this package. The bundle is a
 // second copy of hinote, so the deck is recognized by shape, not by class.
