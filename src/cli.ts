@@ -3,6 +3,7 @@ import { watch } from "node:fs";
 import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import { dirname, relative, resolve, sep } from "node:path";
+import { copyAssets } from "./assets.ts";
 import { HinoteError } from "./errors.ts";
 import { initProject } from "./init.ts";
 import { loadDeckFile } from "./load.ts";
@@ -146,6 +147,7 @@ async function buildCommand(argv: string[]): Promise<void> {
   const output = resolve(args.output ?? "dist/index.html");
   const deck = await loadDeckFile(deckFile);
   const html = await deck.render("static");
+  const outDir = dirname(output);
   await mkdir(dirname(output), { recursive: true });
   const temporary = `${output}.${process.pid}.tmp`;
   await writeFile(temporary, html);
@@ -155,7 +157,11 @@ async function buildCommand(argv: string[]): Promise<void> {
     await unlink(temporary).catch(() => {});
     throw error;
   }
+  // The page keeps relative URLs, so bring the files they name along.
+  const copied = await copyAssets(html, dirname(deckFile), outDir);
   console.log(output);
+  if (copied.length > 0)
+    console.log(`copied ${copied.length} file${copied.length > 1 ? "s" : ""}`);
 }
 
 async function initCommand(argv: string[]): Promise<void> {

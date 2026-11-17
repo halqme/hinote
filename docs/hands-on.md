@@ -164,10 +164,9 @@ Open <http://127.0.0.1:4321/presenter>. The current slide is on the left; on the
 
 ```bash
 bun run build
-cp -r images dist/
 ```
 
-`dist/index.html` is one HTML file with the audience view only. Image URLs stay as written, so copy `images/` next to it. The presenter view and sync are not included.
+`dist/index.html` is one HTML file with the audience view only, and the images it uses are copied into `dist/`. Hand out the `dist/` directory as it is. The presenter view and sync are not included.
 
 For a PDF, print the page and choose "Save as PDF". Each slide becomes one page with every step revealed.
 

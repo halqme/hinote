@@ -161,10 +161,9 @@ export default createSlide(
 
 ```bash
 bun run build
-cp -r images dist/
 ```
 
-`dist/index.html` に視聴画面だけの HTML が1つできます。画像の URL は書き換えないので、`images/` を HTML の隣にコピーしてください。発表者画面と同期は入りません。
+`dist/index.html` に、視聴画面だけの HTML が1つできます。使っている画像は `dist/` にコピーされるので、`dist/` をそのまま配ってください。発表者画面と同期は入りません。
 
 PDF にするときは、表示中のページを印刷して「PDF として保存」を選びます。スライド1枚が1ページになり、ステップはすべて出た状態です。
 

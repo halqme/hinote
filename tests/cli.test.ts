@@ -155,6 +155,42 @@ test("build writes one html file and leaves nothing behind on failure", async ()
   }
 });
 
+test("build copies the files the page refers to, and only those", async () => {
+  const dir = await tempDir();
+  try {
+    await mkdir(join(dir, "images"));
+    await writeFile(join(dir, "images/logo.svg"), "<svg/>");
+    await writeFile(join(dir, "images/unused.svg"), "<svg/>");
+    await writeFile(join(dir, "bg.png"), "png");
+    await writeFile(join(dir, "secret.txt"), "secret");
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`export default createSlide({ css: "& { background: url(bg.png); }" }, [
+  createSlide(() => <div><img src="./images/logo.svg" /><img src="../outside.png" /><a href="secret.txt#x">s</a></div>),
+])`),
+    );
+    const built = await run(["build", "deck.tsx", "-o", "out/index.html"], dir);
+    expect(built.code).toBe(0);
+    expect(built.stdout).toContain("copied 3 files");
+    expect(await readFile(join(dir, "out/images/logo.svg"), "utf8")).toBe(
+      "<svg/>",
+    );
+    expect(await Bun.file(join(dir, "out/bg.png")).exists()).toBe(true);
+    expect(await Bun.file(join(dir, "out/secret.txt")).exists()).toBe(true);
+    expect(await Bun.file(join(dir, "out/images/unused.svg")).exists()).toBe(
+      false,
+    );
+
+    // Building next to the deck copies nothing onto itself.
+    const beside = await run(["build", "deck.tsx", "-o", "index.html"], dir);
+    expect(beside.code).toBe(0);
+    expect(beside.stdout).not.toContain("copied");
+    expect(await readFile(join(dir, "images/logo.svg"), "utf8")).toBe("<svg/>");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("init writes a deck that renders, and never overwrites", async () => {
   const dir = await tempDir();
   try {

@@ -140,7 +140,7 @@ The presenter sends the pointer to the audience. Either window can move, and the
 
 To make a PDF, print any page and choose "Save as PDF". Each slide becomes one page at canvas size with every step revealed.
 
-`build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). `build` does not rewrite image URLs. Put the images where the HTML file can load them.
+`build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). Images and other files the slides refer to by relative path (`src`, `href`, `srcset`, and `url()` in CSS) are copied next to the HTML file, keeping their paths. Files outside the deck directory, absolute paths, and other sites are left as they are.
 
 ## Developing hinote
 
