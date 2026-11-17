@@ -4,6 +4,7 @@ import packageJson from "../package.json" with { type: "json" };
 import { HinoteError } from "./errors.ts";
 
 const DECK = `import { Center, Code, Column, Step, createSlide } from "hinote";
+import style from "./style.css";
 
 const title = createSlide({ title: "My talk", notes: "What to say first" }, () => (
   <Center>
@@ -32,11 +33,22 @@ const code = createSlide({ title: "Code" }, () => (
   </Column>
 ));
 
-export default createSlide({ aspect: "16:9", transition: "fade" }, [
+export default createSlide({ aspect: "16:9", transition: "fade", css: style }, [
   title,
   points,
   code,
 ]);
+`;
+
+const STYLE = `/* CSS for every slide. Selectors match inside a slide; & is the slide itself. */
+
+h2 {
+  color: var(--hinote-color-accent);
+}
+`;
+
+// Lets `bun deck.tsx` import .css as text, as `hinote dev` does.
+const BUNFIG = `preload = ["hinote/preload"]
 `;
 
 const TSCONFIG = `{
@@ -81,7 +93,9 @@ export async function initProject(dir: string): Promise<string[]> {
   const root = resolve(dir);
   const files: [string, string][] = [
     ["deck.tsx", DECK],
+    ["style.css", STYLE],
     ["tsconfig.json", TSCONFIG],
+    ["bunfig.toml", BUNFIG],
   ];
   const hasPackage = await Bun.file(join(root, "package.json")).exists();
   if (!hasPackage)

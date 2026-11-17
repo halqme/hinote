@@ -65,10 +65,12 @@ export default createSlide(
 
 ## CSS
 
-Pass `css` to a deck or a slide: CSS text, a file as `new URL("./style.css", import.meta.url)`, or an array of them.
+Pass `css` to a deck or a slide: an imported `.css` file, CSS text, or an array of them.
 
 ```tsx
-export default createSlide({ css: new URL("./style.css", import.meta.url) }, [
+import style from "./style.css";
+
+export default createSlide({ css: style }, [
   title,
   createSlide({ css: "h2 { color: var(--hinote-color-accent); }" }, [a, b]),
   createSlide({ css: "& { padding: 0; }" }, () => <img src="./cover.png" />),
@@ -78,7 +80,8 @@ export default createSlide({ css: new URL("./style.css", import.meta.url) }, [
 - Each CSS reaches only its own slides: the deck's reaches every slide, a nested deck's reaches its slides, and a slide's reaches that slide. It never touches the presenter panel.
 - Inner CSS wins: a slide's CSS beats its nested deck's, which beats the outer deck's, whatever the selectors. hinote puts each in a [cascade layer](https://developer.mozilla.org/docs/Web/CSS/@layer), and its own default styles sit in the weakest one, so any CSS you pass can override them.
 - Selectors match inside the slide. Write `& { ... }` for the slide itself; `:root`, `html`, and `body` do not match. `@keyframes`, `@font-face`, and similar rules work anywhere in the file. `@import` is refused; pass each file in the array instead.
-- A file is read when the deck renders, which needs a file system (Bun, Node, Deno). On a runtime without one, import the file as text and pass the string.
+- Importing a `.css` file gives its text, typed as `string`. `hinote dev` and `hinote build` handle it themselves. For `bun deck.tsx`, add `preload = ["hinote/preload"]` to `bunfig.toml` (a project from `init` has it); without it, Bun hands over an empty object and hinote says so. Elsewhere, have your bundler import `.css` as text.
+- A file URL, `new URL("./style.css", import.meta.url)`, also works. It is read when the deck renders, which needs a file system (Bun, Node, Deno).
 - `url()` in CSS resolves from the page, that is, from the directory of `deck.tsx`.
 
 ## Steps

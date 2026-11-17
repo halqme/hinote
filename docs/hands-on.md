@@ -14,10 +14,12 @@ cd my-talk
 bun install
 ```
 
-`my-talk` now has three files:
+`my-talk` now has these files:
 
 - `deck.tsx`: the slides. It starts with three.
+- `style.css`: CSS for every slide, imported by `deck.tsx`.
 - `tsconfig.json`: reads JSX with `hono/jsx`.
+- `bunfig.toml`: lets `bun deck.tsx` import `.css` as text.
 - `package.json`: depends on `hinote` and `hono`, with `dev` and `build` scripts.
 
 ## 2. Show it
@@ -126,6 +128,7 @@ export default createSlide(
   {
     aspect: "4:3",
     transition: "slide",
+    css: style,
     theme: {
       colors: {
         bg: "#fffaf0",
@@ -142,13 +145,23 @@ export default createSlide(
 
 - `aspect` is the canvas ratio: `"16:9"` (default), `"4:3"`, or any `"W:H"`.
 - `transition` is how slides enter: `"none"`, `"fade"`, or `"slide"`.
-- `theme` values become CSS variables. A name of your own, such as `colors.brand`, is available as `var(--hinote-color-brand)`:
+- `theme` values become CSS variables. A name of your own, such as `colors.brand`, is available as `var(--hinote-color-brand)`.
 
-```tsx
-<h2 style="color:var(--hinote-color-brand)">About me</h2>
+- `css` is CSS for every slide, written in `style.css` and imported.
+
+`style.css` holds plain CSS. Selectors match inside a slide, `&` is the slide itself, and the tokens you added to `theme` are there too:
+
+```css
+h2 {
+  color: var(--hinote-color-brand);
+}
+
+& {
+  padding: 64px 96px;
+}
 ```
 
-To change one slide only, put `theme` or `transition` on that slide's `createSlide`.
+To change one slide only, put `theme`, `transition`, or `css` on that slide's `createSlide`. A slide's `css` wins over `style.css`.
 
 ## 9. Present
 

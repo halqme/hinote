@@ -91,6 +91,57 @@ export default createSlide(() => <div><Title /><p>{import.meta.dir}</p></div>)`)
   }
 });
 
+test("a .css import gives its text, under hinote and under bun deck.tsx", async () => {
+  const dir = await tempDir();
+  const probe = Bun.serve({ port: 0, fetch: () => new Response() });
+  const port = probe.port;
+  probe.stop(true);
+  try {
+    await writeFile(join(dir, "style.css"), "h1 { color: teal; }");
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`import style from "./style.css"
+export default createSlide({ css: style }, [createSlide(() => <h1>x</h1>)])`),
+    );
+    const html = await (await loadDeckFile(join(dir, "deck.tsx"))).render();
+    expect(html).toContain("h1 { color: teal; }");
+
+    // bun deck.tsx sees the same text through the preload in bunfig.toml.
+    // It reads JSX settings from tsconfig.json, as a project from init has.
+    await writeFile(
+      join(dir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: { jsx: "react-jsx", jsxImportSource: "hono/jsx" },
+      }),
+    );
+    const preload = resolve(import.meta.dir, "../src/preload.ts");
+    await writeFile(
+      join(dir, "bunfig.toml"),
+      `preload = [${JSON.stringify(preload)}]\n`,
+    );
+    const proc = Bun.spawn(["bun", "deck.tsx"], {
+      cwd: dir,
+      env: { ...process.env, PORT: String(port) },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    try {
+      const page = await waitFor(`http://127.0.0.1:${port}/`, proc);
+      expect(await page.text()).toContain("h1 { color: teal; }");
+    } finally {
+      proc.kill();
+      await proc.exited;
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a .css import without the plugin says what to do", async () => {
+  const { createSlide } = await import("../src/index.ts");
+  expect(() => createSlide({ css: {} as never }, [])).toThrow("hinote/preload");
+});
+
 test("a default export that is not a deck is refused", async () => {
   const dir = await tempDir();
   try {
@@ -208,6 +259,9 @@ test("init writes a deck that renders, and never overwrites", async () => {
     const html = await deck.render();
     expect(deck.slides.length).toBeGreaterThan(1);
     expect(html).toContain('<pre class="highlights"');
+    // The starter deck imports its style.css.
+    expect(html).toContain("--hinote-color-accent");
+    expect(await Bun.file(join(project, "bunfig.toml")).exists()).toBe(true);
     const pkg = JSON.parse(
       await readFile(join(project, "package.json"), "utf8"),
     );

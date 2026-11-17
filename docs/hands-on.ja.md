@@ -14,10 +14,12 @@ cd my-talk
 bun install
 ```
 
-`my-talk` に次の3つができます。
+`my-talk` に次のファイルができます。
 
 - `deck.tsx`: スライドを書くファイルです。3枚入っています。
+- `style.css`: 全部のスライドに効く CSS です。`deck.tsx` が import しています。
 - `tsconfig.json`: JSX を `hono/jsx` で読む設定です。
+- `bunfig.toml`: `bun deck.tsx` で動かすときに、`.css` を文字列として読む設定です。
 - `package.json`: `hinote` と `hono` に依存し、`dev` と `build` のスクリプトを持っています。
 
 ## 2. 表示する
@@ -123,6 +125,7 @@ export default createSlide(
   {
     aspect: "4:3",
     transition: "slide",
+    css: style,
     theme: {
       colors: {
         bg: "#fffaf0",
@@ -141,11 +144,21 @@ export default createSlide(
 - `transition` はスライドが入ってくるときの動きです。`"none"`、`"fade"`、`"slide"` から選びます。
 - `theme` の値は CSS 変数になります。`colors.brand` のように自分で名前を足すと `var(--hinote-color-brand)` として使えます。
 
-```tsx
-<h2 style="color:var(--hinote-color-brand)">自己紹介</h2>
+- `css` は全部のスライドに効く CSS です。`style.css` に書いて import しています。
+
+`style.css` には普通の CSS を書けます。セレクタはスライドの中に効き、`&` はスライドそのものです。`theme` で足した値も使えます。
+
+```css
+h2 {
+  color: var(--hinote-color-brand);
+}
+
+& {
+  padding: 64px 96px;
+}
 ```
 
-1枚だけ変えたいときは、そのスライドの `createSlide` に `theme` や `transition` を書きます。
+1枚だけ変えたいときは、そのスライドの `createSlide` に `theme`、`transition`、`css` を書きます。スライドの `css` は、`style.css` より優先されます。
 
 ## 9. 発表する
 

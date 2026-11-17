@@ -16,7 +16,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./code-themes": "./src/code-themes.ts"
+    "./code-themes": "./src/code-themes.ts",
+    "./preload": "./src/preload.ts"
   },
   "devEngines": {
     "runtime": {

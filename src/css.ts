@@ -1,10 +1,8 @@
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import { HinoteError } from "./errors.ts";
 
-// CSS text, or a file: `new URL("./style.css", import.meta.url)`. A file is read
-// when the deck renders, so it needs a runtime with a file system; on Workers,
-// import the file as text instead.
+// CSS text, usually `import style from "./style.css"`, or a file as
+// `new URL("./style.css", import.meta.url)`. A file URL is read when the deck
+// renders, so it needs a runtime with a file system.
 export type CssSource = string | URL;
 export type CssInput = CssSource | readonly CssSource[];
 
@@ -15,6 +13,10 @@ export type StyleLayer = { readonly sources: readonly CssSource[] };
 export function parseCss(value: unknown, label: string): readonly CssSource[] {
   const sources = Array.isArray(value) ? value : [value];
   for (const source of sources) {
+    if (source && typeof source === "object" && !(source instanceof URL))
+      throw new HinoteError(
+        `${label} got an object, which is what Bun makes of a .css import on its own. Run the deck with hinote dev or hinote build, or add preload = ["hinote/preload"] to bunfig.toml for bun deck.tsx.`,
+      );
     if (typeof source !== "string" && !(source instanceof URL))
       throw new HinoteError(
         `${label} must be CSS text, a file URL, or an array of them.`,
@@ -28,11 +30,14 @@ export async function loadCss(sources: readonly CssSource[]): Promise<string> {
     sources.map(async (source) => {
       if (typeof source === "string") return source;
       try {
+        // Loaded here, not at the top, so runtimes without a file system can
+        // still use the rest of hinote.
+        const { readFile } = await import("node:fs/promises");
         return await readFile(source, "utf8");
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         throw new HinoteError(
-          `Could not read CSS ${source.protocol === "file:" ? fileURLToPath(source) : source.href}: ${reason}`,
+          `Could not read CSS ${decodeURIComponent(source.pathname)}: ${reason}`,
         );
       }
     }),

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { BunPlugin } from "bun";
+import { cssAsText } from "./css-text.ts";
 import { HinoteError } from "./errors.ts";
 import type { Deck } from "./deck.ts";
 import { isDeck } from "./slide.ts";
@@ -52,7 +53,7 @@ export async function loadDeckFile(file: string): Promise<Deck> {
     format: "esm",
     target: "bun",
     packages: "bundle",
-    plugins: [sourceMeta],
+    plugins: [sourceMeta, cssAsText],
     jsx: { runtime: "automatic", importSource: "hono/jsx", development: false },
   });
   if (!built.success) {

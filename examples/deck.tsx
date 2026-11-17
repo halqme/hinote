@@ -8,6 +8,7 @@ import results from "./slides/results.tsx";
 import setup from "./slides/setup.tsx";
 import thanks from "./slides/thanks.tsx";
 import title from "./slides/title.tsx";
+import style from "./style.css";
 
 // The build part of the talk is a deck of its own; it lends its transition to its slides.
 const build = createSlide({ transition: "slide" }, [setup, code]);
@@ -18,7 +19,7 @@ export default createSlide(
     aspect: "16:9",
     transition: "fade",
     // Plain CSS for every slide; see components/Card.tsx for the classes it styles.
-    css: new URL("./style.css", import.meta.url),
+    css: style,
     theme: {
       colors: {
         bg: "#1c1410",

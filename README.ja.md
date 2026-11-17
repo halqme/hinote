@@ -75,10 +75,12 @@ hinote 自身のスタイルが読むのは、`colors` の `bg`・`fg`・`accent
 
 ## CSS
 
-デッキにもスライドにも `css` を渡せます。CSS の文字列、`new URL("./style.css", import.meta.url)` のようなファイル、またはその配列です。
+デッキにもスライドにも `css` を渡せます。import した `.css` ファイル、CSS の文字列、またはその配列です。
 
 ```tsx
-export default createSlide({ css: new URL("./style.css", import.meta.url) }, [
+import style from "./style.css";
+
+export default createSlide({ css: style }, [
   title,
   createSlide({ css: "h2 { color: var(--hinote-color-accent); }" }, [a, b]),
   createSlide({ css: "& { padding: 0; }" }, () => <img src="./cover.png" />),
@@ -88,7 +90,8 @@ export default createSlide({ css: new URL("./style.css", import.meta.url) }, [
 - それぞれの CSS は、自分のスライドだけに効きます。デッキの CSS は全部のスライドに、入れ子のデッキの CSS はその中のスライドに、スライドの CSS はその1枚に効きます。発表者画面のパネルには効きません。
 - 内側の CSS が勝ちます。スライドの CSS は入れ子のデッキの CSS に、入れ子のデッキの CSS は外のデッキの CSS に、セレクタの強さに関係なく勝ちます。hinote はそれぞれを [カスケードレイヤー](https://developer.mozilla.org/docs/Web/CSS/@layer) に入れ、自分の既定のスタイルを一番弱いレイヤーに置いています。そのため、渡した CSS は必ず既定のスタイルより優先されます。
 - セレクタはスライドの中に対して効きます。スライドそのものは `& { ... }` と書きます。`:root`、`html`、`body` には効きません。`@keyframes` や `@font-face` などは、ファイルのどこに書いても使えます。`@import` は使えないので、ファイルごとに配列で渡してください。
-- ファイルはデッキを描画するときに読みます。そのため、ファイルを読めるランタイム（Bun、Node、Deno）が必要です。ファイルを読めないランタイムでは、ファイルをテキストとして import し、文字列で渡してください。
+- `.css` ファイルを import すると、中身の文字列（型は `string`）になります。`hinote dev` と `hinote build` は自分で処理します。`bun deck.tsx` で動かすときは、`bunfig.toml` に `preload = ["hinote/preload"]` を書いてください（`init` で作ったプロジェクトには入っています）。書かないと Bun は空のオブジェクトを渡すので、hinote がエラーで知らせます。ほかの環境では、バンドラで `.css` をテキストとして読む設定にしてください。
+- `new URL("./style.css", import.meta.url)` のようにファイルの URL を渡すこともできます。この場合はデッキを描画するときに読むので、ファイルを読めるランタイム（Bun、Node、Deno）が必要です。
 - CSS の中の `url()` は、ページ、つまり `deck.tsx` のあるディレクトリから解決されます。
 
 ## ステップ

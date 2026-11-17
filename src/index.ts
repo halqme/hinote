@@ -1,3 +1,4 @@
+/// <reference path="./css-module.d.ts" />
 export type { Aspect, Deck, DeckOptions } from "./deck.ts";
 export { Code } from "./code.tsx";
 export type { CssInput, CssSource } from "./css.ts";
