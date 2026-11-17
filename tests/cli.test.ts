@@ -689,7 +689,7 @@ test("the example deck renders every slide, including its data", async () => {
     resolve(import.meta.dir, "../examples/deck.tsx"),
   );
   const html = await deck.render();
-  expect(deck.slides).toHaveLength(7);
+  expect(deck.slides).toHaveLength(8);
   expect(html).toContain('<pre class="highlights"');
   expect(html).toContain("data-hinote-step");
   // The chart reads data/roasts.json next to the deck while it renders.
