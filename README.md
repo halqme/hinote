@@ -209,6 +209,14 @@ The deck, the presenter view, `<Code>`, CSS, and sync were checked on all three:
 
 To show the deck farther away, put it behind whatever you already use: a deck is a Hono app, so [Tailscale](https://tailscale.com/kb/1312/serve), [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or any host that runs Hono can serve it. hinote does not choose one for you. Sync keeps pages in step only when they reach the same process.
 
+## Limits
+
+- **Sync lives in memory.** Pages sync through a hub inside the process that serves the deck. Pages that reach different processes do not follow each other: several isolates of a deployed Worker, several instances behind a load balancer, or serverless functions. Long-lived connections may also be cut where a host limits them.
+- **Prerendered pages sync within one browser.** They use `BroadcastChannel`, so a phone or another computer does not follow.
+- **Steps are not in the URL.** A reload shows the slide with no step revealed.
+- **`<Code>` needs WebAssembly.** It loads on the first `<Code>`; a deck without code does not need it.
+- **Not tried yet:** Deno, a deployed Cloudflare Worker, and other serverless hosts.
+
 ## Developing hinote
 
 In this repository, `bun run dev` shows the example in [`examples/`](examples/README.md): a fictional five-minute talk written the way a real one would be.
