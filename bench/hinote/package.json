@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "hinote": "file:../.pack/hinote.tgz",
-    "hono": "^4.13.19"
+    "hono": "^4.13.19",
+    "katex": "^0.19.1"
   }
 }

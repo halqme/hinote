@@ -10,28 +10,155 @@ theme: default
 
 <v-clicks>
 
-- 手で焼くと、毎回ちがう
-- 温度を測って、火力を決めさせる
-- 12回焼いてみた結果
+- 所有権
+- 借用
+- ライフタイム
 
 </v-clicks>
 
 ---
 
-## 火力の決め方
+## 得意なこと: LaTeX
+
+$$
+\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}
+$$
+
+---
+
+## Rust の所有権（1）
+
+- Rust の所有権の要点その1
+- Rust の所有権の要点その2
+- Rust の所有権の要点その3
+
+---
+
+## 借用のコード
 
 ```ts
-export function nextPower(now: Reading, profile: Profile): number {
-  const error = profile.at(now.elapsed) - now.beanTemp;
-  return Math.min(100, Math.max(0, profile.base + error * 0.8));
+export function part2(input: number): number {
+  const doubled = input * 2;
+  return doubled + 2;
 }
 ```
 
 ---
 
-## 結果
+## ライフタイムの比較
 
-1ハゼまでの時間のばらつきは 46 秒から 6 秒になった。
+| 項目 | 前    | 後    |
+| ---- | ----- | ----- |
+| 時間 | 30 分 | 21 分 |
+| 回数 | 3     | 6     |
+
+---
+
+## トレイトについて
+
+> 「トレイトは、やってみると思っていたより奥が深い。」
+
+---
+
+## エラー処理（5）
+
+- エラー処理の要点その1
+- エラー処理の要点その2
+- エラー処理の要点その3
+
+---
+
+## 非同期のコード
+
+```ts
+export function part6(input: number): number {
+  const doubled = input * 2;
+  return doubled + 6;
+}
+```
+
+---
+
+## マクロの比較
+
+| 項目 | 前    | 後    |
+| ---- | ----- | ----- |
+| 時間 | 70 分 | 49 分 |
+| 回数 | 7     | 14    |
+
+---
+
+## テストについて
+
+> 「テストは、やってみると思っていたより奥が深い。」
+
+---
+
+## Rust の所有権（9）
+
+- Rust の所有権の要点その1
+- Rust の所有権の要点その2
+- Rust の所有権の要点その3
+
+---
+
+## 借用のコード
+
+```ts
+export function part10(input: number): number {
+  const doubled = input * 2;
+  return doubled + 10;
+}
+```
+
+---
+
+## ライフタイムの比較
+
+| 項目 | 前     | 後    |
+| ---- | ------ | ----- |
+| 時間 | 110 分 | 77 分 |
+| 回数 | 11     | 22    |
+
+---
+
+## トレイトについて
+
+> 「トレイトは、やってみると思っていたより奥が深い。」
+
+---
+
+## エラー処理（13）
+
+- エラー処理の要点その1
+- エラー処理の要点その2
+- エラー処理の要点その3
+
+---
+
+## 非同期のコード
+
+```ts
+export function part14(input: number): number {
+  const doubled = input * 2;
+  return doubled + 14;
+}
+```
+
+---
+
+## マクロの比較
+
+| 項目 | 前     | 後     |
+| ---- | ------ | ------ |
+| 時間 | 150 分 | 105 分 |
+| 回数 | 15     | 30     |
+
+---
+
+## テストについて
+
+> 「テストは、やってみると思っていたより奥が深い。」
 
 ---
 
