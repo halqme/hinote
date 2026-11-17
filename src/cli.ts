@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { watch } from "node:fs";
 import { mkdir, rename, unlink, writeFile } from "node:fs/promises";
+import { networkInterfaces } from "node:os";
 import { dirname, relative, resolve, sep } from "node:path";
 import { HinoteError } from "./errors.ts";
 import { initProject } from "./init.ts";
@@ -9,13 +10,14 @@ import { createDevApp } from "./server.ts";
 
 function usage(): string {
   return `hinote init [dir]
-hinote dev [deck.tsx] [--port 4321]
+hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]`;
 }
 
 type Args = {
   positionals: string[];
   port?: number;
+  host?: string;
   output?: string;
 };
 
@@ -26,6 +28,7 @@ function parseArgs(argv: string[]): Args {
     if (arg === undefined) continue;
     if (arg === "--port" || arg === "-p")
       args.port = readNumber(argv, ++i, arg);
+    else if (arg === "--host") args.host = readValue(argv, ++i, arg);
     else if (arg === "--output" || arg === "-o")
       args.output = readValue(argv, ++i, arg);
     else if (arg.startsWith("-"))
@@ -49,6 +52,22 @@ function readNumber(argv: string[], index: number, flag: string): number {
   return Number(value);
 }
 
+function isLoopback(host: string): boolean {
+  return host === "127.0.0.1" || host === "localhost" || host === "::1";
+}
+
+// The addresses to print for a host. A wildcard host listens on every
+// interface, so list this machine's network addresses as well.
+function reachableAddresses(host: string): string[] {
+  if (host !== "0.0.0.0" && host !== "::")
+    return [host.includes(":") ? `[${host}]` : host];
+  const lan = Object.values(networkInterfaces())
+    .flat()
+    .filter((net) => net && net.family === "IPv4" && !net.internal)
+    .map((net) => net!.address);
+  return ["127.0.0.1", ...lan];
+}
+
 // Edits under these directories do not change the deck.
 const IGNORED_DIRS = new Set(["node_modules", ".git", ".tmp", "dist"]);
 
@@ -66,11 +85,14 @@ async function devCommand(argv: string[]): Promise<void> {
   const port = args.port ?? 4321;
   if (port < 1 || port > 65535)
     throw new HinoteError("--port must be from 1 to 65535.");
+  // Only this machine by default. --host 0.0.0.0 lets a phone or another
+  // laptop on the network open the deck and follow along.
+  const host = args.host ?? "127.0.0.1";
   let deck = await loadDeckFile(deckFile);
   const app = createDevApp(() => deck, root);
   let server: ReturnType<typeof Bun.serve>;
   try {
-    server = Bun.serve({ port, hostname: "127.0.0.1", fetch: app.fetch });
+    server = Bun.serve({ port, hostname: host, fetch: app.fetch });
   } catch (error) {
     if ((error as { code?: unknown }).code === "EADDRINUSE")
       throw new HinoteError(
@@ -79,8 +101,14 @@ async function devCommand(argv: string[]): Promise<void> {
     throw error;
   }
 
-  console.log(`hinote dev http://127.0.0.1:${server.port}`);
-  console.log(`presenter http://127.0.0.1:${server.port}/presenter`);
+  for (const address of reachableAddresses(host)) {
+    console.log(`hinote dev http://${address}:${server.port}`);
+    console.log(`presenter http://${address}:${server.port}/presenter`);
+  }
+  if (!isLoopback(host))
+    console.log(
+      `Serving ${root} to the network: every file in it can be fetched.`,
+    );
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   let loading = Promise.resolve();

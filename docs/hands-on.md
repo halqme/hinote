@@ -158,6 +158,7 @@ Open <http://127.0.0.1:4321/presenter>. The current slide is on the left; on the
 - Move the mouse over the slide in the presenter view and a red pointer appears in the audience view.
 - Press `O` for an overview of every slide; click one to jump to it.
 - Click the elapsed time to restart it.
+- To open the deck from a phone or another device, start it with `bun run dev -- --host 0.0.0.0` and open one of the addresses it prints.
 
 ## 10. Hand it out
 

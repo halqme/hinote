@@ -218,6 +218,43 @@ test("dev explains a port that is already in use", async () => {
   }
 });
 
+test("dev --host 0.0.0.0 listens on the network and says so", async () => {
+  const dir = await tempDir();
+  const probe = Bun.serve({ port: 0, fetch: () => new Response() });
+  const port = probe.port;
+  probe.stop(true);
+  await writeFile(
+    join(dir, "deck.tsx"),
+    deckSource(`export default createSlide([createSlide(() => <p>lan</p>)])`),
+  );
+  const proc = Bun.spawn(
+    [
+      "bun",
+      cli,
+      "dev",
+      "deck.tsx",
+      "--port",
+      String(port),
+      "--host",
+      "0.0.0.0",
+    ],
+    { cwd: dir, stdout: "pipe", stderr: "pipe" },
+  );
+  try {
+    expect(
+      await (await waitFor(`http://127.0.0.1:${port}/`, proc)).text(),
+    ).toContain("lan");
+    proc.kill();
+    const out = await new Response(proc.stdout).text();
+    expect(out).toContain(`http://127.0.0.1:${port}/presenter`);
+    expect(out).toContain("to the network");
+  } finally {
+    proc.kill();
+    await proc.exited;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("help succeeds and a missing command fails", async () => {
   const dir = await tempDir();
   try {

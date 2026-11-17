@@ -128,7 +128,7 @@ export default createSlide({ css: new URL("./style.css", import.meta.url) }, [
 ## 表示する
 
 ```bash
-hinote dev [deck.tsx] [--port 4321]
+hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]
 bun deck.tsx
 bun --hot deck.tsx
@@ -137,6 +137,10 @@ bun --hot deck.tsx
 `dev` は <http://127.0.0.1:4321> にデッキを、`/presenter` に発表者画面を出します。発表者画面には、今のスライド、次に送ったときの画面のプレビュー、経過時間、時刻、ノートが出ます。経過時間は押すと 0 に戻り、ページを読み直しても続きから数えます。`O` で全スライドの一覧を開き、押したスライドへ移ります。デッキのディレクトリの中のファイルが変わるとデッキを読み直し、開いているページも読み直します。読み込みに失敗したときはエラーを出し、前のデッキを出したままにします。`dev` は、デッキのあるディレクトリの中のファイル（画像など）も配信します。ディレクトリの外へ出るパスは拒否します。
 
 デッキは Hono アプリなので、`bun deck.tsx` でも（ポート 3000 で）表示できます。別のアプリの中で `app.route("/talk", deck)` としても動きます。`deck.get(...)` で自分のルートも足せます。`bun --hot deck.tsx` で起動すると、保存したときに開いているページも読み直します（`dev` と同じです）。`dev` を使わないときは、ファイル配信はしません。画像が要るなら `serveStatic` を自分で足してください。
+
+`dev` は、このマシンからしか開けません。`--host 0.0.0.0` を付けると、同じネットワークのスマートフォンや別の PC からも開けるようになり、開くためのアドレスが表示されます。このとき、デッキのディレクトリの中のファイルはすべてネットワークから取得できるようになります。信頼できるネットワークで使ってください。
+
+もっと遠くから見せたいときは、普段使っているものを前に置いてください。デッキは Hono アプリなので、[Tailscale](https://tailscale.com/kb/1312/serve)、[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)、Hono が動くホスティングのどれでも配信できます。どれを使うかは hinote では決めません。同期できるのは同じプロセスに届いたページ同士だけです。Cloudflare Workers で動かすことは、まだ試していません。
 
 `/3` で3枚目を、`/presenter/3` でその発表者画面を開きます。パスはそれ以上入れ子にしません。ステップは URL に入らないので、読み直すとそのスライドは何も出ていない状態から始まります。
 
