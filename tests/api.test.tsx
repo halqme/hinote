@@ -131,6 +131,45 @@ describe("canvas", () => {
   });
 });
 
+describe("transition", () => {
+  // The page reads each slide's transition from data-transition when it enters.
+  const transitions = (html: string) =>
+    [...html.matchAll(/<section[^>]*data-transition="(\w+)"/g)].map(
+      (match) => match[1],
+    );
+
+  test("slides take the deck transition unless they set their own", async () => {
+    const nested = createSlide({ transition: "slide" }, [
+      textSlide("lent"),
+      createSlide({ transition: "none" }, () => <p>own</p>),
+    ]);
+    const deck = createSlide({ transition: "fade" }, [
+      textSlide("deck"),
+      createSlide({ transition: "slide" }, () => <p>slide</p>),
+      nested,
+    ]);
+    expect(transitions(await deck.render())).toEqual([
+      "fade",
+      "slide",
+      "slide",
+      "none",
+    ]);
+    expect(transitions(await deckOf(textSlide("x")).render())).toEqual([
+      "none",
+    ]);
+  });
+
+  test("rejects unknown transitions", () => {
+    const call = createSlide as (first?: unknown, second?: unknown) => unknown;
+    expect(() => call({ transition: "zoom" }, [textSlide("x")])).toThrow(
+      HinoteError,
+    );
+    expect(() => call({ transition: "zoom" }, () => <p>x</p>)).toThrow(
+      HinoteError,
+    );
+  });
+});
+
 describe("Step", () => {
   test("numbers steps in document order unless `at` is given", async () => {
     const slide = createSlide(() => (

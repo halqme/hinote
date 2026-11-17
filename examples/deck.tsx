@@ -31,6 +31,7 @@ const nested = createSlide({ theme: { colors: { bg: "#111827" } } }, [
 export default createSlide(
   {
     aspect: "16:9",
+    transition: "slide",
     theme: {
       colors: {
         bg: "#0f1115",

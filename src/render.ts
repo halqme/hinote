@@ -6,6 +6,7 @@ import { HinoteError } from "./errors.ts";
 export type Page = "view" | "presenter" | "static";
 import type { Slide } from "./slide.ts";
 import { withStepCounter } from "./step.tsx";
+import type { Transition } from "./transition.ts";
 import {
   defaultTheme,
   mergeTheme,
@@ -27,6 +28,18 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--hinote-color-bg)
 .slide{display:none;position:absolute;top:0;left:0;width:var(--hinote-canvas-width);height:var(--hinote-canvas-height);overflow:hidden;flex-direction:column;padding:calc(var(--hinote-space-unit) * 6);transform-origin:0 0;transform:scale(var(--hinote-scale));background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
 .slide.is-active{display:flex}
 [data-hinote-step]{transition:opacity .2s ease}
+.hinote-stage{view-transition-name:hinote-stage}
+::view-transition-old(root),::view-transition-new(root){animation:none}
+::view-transition-image-pair(hinote-stage){overflow:clip}
+::view-transition-old(hinote-stage),::view-transition-new(hinote-stage){animation-duration:.35s;animation-timing-function:ease}
+html[data-transition="slide"]::view-transition-old(hinote-stage){animation-name:hinote-to-left}
+html[data-transition="slide"]::view-transition-new(hinote-stage){animation-name:hinote-from-right}
+html[data-transition="slide"][data-direction="back"]::view-transition-old(hinote-stage){animation-name:hinote-to-right}
+html[data-transition="slide"][data-direction="back"]::view-transition-new(hinote-stage){animation-name:hinote-from-left}
+@keyframes hinote-to-left{to{transform:translateX(-100%)}}
+@keyframes hinote-to-right{to{transform:translateX(100%)}}
+@keyframes hinote-from-left{from{transform:translateX(-100%)}}
+@keyframes hinote-from-right{from{transform:translateX(100%)}}
 [data-hinote-step].is-hidden{opacity:0;visibility:hidden}
 h1,h2,h3,p{margin:0}
 h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
@@ -127,6 +140,7 @@ export async function renderDeck(input: {
   theme?: Theme;
   title?: string;
   canvas?: { width: number; height: number };
+  transition?: Transition;
   page?: Page;
 }): Promise<string> {
   const theme = mergeTheme(
@@ -157,6 +171,7 @@ ${BASE_CSS}`;
     return jsx("section", {
       class: className,
       "data-notes": slide.options.notes ?? "",
+      "data-transition": slide.options.transition ?? input.transition ?? "none",
       style: slideStyle(slide),
       dangerouslySetInnerHTML: { __html: html },
     });

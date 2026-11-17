@@ -1,6 +1,7 @@
 import type { Child } from "hono/jsx";
 import { Deck, parseDeckOptions, type DeckOptions } from "./deck.ts";
 import { HinoteError } from "./errors.ts";
+import { parseTransition, type Transition } from "./transition.ts";
 import { cssValue, mergeTheme, parseTheme, type Theme } from "./theme.ts";
 
 export type SlideRender = () => Child;
@@ -11,6 +12,8 @@ export type SlideOptions = {
   background?: string;
   class?: string;
   theme?: Theme;
+  // How this slide enters. Defaults to the deck's transition.
+  transition?: Transition;
 };
 
 export type Slide = {
@@ -21,7 +24,14 @@ export type Slide = {
 
 export type SlideInput = Slide | Deck;
 
-const OPTION_KEYS = new Set(["notes", "title", "background", "class", "theme"]);
+const OPTION_KEYS = new Set([
+  "notes",
+  "title",
+  "background",
+  "class",
+  "theme",
+  "transition",
+]);
 
 export function isSlide(value: unknown): value is Slide {
   return (
@@ -67,24 +77,28 @@ function parseOptions(value: Record<string, unknown>): SlideOptions {
   }
   if (value.theme !== undefined)
     options.theme = parseTheme(value.theme, "slide theme");
+  if (value.transition !== undefined)
+    options.transition = parseTransition(
+      value.transition,
+      'Slide option "transition"',
+    );
   return options;
 }
 
-// A nested deck lends its theme to its slides; a slide theme still wins.
+// A nested deck lends its theme and transition to its slides; a slide's own still wins.
 function nestedSlides(deck: Deck): Slide[] {
   if (deck.config.title !== undefined || deck.config.aspect !== undefined)
     throw new HinoteError(
       'Deck options "title" and "aspect" can only be set on the top-level deck.',
     );
-  const theme = deck.config.theme;
-  if (!theme) return [...deck.slides];
-  return deck.slides.map((slide) => ({
-    ...slide,
-    options: {
-      ...slide.options,
-      theme: mergeTheme(theme, slide.options.theme),
-    },
-  }));
+  const { theme, transition } = deck.config;
+  if (!theme && !transition) return [...deck.slides];
+  return deck.slides.map((slide) => {
+    const options = { ...slide.options };
+    if (theme) options.theme = mergeTheme(theme, slide.options.theme);
+    options.transition ??= transition;
+    return { ...slide, options };
+  });
 }
 
 function flatten(nodes: readonly unknown[]): Slide[] {

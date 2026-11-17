@@ -6,3 +6,4 @@ export type { Slide, SlideInput, SlideOptions, SlideRender } from "./slide.ts";
 export { Step } from "./step.tsx";
 export type { StepProps } from "./step.tsx";
 export type { Theme } from "./theme.ts";
+export type { Transition } from "./transition.ts";

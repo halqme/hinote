@@ -238,7 +238,7 @@ function boot(): void {
   // Assigned once the player exists, since the overview navigates through it.
   let presenter: PresenterView | undefined;
 
-  const show = (position: Position) => {
+  const apply = (position: Position) => {
     for (const [index, slide] of slides.entries()) {
       slide.classList.toggle("is-active", index === position.slide);
       // Earlier slides show every step, later slides none.
@@ -263,6 +263,29 @@ function boot(): void {
     if (notesEl)
       notesEl.textContent = slides[position.slide]?.dataset.notes ?? "";
     writeUrl(position);
+  };
+
+  // A slide change animates with the transition of the slide it enters.
+  const root = document.documentElement;
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  let shown: number | undefined;
+  const show = (position: Position) => {
+    const from = shown;
+    shown = position.slide;
+    const transition = slides[position.slide]?.dataset.transition ?? "none";
+    if (
+      from === undefined ||
+      from === position.slide ||
+      transition === "none" ||
+      reduceMotion.matches ||
+      !document.startViewTransition
+    ) {
+      apply(position);
+      return;
+    }
+    root.dataset.transition = transition;
+    root.dataset.direction = position.slide > from ? "forward" : "back";
+    document.startViewTransition(() => apply(position));
   };
 
   const activeSlide = () =>

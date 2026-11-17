@@ -5,6 +5,7 @@ import { syncHub } from "./hub.ts";
 import { renderDeck, type Page } from "./render.ts";
 import type { Slide } from "./slide.ts";
 import { parseTheme, type Theme } from "./theme.ts";
+import { parseTransition, type Transition } from "./transition.ts";
 
 export type Aspect = "16:9" | "4:3" | `${number}:${number}`;
 
@@ -14,6 +15,8 @@ export type DeckOptions = {
   theme?: Theme;
   // Canvas ratio, "16:9" by default. Only the top-level deck may set it.
   aspect?: Aspect;
+  // How slides enter, "none" by default. A slide can set its own.
+  transition?: Transition;
 };
 
 export type Canvas = { width: number; height: number };
@@ -38,7 +41,7 @@ export function parseAspect(aspect: string): Canvas {
   };
 }
 
-const OPTION_KEYS = new Set(["title", "theme", "aspect"]);
+const OPTION_KEYS = new Set(["title", "theme", "aspect", "transition"]);
 
 export function parseDeckOptions(value: Record<string, unknown>): DeckOptions {
   for (const key of Object.keys(value)) {
@@ -59,6 +62,11 @@ export function parseDeckOptions(value: Record<string, unknown>): DeckOptions {
   }
   if (value.theme !== undefined)
     options.theme = parseTheme(value.theme, "deck theme");
+  if (value.transition !== undefined)
+    options.transition = parseTransition(
+      value.transition,
+      'Deck option "transition"',
+    );
   return options;
 }
 
@@ -155,6 +163,7 @@ export class Deck extends Hono {
       theme: this.config.theme,
       title: this.config.title,
       canvas: this.canvas,
+      transition: this.config.transition,
       page,
     });
   }
