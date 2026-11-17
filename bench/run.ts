@@ -26,6 +26,11 @@ type Tool = {
   runner?: string;
   build: string[];
   dev: string[];
+  // Where the build writes, "dist" unless given. With `deliverable: false` the
+  // build output is part of an app, not something to hand out, so its size is
+  // not reported.
+  buildDir?: string;
+  deliverable?: boolean;
   env?: Record<string, string>;
   url: string;
 };
@@ -46,6 +51,17 @@ const tools: Tool[] = [
     build: ["hinote", "build", "deck.tsx", "-o", "dist/index.html"],
     dev: ["hinote", "dev", "deck.tsx", "--port", "4504"],
     url: "http://127.0.0.1:4504/",
+  },
+  {
+    // hono-decks mounts compiled MDX decks in a Hono app. Its dev flow
+    // (Wrangler or Vite) compiles on start, so dev here compiles, then serves
+    // the app with Bun; the slide itself is at /decks/talk/presentation.
+    name: "hono-decks",
+    build: ["hono-decks", "compile"],
+    dev: ["sh", "-c", "hono-decks compile && PORT=4505 bun src/index.ts"],
+    buildDir: ".hono-decks",
+    deliverable: false,
+    url: "http://127.0.0.1:4505/decks/talk/presentation",
   },
   {
     name: "slidev",
@@ -69,6 +85,12 @@ const median = (values: number[]) =>
 // The command for a bin in the project, run by `runner` when one is given.
 function command(tool: Tool, cwd: string, cmd: string[]): [string, string[]] {
   const [bin = "", ...args] = cmd;
+  // A shell line, with the project's bins on PATH.
+  if (bin === "sh")
+    return [
+      "sh",
+      ["-c", `PATH="${join(cwd, "node_modules/.bin")}:$PATH"; ${args[1]}`],
+    ];
   const path = join(cwd, "node_modules/.bin", bin);
   return tool.runner ? [tool.runner, [path, ...args]] : [path, args];
 }
@@ -178,12 +200,18 @@ for (const tool of tools) {
   run(tool, cwd, tool.build); // warm-up
   const builds: number[] = [];
   for (let i = 0; i < 5; i++) {
-    rmSync(join(cwd, "dist"), { recursive: true, force: true });
+    rmSync(join(cwd, tool.buildDir ?? "dist"), {
+      recursive: true,
+      force: true,
+    });
     start = now();
     run(tool, cwd, tool.build);
     builds.push(now() - start);
   }
-  const out = sizeOf(join(cwd, "dist"));
+  const out =
+    tool.deliverable === false
+      ? undefined
+      : sizeOf(join(cwd, tool.buildDir ?? "dist"));
 
   rmSync(join(cwd, "node_modules/.vite"), { recursive: true, force: true });
   const first = await startUp(tool, cwd);
@@ -197,7 +225,7 @@ for (const tool of tools) {
       nodeModulesMB: +(diskKb(join(cwd, "node_modules")) / 1024).toFixed(1),
       installSeconds: +installSeconds.toFixed(1),
       buildSeconds: +median(builds).toFixed(2),
-      output: {
+      output: out && {
         files: out.files,
         kb: Math.round(out.bytes / 1024),
         gzipKb: Math.round(out.gzip / 1024),

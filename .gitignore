@@ -39,3 +39,4 @@ bench/.pack
 bench/.cache-*
 bench/*/dist
 bench/*/bun.lock
+bench/*/.hono-decks

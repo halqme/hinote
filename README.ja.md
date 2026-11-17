@@ -4,7 +4,7 @@
 
 Hono / Hono/JSX でスライドを書くツールです。デッキそのものが Hono アプリなので、Hono を動かせる方法ならどれでも表示できます。配るときは、視聴画面を画像以外まとめて1つの HTML にします。
 
-はじめての方は [ハンズオン](docs/hands-on.ja.md) からどうぞ。実際の発表に近い書き方は [`examples/`](examples/README.ja.md) に、Slidev・Marp とのインストールサイズや速さの比較は [比較](docs/comparison.ja.md) にあります。
+はじめての方は [ハンズオン](docs/hands-on.ja.md) からどうぞ。実際の発表に近い書き方は [`examples/`](examples/README.ja.md) に、Slidev・Marp・hono-decks とのインストールサイズや速さの比較は [比較](docs/comparison.ja.md) にあります。
 
 ## はじめる
 

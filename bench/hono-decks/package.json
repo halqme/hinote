@@ -1,0 +1,15 @@
+{
+  "name": "bench-hono-decks",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "hono": "^4.13.19",
+    "hono-decks": "2.2.0"
+  },
+  "hono-decks": {
+    "configFile": "decks/config.ts"
+  },
+  "imports": {
+    "#decks": "./.hono-decks/decks.ts"
+  }
+}
