@@ -15,8 +15,9 @@ export function parseBase(value: string | undefined): string {
 }
 
 // Writes the pages a server would answer, as directories with an index.html,
-// so any static host serves the same paths: /, /3/, /presenter/, /presenter/3/.
-// With no server behind them, the pages sync between windows of one browser.
+// so any static host serves the same paths: /, /3/, and, when the deck turns
+// the presenter on, /presenter/ and /presenter/3/. With no server behind them,
+// those pages sync between windows of one browser.
 export async function prerender(
   deck: Deck,
   deckDir: string,
@@ -25,8 +26,16 @@ export async function prerender(
 ): Promise<{ pages: string[]; copied: string[] }> {
   const pages: string[] = [];
   let html = "";
-  for (const page of ["view", "presenter"] as const) {
-    html = await deck.render(page, base, "broadcast");
+  // The presenter, and the sync it needs, only when the deck turns it on.
+  const kinds = deck.presenter
+    ? (["view", "presenter"] as const)
+    : (["view"] as const);
+  for (const page of kinds) {
+    html = await deck.render(page, {
+      base,
+      sync: deck.presenter ? "broadcast" : undefined,
+      directories: true,
+    });
     const prefix = page === "presenter" ? "presenter" : "";
     const paths = [
       prefix,

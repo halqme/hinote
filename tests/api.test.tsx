@@ -11,6 +11,11 @@ function deckOf(...slides: ReturnType<typeof textSlide>[]) {
   return createSlide(slides);
 }
 
+// A deck with the presenter view, sync, and pointer turned on.
+function presenterDeckOf(...slides: ReturnType<typeof textSlide>[]) {
+  return createSlide({ presenter: true }, slides);
+}
+
 describe("createSlide", () => {
   test("renders one slide and keeps Japanese text", async () => {
     const html = await deckOf(textSlide("こんにちは")).render();
@@ -19,7 +24,7 @@ describe("createSlide", () => {
     expect(html).toContain('class="slide is-active"');
   });
 
-  test("puts options on the slide and escapes notes", async () => {
+  test("puts options on the slide, and notes on the presenter page only, escaped", async () => {
     const slide = createSlide(
       {
         title: "題",
@@ -29,10 +34,13 @@ describe("createSlide", () => {
       },
       () => <h1>題</h1>,
     );
-    const html = await deckOf(slide).render();
+    const html = await deckOf(slide).render("presenter");
     expect(html).toContain("<title>題</title>");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).not.toContain("<script>alert(1)</script>");
+    // Notes are for the presenter: the audience view and the built file never carry them.
+    for (const page of ["view", "static"] as const)
+      expect(await deckOf(slide).render(page)).not.toContain("alert(1)");
     expect(html).toContain("opening extra");
     expect(html).toContain("#123456");
   });
@@ -74,11 +82,13 @@ describe("createSlide", () => {
     expect(sections[2]).not.toContain("#aaaaaa");
   });
 
-  test("only the top-level deck may set title or aspect", () => {
+  test("only the top-level deck may set title, aspect, or presenter", () => {
     const inner = createSlide({ aspect: "4:3" }, [textSlide("x")]);
     expect(() => createSlide([inner])).toThrow(HinoteError);
     const titled = createSlide({ title: "t" }, [textSlide("x")]);
     expect(() => createSlide([titled])).toThrow(HinoteError);
+    const presenting = createSlide({ presenter: true }, [textSlide("x")]);
+    expect(() => createSlide([presenting])).toThrow(HinoteError);
   });
 
   test("renders an empty deck without inventing a slide", async () => {
@@ -362,8 +372,30 @@ describe("theme and output", () => {
 });
 
 describe("deck as a Hono app", () => {
+  test("keeps the presenter view, sync, and pointer off unless the deck turns them on", async () => {
+    const deck = createSlide([
+      createSlide({ notes: "secret notes" }, () => <p>one</p>),
+    ]);
+    expect((await deck.request("/1")).status).toBe(200);
+    for (const path of ["/presenter", "/presenter/1", "/_hinote/events"])
+      expect((await deck.request(path)).status).toBe(404);
+    const sync = await deck.request("/_hinote/sync", {
+      method: "POST",
+      body: JSON.stringify({
+        channel: "",
+        from: "a",
+        message: { type: "hello" },
+      }),
+    });
+    expect(sync.status).toBe(404);
+    const view = await (await deck.request("/")).text();
+    expect(view).not.toContain("secret notes");
+    expect(view).not.toContain('id="hinote-pointer"');
+    expect(view).not.toContain("data-sync");
+  });
+
   test("serves the view, the presenter, and each slide by number", async () => {
-    const deck = deckOf(textSlide("one"), textSlide("two"));
+    const deck = presenterDeckOf(textSlide("one"), textSlide("two"));
     for (const path of ["/", "/2", "/presenter", "/presenter/2"]) {
       const response = await deck.request(path);
       expect(response.status).toBe(200);
@@ -382,7 +414,9 @@ describe("deck as a Hono app", () => {
   });
 
   test("relative URLs in slides resolve against the deck root on every page", async () => {
-    const deck = deckOf(createSlide(() => <img src="./pic.png" alt="" />));
+    const deck = presenterDeckOf(
+      createSlide(() => <img src="./pic.png" alt="" />),
+    );
     const baseOf = async (
       app: { request(path: string): Response | Promise<Response> },
       path: string,
@@ -402,7 +436,7 @@ describe("deck as a Hono app", () => {
   });
 
   test("keeps Hono routing, including routes the author adds and mounting", async () => {
-    const deck = deckOf(textSlide("one"));
+    const deck = presenterDeckOf(textSlide("one"));
     deck.get("/hello", (c) => c.text("hi"));
     deck.options("/hello", (c) => c.body(null, 204));
     expect(await (await deck.request("/hello")).text()).toBe("hi");
@@ -432,7 +466,7 @@ describe("deck as a Hono app", () => {
 
 describe("sync over the deck server", () => {
   async function listen(
-    deck: ReturnType<typeof deckOf>,
+    deck: ReturnType<typeof presenterDeckOf>,
     id: string,
     channel = "",
   ) {
@@ -460,11 +494,11 @@ describe("sync over the deck server", () => {
     return { next, close: () => controller.abort() };
   }
 
-  const send = (deck: ReturnType<typeof deckOf>, body: string) =>
+  const send = (deck: ReturnType<typeof presenterDeckOf>, body: string) =>
     deck.request("/_hinote/sync", { method: "POST", body });
 
   test("relays a message to the other pages, not back to the sender", async () => {
-    const deck = deckOf(textSlide("x"));
+    const deck = presenterDeckOf(textSlide("x"));
     const a = await listen(deck, "a");
     const b = await listen(deck, "b");
     try {
@@ -489,7 +523,7 @@ describe("sync over the deck server", () => {
   });
 
   test("pages on another channel do not follow", async () => {
-    const deck = deckOf(textSlide("x"));
+    const deck = presenterDeckOf(textSlide("x"));
     const talk = await listen(deck, "talk", "/talk");
     const other = await listen(deck, "other", "/other");
     try {
@@ -513,7 +547,7 @@ describe("sync over the deck server", () => {
   });
 
   test("building a deck while pages are open tells them to reload", async () => {
-    const deck = deckOf(textSlide("old"));
+    const deck = presenterDeckOf(textSlide("old"));
     const page = await listen(deck, "page", "/talk");
     try {
       // What `bun --hot` and `hinote dev` do when deck.tsx changes.
@@ -525,7 +559,7 @@ describe("sync over the deck server", () => {
   });
 
   test("refuses bodies that are not sync messages", async () => {
-    const deck = deckOf(textSlide("x"));
+    const deck = presenterDeckOf(textSlide("x"));
     expect((await send(deck, "nope")).status).toBe(400);
     expect((await send(deck, JSON.stringify({ message: {} }))).status).toBe(
       400,

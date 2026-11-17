@@ -35,6 +35,19 @@ function broadcastPort(base: string): Port {
   };
 }
 
+// Under `hinote dev` without the presenter, a page only listens for reloads.
+function reloadPort(base: string): Port {
+  const query = new URLSearchParams({ id: crypto.randomUUID(), channel: base });
+  const events = new EventSource(`${base}/_hinote/events?${query}`);
+  events.onmessage = (event) => {
+    if (
+      (JSON.parse(event.data) as { type?: unknown } | null)?.type === "reload"
+    )
+      location.reload();
+  };
+  return NO_PORT;
+}
+
 // A served page listens on the deck's SSE stream and sends with POST, so pages
 // on other devices follow too. The server sends `reload` after `hinote dev` reloads.
 function serverPort(base: string): Port {
@@ -217,12 +230,17 @@ function boot(): void {
   const notesEl = document.getElementById("hinote-notes");
   const stepEl = document.getElementById("hinote-step");
   const pointerEl = document.getElementById("hinote-pointer");
-  const prerendered = document.documentElement.dataset.sync === "broadcast";
+  const sync = document.documentElement.dataset.sync;
+  const directories = document.documentElement.dataset.paths === "directories";
   const port = !served
     ? NO_PORT
-    : prerendered
-      ? broadcastPort(served.base)
-      : serverPort(served.base);
+    : sync === "server"
+      ? serverPort(served.base)
+      : sync === "broadcast"
+        ? broadcastPort(served.base)
+        : sync === "reload"
+          ? reloadPort(served.base)
+          : NO_PORT;
 
   const fit = () => {
     if (!deck || !stage) return;
@@ -247,7 +265,7 @@ function boot(): void {
   const writeUrl = (position: Position) => {
     if (slides.length === 0) return;
     const url = served
-      ? `${servedPath(served.base, role, position.slide, prerendered)}${location.search}`
+      ? `${servedPath(served.base, role, position.slide, directories)}${location.search}`
       : `${location.search}${slideHash(position.slide)}`;
     history.replaceState(null, "", url);
   };

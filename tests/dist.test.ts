@@ -77,7 +77,7 @@ export default createSlide({ css: style }, [
       `import { jsx } from "hono/jsx";
 import { createSlide } from "hinote";
 const deck = createSlide([createSlide(() => jsx("h1", {}, "library"))]);
-console.log(await (await deck.request("/presenter/1")).text());`,
+console.log(await (await deck.request("/1")).text());`,
     );
     const run = Bun.spawnSync([node!, "app.mjs"], {
       cwd: bare,

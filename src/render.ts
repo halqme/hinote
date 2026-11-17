@@ -7,7 +7,9 @@ import { HinoteError } from "./errors.ts";
 // the single file from `hinote build`: one audience view with no sync.
 export type Page = "view" | "presenter" | "static";
 
-export type Sync = "server" | "broadcast";
+// "server" and "broadcast" sync with the presenter; "reload" only hears that
+// `hinote dev` reloaded the deck. Without one, a page syncs with nothing.
+export type Sync = "server" | "broadcast" | "reload";
 import type { Slide } from "./slide.ts";
 import { numberSteps } from "./step.tsx";
 import type { Transition } from "./transition.ts";
@@ -218,6 +220,8 @@ export async function renderDeck(input: {
   // How served pages sync: through the deck's server, or, for pages
   // prerendered onto a static host, between windows of one browser.
   sync?: Sync;
+  // Prerendered pages are directories on a static host, so their URLs end in "/".
+  directories?: boolean;
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
@@ -251,7 +255,9 @@ ${FRAME_CSS}`;
     slides.push(
       jsx("section", {
         class: className,
-        "data-notes": slide.options.notes ?? "",
+        // Notes are for the presenter; other pages never carry them.
+        "data-notes":
+          page === "presenter" ? (slide.options.notes ?? "") : undefined,
         "data-hinote-css": author.scopes[index],
         "data-transition":
           slide.options.transition ?? input.transition ?? "none",
@@ -274,10 +280,8 @@ ${FRAME_CSS}`;
     "html",
     {
       "data-page": page,
-      "data-sync":
-        page !== "static" && input.sync === "broadcast"
-          ? "broadcast"
-          : undefined,
+      "data-sync": page !== "static" ? input.sync : undefined,
+      "data-paths": input.directories ? "directories" : undefined,
     },
     jsx(
       "head",
@@ -296,7 +300,10 @@ ${FRAME_CSS}`;
       {},
       deck,
       page === "presenter" ? presenterPanel(slides.length, firstNotes) : null,
-      page === "static" ? null : jsx("div", { id: "hinote-pointer" }),
+      page !== "static" &&
+        (input.sync === "server" || input.sync === "broadcast")
+        ? jsx("div", { id: "hinote-pointer" })
+        : null,
       jsx("script", { dangerouslySetInnerHTML: { __html: SCRIPT } }),
     ),
   );

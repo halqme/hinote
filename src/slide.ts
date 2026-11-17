@@ -103,9 +103,13 @@ function parseOptions(value: Record<string, unknown>): Slide["options"] {
 
 // A nested deck lends its theme, transition, and CSS to its slides; a slide's own still wins.
 function nestedSlides(deck: Deck): Slide[] {
-  if (deck.config.title !== undefined || deck.config.aspect !== undefined)
+  if (
+    deck.config.title !== undefined ||
+    deck.config.aspect !== undefined ||
+    deck.config.presenter !== undefined
+  )
     throw new HinoteError(
-      'Deck options "title" and "aspect" can only be set on the top-level deck.',
+      'Deck options "title", "aspect", and "presenter" can only be set on the top-level deck.',
     );
   const { theme, transition, css } = deck.config;
   if (!theme && !transition && !css) return [...deck.slides];

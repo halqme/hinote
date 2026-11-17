@@ -137,7 +137,7 @@ Bun.serve({ fetch: app.fetch, port: ${port} });`,
       stderr: "pipe",
     });
     try {
-      const page = await waitFor(`http://127.0.0.1:${port}/presenter/1`, proc);
+      const page = await waitFor(`http://127.0.0.1:${port}/1`, proc);
       expect(await page.text()).toContain("h1 { color: teal; }");
       expect(
         await (await fetch(`http://127.0.0.1:${port}/logo.svg`)).text(),
@@ -264,7 +264,7 @@ test("prerender writes every page a static host needs, under a base path", async
     await writeFile(join(dir, "logo.svg"), "<svg/>");
     await writeFile(
       join(dir, "deck.tsx"),
-      deckSource(`export default createSlide([
+      deckSource(`export default createSlide({ presenter: true }, [
   createSlide(() => <img src="./logo.svg" />),
   createSlide(() => <p>two</p>),
 ])`),
@@ -296,6 +296,23 @@ test("prerender writes every page a static host needs, under a base path", async
       await readFile(join(dir, "site/2/index.html"), "utf8"),
     ).not.toContain('id="hinote-panel"');
     expect(await readFile(join(dir, "site/logo.svg"), "utf8")).toBe("<svg/>");
+
+    // Without presenter: true, the site has the audience view only, with no sync.
+    await writeFile(
+      join(dir, "plain.tsx"),
+      deckSource(
+        `export default createSlide([createSlide({ notes: "secret" }, () => <p>one</p>)])`,
+      ),
+    );
+    expect(
+      (await run(["prerender", "plain.tsx", "-o", "plain"], dir)).code,
+    ).toBe(0);
+    const plain = await readFile(join(dir, "plain/1/index.html"), "utf8");
+    expect(plain).not.toContain("data-sync");
+    expect(plain).not.toContain("secret");
+    expect(
+      await Bun.file(join(dir, "plain/presenter/index.html")).exists(),
+    ).toBe(false);
 
     const bad = await run(
       ["prerender", "deck.tsx", "-o", "bad", "--base", "talk"],
@@ -379,42 +396,55 @@ test("dev explains a port that is already in use", async () => {
   }
 });
 
-test("dev --host 0.0.0.0 listens on the network and says so", async () => {
+test("dev on the network keeps the presenter off unless the deck turns it on", async () => {
   const dir = await tempDir();
-  const probe = Bun.serve({ port: 0, fetch: () => new Response() });
-  const port = probe.port;
-  probe.stop(true);
-  await writeFile(
-    join(dir, "deck.tsx"),
-    deckSource(`export default createSlide([createSlide(() => <p>lan</p>)])`),
-  );
-  const proc = Bun.spawn(
-    [
-      "bun",
-      cli,
-      "dev",
-      "deck.tsx",
-      "--port",
-      String(port),
-      "--host",
-      "0.0.0.0",
-    ],
-    { cwd: dir, stdout: "pipe", stderr: "pipe" },
-  );
-  try {
-    expect(
-      await (await waitFor(`http://127.0.0.1:${port}/`, proc)).text(),
-    ).toContain("lan");
-    proc.kill();
-    const out = await new Response(proc.stdout).text();
-    expect(out).toContain(`http://127.0.0.1:${port}/presenter`);
-    expect(out).toContain("to the network");
-  } finally {
+  const start = async (deck: string) => {
+    const probe = Bun.serve({ port: 0, fetch: () => new Response() });
+    const port = probe.port;
+    probe.stop(true);
+    await writeFile(join(dir, "deck.tsx"), deckSource(deck));
+    const proc = Bun.spawn(
+      [
+        "bun",
+        cli,
+        "dev",
+        "deck.tsx",
+        "--port",
+        String(port),
+        "--host",
+        "0.0.0.0",
+      ],
+      { cwd: dir, stdout: "pipe", stderr: "pipe" },
+    );
+    const page = await waitFor(`http://127.0.0.1:${port}/`, proc);
+    const presenter = (await fetch(`http://127.0.0.1:${port}/presenter`))
+      .status;
     proc.kill();
     await proc.exited;
+    return {
+      html: await page.text(),
+      presenter,
+      out: await new Response(proc.stdout).text(),
+    };
+  };
+  try {
+    const off = await start(
+      `export default createSlide([createSlide(() => <p>lan</p>)])`,
+    );
+    expect(off.html).toContain("lan");
+    expect(off.presenter).toBe(404);
+    expect(off.out).toContain("to the network");
+    expect(off.out).toContain("presenter: true");
+
+    const on = await start(
+      `export default createSlide({ presenter: true }, [createSlide(() => <p>lan</p>)])`,
+    );
+    expect(on.presenter).toBe(200);
+    expect(on.out).toContain("/presenter");
+  } finally {
     await rm(dir, { recursive: true, force: true });
   }
-});
+}, 20_000);
 
 // A stand-in for a package manager on PATH: it records its arguments in the
 // directory it runs in and exits with `code`. Returns the env that selects it.

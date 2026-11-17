@@ -22,6 +22,11 @@ export type DeckOptions = {
   // CSS for every slide in this deck. A nested deck's CSS and a slide's own
   // CSS win over it, whatever their selectors.
   css?: CssInput;
+  // The presenter view, sync, and the pointer. They are for presenting from
+  // this machine, so they are off unless a deck turns them on; `hinote dev`
+  // turns them on for itself when it serves localhost. Only the top-level
+  // deck may set it.
+  presenter?: boolean;
 };
 
 export type Canvas = { width: number; height: number };
@@ -46,7 +51,14 @@ export function parseAspect(aspect: string): Canvas {
   };
 }
 
-const OPTION_KEYS = new Set(["title", "theme", "aspect", "transition", "css"]);
+const OPTION_KEYS = new Set([
+  "title",
+  "theme",
+  "aspect",
+  "transition",
+  "css",
+  "presenter",
+]);
 
 type ParsedDeckOptions = Omit<DeckOptions, "css"> & {
   css?: readonly CssSource[];
@@ -80,6 +92,11 @@ export function parseDeckOptions(
     );
   if (value.css !== undefined)
     options.css = parseCss(value.css, 'Deck option "css"');
+  if (value.presenter !== undefined) {
+    if (typeof value.presenter !== "boolean")
+      throw new HinoteError('Deck option "presenter" must be true or false.');
+    options.presenter = value.presenter;
+  }
   return options;
 }
 
@@ -89,22 +106,34 @@ export class Deck extends Hono {
   readonly kind = "deck";
   readonly slides: readonly Slide[];
   readonly config: ParsedDeckOptions;
+  // Whether /presenter, sync, and the pointer are served. `hinote dev` turns it
+  // on when it serves localhost.
+  presenter: boolean;
+  // Set by `hinote dev`: pages listen for reloads even without the presenter.
+  live = false;
   readonly #pages = new Map<string, Promise<string>>();
 
   constructor(slides: readonly Slide[], options: ParsedDeckOptions = {}) {
     super();
     this.slides = slides;
     this.config = options;
+    this.presenter = options.presenter === true;
     // A deck built while pages are open is an edited deck (`bun --hot`, `hinote dev`).
     syncHub().reloadAll();
 
     const page = (kind: "view" | "presenter") => async (c: Context) => {
+      if (kind === "presenter" && !this.presenter) return c.notFound();
       // Relative URLs in slides resolve against the deck root, not /presenter/3.
       const base = parseServedPath(new URL(c.req.url).pathname).base;
-      const key = `${kind} ${base}`;
+      const sync: Sync | undefined = this.presenter
+        ? "server"
+        : this.live
+          ? "reload"
+          : undefined;
+      const key = `${kind} ${base} ${sync}`;
       let html = this.#pages.get(key);
       if (!html) {
-        html = this.render(kind, base);
+        html = this.render(kind, { base, sync });
         this.#pages.set(key, html);
         html.catch(() => this.#pages.delete(key));
       }
@@ -122,6 +151,7 @@ export class Deck extends Hono {
     this.get("/presenter/:slide{[0-9]+}", page("presenter"));
 
     this.get("/_hinote/events", (c) => {
+      if (!this.presenter && !this.live) return c.notFound();
       const id = c.req.query("id") ?? crypto.randomUUID();
       const channel = c.req.query("channel") ?? "";
       return streamSSE(c, async (stream) => {
@@ -142,6 +172,7 @@ export class Deck extends Hono {
     });
 
     this.post("/_hinote/sync", async (c) => {
+      if (!this.presenter) return c.notFound();
       const text = await c.req.text();
       if (text.length > MAX_MESSAGE_BYTES) return c.body(null, 413);
       let body: unknown;
@@ -175,10 +206,12 @@ export class Deck extends Hono {
   // Renders the whole deck as one HTML document.
   // `base` is the path the deck is served under; served pages resolve relative
   // URLs against it. The static file resolves them against itself.
-  render(page: Page = "view", base?: string, sync?: Sync) {
+  render(
+    page: Page = "view",
+    options: { base?: string; sync?: Sync; directories?: boolean } = {},
+  ) {
     return renderDeck({
-      base,
-      sync,
+      ...options,
       slides: this.slides,
       theme: this.config.theme,
       title: this.config.title,

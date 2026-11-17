@@ -13,6 +13,7 @@ import {
   NODE_DEV_PACKAGES,
   packageManager,
 } from "./init.ts";
+import type { Deck } from "./deck.ts";
 import { loadDeckFile } from "./load.ts";
 import { hasNodePackages, isBun, serve } from "./runtime.ts";
 import { createDevApp } from "./server.ts";
@@ -103,18 +104,33 @@ async function devCommand(argv: string[]): Promise<void> {
   // Only this machine by default. --host 0.0.0.0 lets a phone or another
   // laptop on the network open the deck and follow along.
   const host = args.host ?? "127.0.0.1";
-  let deck = await loadDeckFile(deckFile);
+  // The presenter view, sync, and pointer are for presenting from this
+  // machine. On localhost dev turns them on; on the network only a deck that
+  // says presenter: true gets them, since anyone who can reach the server could
+  // read the notes and drive the slides.
+  const prepare = (loaded: Deck) => {
+    loaded.live = true;
+    if (isLoopback(host)) loaded.presenter = true;
+    return loaded;
+  };
+  let deck = prepare(await loadDeckFile(deckFile));
   const app = createDevApp(() => deck, root);
   const server = await serve({ port, hostname: host, fetch: app.fetch });
 
   for (const address of reachableAddresses(host)) {
     console.log(`hinote dev http://${address}:${server.port}`);
-    console.log(`presenter http://${address}:${server.port}/presenter`);
+    if (deck.presenter)
+      console.log(`presenter http://${address}:${server.port}/presenter`);
   }
-  if (!isLoopback(host))
+  if (!isLoopback(host)) {
     console.log(
       `Serving ${root} to the network: every file in it can be fetched.`,
     );
+    if (!deck.presenter)
+      console.log(
+        "The presenter view, sync, and pointer are off on the network. Set presenter: true on the deck to turn them on.",
+      );
+  }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   let loading = Promise.resolve();
@@ -122,7 +138,7 @@ async function devCommand(argv: string[]): Promise<void> {
     loading = loading.then(async () => {
       try {
         // Building the new deck tells open pages to reload (see hub.ts).
-        deck = await loadDeckFile(deckFile);
+        deck = prepare(await loadDeckFile(deckFile));
         console.log("reloaded");
       } catch (error) {
         // Keep serving the last deck that loaded.

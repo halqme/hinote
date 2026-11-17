@@ -169,7 +169,7 @@ Open <http://127.0.0.1:4321/presenter>. The current slide is on the left; on the
 - Move the mouse over the slide in the presenter view and a red pointer appears in the audience view.
 - Press `O` for an overview of every slide; click one to jump to it.
 - Click the elapsed time to restart it.
-- To open the deck from a phone or another device, start it with `bunx hinote dev --host 0.0.0.0` and open one of the addresses it prints.
+- To open the deck from a phone or another device, start it with `bunx hinote dev --host 0.0.0.0` and open one of the addresses it prints. For the presenter view and sync over the network too, set `presenter: true` on the deck.
 
 ## 10. Hand it out
 
@@ -179,7 +179,7 @@ bunx hinote build
 
 `dist/index.html` is one HTML file with the audience view only, and the images it uses are copied into `dist/`. Hand out the `dist/` directory as it is. The presenter view and sync are not included.
 
-To put the deck on the web with its presenter view, `bunx hinote prerender` writes it as a static site you can upload to GitHub Pages or any static host.
+`bunx hinote prerender` writes the deck as a static site you can upload to GitHub Pages or any static host. To include the presenter view, set `presenter: true` on the deck; anyone can open it then, notes included.
 
 For a PDF, print the page and choose "Save as PDF". Each slide becomes one page with every step revealed.
 
