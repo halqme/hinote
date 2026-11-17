@@ -7,6 +7,8 @@ import {
 } from "../src/location.ts";
 import {
   createPlayer,
+  isEventMessage,
+  isEventName,
   normalizePointer,
   type Position,
   type Role,
@@ -196,4 +198,14 @@ describe("location", () => {
     expect(parseHash("")).toBeUndefined();
     expect(parseHash("#3.2")).toBeUndefined();
   });
+});
+
+test("author events need a short name; anything else is not an event", () => {
+  expect(isEventName("chart:mode")).toBe(true);
+  expect(isEventName("poll.vote-2")).toBe(true);
+  for (const name of ["", "has space", "<script>", "x".repeat(65), 3])
+    expect(isEventName(name)).toBe(false);
+  expect(isEventMessage({ type: "event", name: "a", data: [1] })).toBe(true);
+  expect(isEventMessage({ type: "event", name: "a b", data: 1 })).toBe(false);
+  expect(isEventMessage({ type: "navigate", slide: 1, step: 0 })).toBe(false);
 });

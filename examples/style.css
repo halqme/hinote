@@ -21,3 +21,25 @@ ol {
   font-size: 3rem;
   line-height: 1.8;
 }
+
+/* The presenter's buttons, rendered by components/results.client.tsx. */
+.chart-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chart-controls button {
+  padding: 0.4em 1em;
+  border: 2px solid var(--hinote-color-accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--hinote-color-fg);
+  font: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.chart-controls button[aria-pressed="true"] {
+  background: var(--hinote-color-accent);
+  color: var(--hinote-color-bg);
+}

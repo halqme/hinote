@@ -1,0 +1,38 @@
+import { fileURLToPath } from "node:url";
+import { cssAsText } from "./css-text.ts";
+import { HinoteError } from "./errors.ts";
+import { bundle, isBun } from "./runtime.ts";
+
+const PLACEHOLDER =
+  /<script type="module" data-hinote-src="([^"]+)"><\/script>/g;
+
+// Replaces each <Script> placeholder with nothing and appends one inline
+// module per file before </body>, after the runtime that defines
+// window.hinote. Module scripts run once the page is parsed, and copies of a
+// slide (the presenter's previews) do not run them again.
+export async function inlineScripts(html: string): Promise<string> {
+  const files = [
+    ...new Set([...html.matchAll(PLACEHOLDER)].map((m) => m[1] ?? "")),
+  ];
+  if (files.length === 0) return html;
+  const modules: string[] = [];
+  for (const href of files) {
+    const path = fileURLToPath(href.replace(/&amp;/g, "&"));
+    let code: string;
+    try {
+      code = await bundle(path, isBun ? [cssAsText] : [], "browser");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new HinoteError(`Could not bundle <Script> ${path}: ${message}`);
+    }
+    // The HTML parser ends a script at "</script".
+    modules.push(
+      `<script type="module">${code.replace(/<\/script/gi, "\\u003c/script")}</script>`,
+    );
+  }
+  const page = html.replace(PLACEHOLDER, "");
+  const end = page.lastIndexOf("</body>");
+  return end < 0
+    ? page + modules.join("")
+    : page.slice(0, end) + modules.join("") + page.slice(end);
+}

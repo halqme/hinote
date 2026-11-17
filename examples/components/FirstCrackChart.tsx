@@ -31,6 +31,7 @@ export async function FirstCrackChart() {
       >
         {log.batches.map((batch) => (
           <div
+            data-roast={batch.mode}
             title={`#${batch.no}: ${batch.firstCrack}s`}
             style={{
               flex: "1",

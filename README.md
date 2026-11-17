@@ -123,6 +123,49 @@ Give several elements the same `at` to reveal them together:
 - The presenter and audience views sync down to the step. The URL holds the slide only, so a reload starts the slide with no step revealed.
 - The presenter's next preview shows the next step. Printing reveals every step. `transition` does not animate steps.
 
+## Scripts in the browser
+
+Slides render on the server. For something that runs in the browser, such as a chart you can click, a poll, or a counter, put the code in its own file and add `<Script>` to the slide:
+
+```tsx
+// slides/results.tsx
+<Script src={new URL("../components/results.client.tsx", import.meta.url)} />
+```
+
+```tsx
+// components/results.client.tsx
+import { render, useState } from "hono/jsx/dom";
+
+hinote.on("chart:mode", (mode) => highlight(mode as string));
+
+if (hinote.role === "presenter") {
+  for (const slot of document.querySelectorAll<HTMLElement>(
+    "#deck .chart-slot",
+  ))
+    render(
+      <Controls onPick={(mode) => hinote.send("chart:mode", mode)} />,
+      slot,
+    );
+}
+```
+
+- `hinote dev`, `hinote build`, and `hinote prerender` bundle the file for the browser, with JSX from `hono/jsx/dom`, and inline it at the end of the page once, however many slides use it. A string `src` is loaded as an ordinary module script; use it with a server of your own and a script you built yourself.
+- The page offers `hinote` (also `window.hinote`) before any script runs:
+
+|                                  |                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `hinote.role`                    | `"presenter"` on the presenter view, `"view"` elsewhere                                                 |
+| `hinote.position`                | `{ slide, step }`, the slide counted from 0                                                             |
+| `hinote.on(name, handler)`       | Calls `handler` for every event with that name; returns a function that stops it                        |
+| `hinote.on("position", handler)` | Fires at once with the current position, then on every slide or step change                             |
+| `hinote.send(name, data)`        | Sends an event to every page of the deck, this one included; `data` must survive JSON and stay a few KB |
+| `hinote.toCanvas(event)`         | A pointer position in canvas pixels of the current slide                                                |
+
+- Events reach other pages only where pages sync: with the presenter on, through the server under `dev`, and between windows of one browser under `prerender`. The built file and a deck without the presenter reach only the page itself.
+- Build state from the position: a reload starts the slide with no step revealed, and a page opened later has not seen earlier events. `hinote.on("position", ...)` is the place to set things up.
+- The slide is a fixed canvas scaled to the window, so turn pointer positions into canvas pixels with `hinote.toCanvas(event)` instead of reading `clientX` directly.
+- The presenter's previews copy the slide's markup. Scope queries with `#deck` to leave them out, or include them, as the example does for its highlight.
+
 ## Running
 
 ```bash

@@ -8,7 +8,26 @@ export type Position = { slide: number; step: number };
 export type SyncMessage =
   | { type: "navigate"; slide: number; step: number }
   | { type: "pointer"; x: number; y: number; active: boolean }
-  | { type: "hello" };
+  | { type: "hello" }
+  // An author's event, sent with hinote.send(name, data).
+  | { type: "event"; name: string; data: unknown };
+
+// Event names are short words: "reveal", "poll:vote".
+export function isEventName(name: unknown): name is string {
+  return typeof name === "string" && /^[\w:.-]{1,64}$/.test(name);
+}
+
+export function isEventMessage(
+  message: unknown,
+): message is { type: "event"; name: string; data: unknown } {
+  const record = message as Record<string, unknown> | null;
+  return (
+    !!record &&
+    typeof record === "object" &&
+    record.type === "event" &&
+    isEventName(record.name)
+  );
+}
 
 export type Player = {
   readonly position: Position;

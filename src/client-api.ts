@@ -1,0 +1,28 @@
+import type { Position, Role } from "./player.ts";
+
+// What a page offers scripts in the browser as `window.hinote`.
+export type HinoteClient = {
+  // "presenter" on the presenter view, "view" everywhere else.
+  readonly role: Role;
+  // The slide (from 0) and how many of its steps are shown.
+  readonly position: Position;
+  // Calls `handler` for every event with this name, from this page or another
+  // one. "position" is hinote's own: it fires at once with the current
+  // position, then on every slide or step change. Returns a function that stops it.
+  on(name: string, handler: (data: unknown) => void): () => void;
+  on(name: "position", handler: (position: Position) => void): () => void;
+  // Sends an event to every page of the deck, this one included. Pages that
+  // do not sync (the built file, or a deck without the presenter) only reach
+  // themselves. `data` must survive JSON and stay small (a few KB).
+  send(name: string, data?: unknown): void;
+  // A pointer position in canvas pixels of the current slide (1080 tall).
+  toCanvas(event: { clientX: number; clientY: number }): {
+    x: number;
+    y: number;
+  };
+};
+
+declare global {
+  // Also window.hinote. Defined before any <Script> runs.
+  var hinote: HinoteClient;
+}

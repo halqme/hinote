@@ -34,6 +34,7 @@ examples/
 | `slides/setup.tsx`                                     | An image next to the deck                                                                                                  |
 | `slides/code.tsx`                                      | `<Code>`                                                                                                                   |
 | `slides/results.tsx`, `components/FirstCrackChart.tsx` | An async component reads `data/roasts.json`, computes the standard deviation, and draws a bar chart                        |
+| `slides/results.tsx`, `components/results.client.tsx`  | A `<Script>` that gives the presenter buttons; `hinote.send` makes every page follow                                       |
 | `slides/thanks.tsx`                                    | A slide with its own theme, transition, and CSS                                                                            |
 
 `FirstCrackChart.tsx` reads its data with `new URL("../data/roasts.json", import.meta.url)`. The path resolves from that file under `hinote dev` and `hinote build` alike.

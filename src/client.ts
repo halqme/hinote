@@ -6,8 +6,11 @@ import {
   servedPath,
   slideHash,
 } from "./location.ts";
+import type { HinoteClient } from "./client-api.ts";
 import {
   createPlayer,
+  isEventMessage,
+  isEventName,
   nextPosition,
   normalizePointer,
   type Position,
@@ -326,6 +329,24 @@ function boot(): void {
   const activeSlide = () =>
     slides.find((slide) => slide.classList.contains("is-active"));
 
+  // Authors' events (window.hinote). Handlers run in order; one that throws
+  // does not stop the others.
+  const listeners = new Map<string, Set<(data: unknown) => void>>();
+  const emit = (name: string, data: unknown) => {
+    for (const handler of listeners.get(name) ?? []) {
+      try {
+        handler(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+  let current: Position = { slide: 0, step: 0 };
+  const track = (position: Position) => {
+    current = position;
+    emit("position", position);
+  };
+
   const player = createPlayer({
     role,
     steps,
@@ -333,7 +354,10 @@ function boot(): void {
       slide: (served ? served.slide : parseHash(location.hash)) ?? 0,
       step: 0,
     },
-    show,
+    show(position) {
+      show(position);
+      track(position);
+    },
     showPointer(pointer) {
       const active = activeSlide();
       if (!pointerEl || !active) return;
@@ -344,7 +368,45 @@ function boot(): void {
     },
     post: (message) => port.post(message),
   });
-  port.listen((message) => player.onMessage(message));
+  port.listen((message) => {
+    if (isEventMessage(message)) emit(message.name, message.data);
+    else player.onMessage(message);
+  });
+
+  const api: HinoteClient = {
+    role,
+    get position() {
+      return current;
+    },
+    on(name: string, handler: (data: never) => void) {
+      const handlers = listeners.get(name) ?? new Set();
+      listeners.set(name, handlers);
+      const call = handler as (data: unknown) => void;
+      handlers.add(call);
+      if (name === "position") call(current);
+      return () => handlers.delete(call);
+    },
+    send(name, data) {
+      if (!isEventName(name) || name === "position")
+        throw new Error(`hinote.send: "${name}" is not an event name.`);
+      emit(name, data);
+      port.post({ type: "event", name, data });
+    },
+    toCanvas(event) {
+      const slide = activeSlide();
+      const rect = slide?.getBoundingClientRect();
+      if (!rect || !stage || rect.width === 0) return { x: 0, y: 0 };
+      return {
+        x:
+          ((event.clientX - rect.left) * Number(stage.dataset.width)) /
+          rect.width,
+        y:
+          ((event.clientY - rect.top) * Number(stage.dataset.height)) /
+          rect.height,
+      };
+    },
+  };
+  globalThis.hinote = api;
 
   if (role === "presenter" && stage) {
     presenter = presenterView(

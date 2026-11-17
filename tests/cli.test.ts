@@ -325,6 +325,51 @@ test("prerender writes every page a static host needs, under a base path", async
   }
 });
 
+test("build bundles each <Script> file once and inlines it after the runtime", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(
+      join(dir, "chart.client.tsx"),
+      `import { render } from "hono/jsx/dom";
+const SIGN = "bundled-" + "client";
+hinote.on("position", () => {});
+for (const el of document.querySelectorAll<HTMLElement>(".slot")) render(<b>{SIGN}</b>, el);`,
+    );
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`import { Script } from ${JSON.stringify(api)}
+const chart = new URL("./chart.client.tsx", import.meta.url)
+export default createSlide([
+  createSlide(() => <div class="slot"><Script src={chart} /></div>),
+  createSlide(() => <div class="slot"><Script src={chart} /></div>),
+])`),
+    );
+    const built = await run(["build", "deck.tsx", "-o", "out/index.html"], dir);
+    expect(built.stderr).toBe("");
+    const html = await readFile(join(dir, "out/index.html"), "utf8");
+    expect(html).not.toContain("data-hinote-src");
+    // One module for the two uses, after the runtime that defines window.hinote.
+    expect(html.match(/<script type="module">/g)).toHaveLength(1);
+    expect(html.indexOf("bundled-")).toBeGreaterThan(
+      html.indexOf("hinote-sync"),
+    );
+    expect(html.indexOf('<script type="module">')).toBeGreaterThan(
+      html.lastIndexOf("<script>"),
+    );
+
+    await writeFile(join(dir, "chart.client.tsx"), "export const = ;");
+    const broken = await run(
+      ["build", "deck.tsx", "-o", "broken/index.html"],
+      dir,
+    );
+    expect(broken.code).toBe(1);
+    expect(broken.stderr).toContain("chart.client.tsx");
+    expect(await Bun.file(join(dir, "broken/index.html")).exists()).toBe(false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("init writes a deck that renders, and never overwrites", async () => {
   const dir = await tempDir();
   try {

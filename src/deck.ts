@@ -111,6 +111,8 @@ export class Deck extends Hono {
   presenter: boolean;
   // Set by `hinote dev`: pages listen for reloads even without the presenter.
   live = false;
+  // Set by `hinote dev` to bundle <Script> files into each page it serves.
+  transform?: (html: string) => Promise<string>;
   readonly #pages = new Map<string, Promise<string>>();
 
   constructor(slides: readonly Slide[], options: ParsedDeckOptions = {}) {
@@ -133,7 +135,10 @@ export class Deck extends Hono {
       const key = `${kind} ${base} ${sync}`;
       let html = this.#pages.get(key);
       if (!html) {
-        html = this.render(kind, { base, sync });
+        const transform = this.transform;
+        html = this.render(kind, { base, sync }).then((page) =>
+          transform ? transform(page) : page,
+        );
         this.#pages.set(key, html);
         html.catch(() => this.#pages.delete(key));
       }

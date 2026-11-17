@@ -34,6 +34,7 @@ examples/
 | `slides/setup.tsx`                                     | デッキの隣に置いた画像                                                                                                               |
 | `slides/code.tsx`                                      | `<Code>`                                                                                                                             |
 | `slides/results.tsx`、`components/FirstCrackChart.tsx` | async コンポーネントが `data/roasts.json` を読み、標準偏差を計算して棒グラフを描く                                                   |
+| `slides/results.tsx`、`components/results.client.tsx`  | 発表者画面にボタンを出す `<Script>`。`hinote.send` で全部のページが追従する                                                          |
 | `slides/thanks.tsx`                                    | その1枚だけのテーマ、transition、CSS                                                                                                 |
 
 `FirstCrackChart.tsx` は、`new URL("../data/roasts.json", import.meta.url)` でデータを読みます。`hinote dev` でも `hinote build` でも、自分のファイルからの相対パスで読めます。

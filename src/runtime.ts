@@ -54,21 +54,27 @@ export async function hasNodePackages(): Promise<boolean> {
   }
 }
 
-// Bundles `entry` and everything it imports into one ES module.
+// Bundles `entry` and everything it imports into one ES module: for the
+// server (a deck, JSX from hono/jsx) or for the browser (a <Script> file,
+// JSX from hono/jsx/dom, minified).
 export async function bundle(
   entry: string,
   plugins: LoadPlugin[],
+  target: "server" | "browser" = "server",
 ): Promise<string> {
+  const browser = target === "browser";
+  const jsxSource = browser ? "hono/jsx/dom" : "hono/jsx";
   if (isBun) {
     const built = await Bun.build({
       entrypoints: [entry],
       format: "esm",
-      target: "bun",
+      target: browser ? "browser" : "bun",
       packages: "bundle",
+      minify: browser,
       plugins: plugins as unknown as import("bun").BunPlugin[],
       jsx: {
         runtime: "automatic",
-        importSource: "hono/jsx",
+        importSource: jsxSource,
         development: false,
       },
     });
@@ -86,12 +92,13 @@ export async function bundle(
       entryPoints: [entry],
       bundle: true,
       format: "esm",
-      platform: "node",
+      platform: browser ? "browser" : "node",
+      minify: browser,
       write: false,
       logLevel: "silent",
       plugins: plugins as unknown as import("esbuild").Plugin[],
       jsx: "automatic",
-      jsxImportSource: "hono/jsx",
+      jsxImportSource: jsxSource,
     });
     const output = result.outputFiles[0];
     if (!output) throw new HinoteError("build produced no output.");

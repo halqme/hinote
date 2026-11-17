@@ -1,6 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { Center, Column, Row, Step, createSlide } from "../src/index.ts";
+import {
+  Center,
+  Column,
+  Row,
+  Script,
+  Step,
+  createSlide,
+} from "../src/index.ts";
 import { HinoteError } from "../src/errors.ts";
 
 function textSlide(text: string) {
@@ -256,6 +263,33 @@ describe("async rendering", () => {
     }
     const slide = createSlide(() => <Broken />);
     await expect(deckOf(slide).render()).rejects.toThrow("no data");
+  });
+});
+
+describe("Script", () => {
+  test("marks a file for the CLI to bundle, or loads a URL as is", async () => {
+    const file = new URL("file:///deck/chart.client.tsx");
+    const html = await deckOf(
+      createSlide(() => (
+        <div>
+          <Script src={file} />
+          <Script src="/js/built.js" />
+        </div>
+      )),
+    ).render();
+    expect(html).toContain(
+      '<script type="module" data-hinote-src="file:///deck/chart.client.tsx"></script>',
+    );
+    expect(html).toContain(
+      '<script type="module" src="/js/built.js"></script>',
+    );
+  });
+
+  test("rejects a URL that is not a file and an empty src", async () => {
+    for (const src of [new URL("https://example.com/x.js"), ""]) {
+      const slide = createSlide(() => <Script src={src} />);
+      await expect(deckOf(slide).render()).rejects.toThrow(HinoteError);
+    }
   });
 });
 

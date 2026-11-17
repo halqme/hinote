@@ -16,6 +16,7 @@ import {
 import type { Deck } from "./deck.ts";
 import { loadDeckFile } from "./load.ts";
 import { hasNodePackages, isBun, serve } from "./runtime.ts";
+import { inlineScripts } from "./scripts.ts";
 import { createDevApp } from "./server.ts";
 import { parseBase, prerender } from "./prerender.ts";
 
@@ -110,6 +111,7 @@ async function devCommand(argv: string[]): Promise<void> {
   // read the notes and drive the slides.
   const prepare = (loaded: Deck) => {
     loaded.live = true;
+    loaded.transform = inlineScripts;
     if (isLoopback(host)) loaded.presenter = true;
     return loaded;
   };
@@ -167,7 +169,7 @@ async function buildCommand(argv: string[]): Promise<void> {
   const deckFile = resolve(args.positionals[0] ?? "deck.tsx");
   const output = resolve(args.output ?? "dist/index.html");
   const deck = await loadDeckFile(deckFile);
-  const html = await deck.render("static");
+  const html = await inlineScripts(await deck.render("static"));
   const outDir = dirname(output);
   await mkdir(dirname(output), { recursive: true });
   const temporary = `${output}.${process.pid}.tmp`;

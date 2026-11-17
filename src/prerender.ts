@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { copyAssets } from "./assets.ts";
 import type { Deck } from "./deck.ts";
 import { HinoteError } from "./errors.ts";
+import { inlineScripts } from "./scripts.ts";
 
 // "/talk" for a deck hosted under /talk/, "" at the root of a host.
 export function parseBase(value: string | undefined): string {
@@ -31,11 +32,13 @@ export async function prerender(
     ? (["view", "presenter"] as const)
     : (["view"] as const);
   for (const page of kinds) {
-    html = await deck.render(page, {
-      base,
-      sync: deck.presenter ? "broadcast" : undefined,
-      directories: true,
-    });
+    html = await inlineScripts(
+      await deck.render(page, {
+        base,
+        sync: deck.presenter ? "broadcast" : undefined,
+        directories: true,
+      }),
+    );
     const prefix = page === "presenter" ? "presenter" : "";
     const paths = [
       prefix,

@@ -133,6 +133,49 @@ export default createSlide({ css: style }, [
 - 発表者画面と視聴画面のあいだでは、ステップの位置まで同期します。URL に入るのはスライド番号だけなので、ページを読み直すと、そのスライドは何も出ていない状態から始まります。
 - 発表者画面の「Next」には次のステップが出た状態が映ります。印刷するときは全ステップを出した状態になります。ステップを出すときには `transition` の動きは付きません。
 
+## ブラウザで動くスクリプト
+
+スライドはサーバーで描画します。クリックできるグラフ、投票、カウンターなど、ブラウザで動かしたいものは、別のファイルに書いてスライドに `<Script>` を置きます。
+
+```tsx
+// slides/results.tsx
+<Script src={new URL("../components/results.client.tsx", import.meta.url)} />
+```
+
+```tsx
+// components/results.client.tsx
+import { render, useState } from "hono/jsx/dom";
+
+hinote.on("chart:mode", (mode) => highlight(mode as string));
+
+if (hinote.role === "presenter") {
+  for (const slot of document.querySelectorAll<HTMLElement>(
+    "#deck .chart-slot",
+  ))
+    render(
+      <Controls onPick={(mode) => hinote.send("chart:mode", mode)} />,
+      slot,
+    );
+}
+```
+
+- `hinote dev`、`hinote build`、`hinote prerender` は、このファイルをブラウザ向けにバンドルし（JSX は `hono/jsx/dom`）、ページの最後に埋め込みます。何枚のスライドで使っても、埋め込むのは1回だけです。`src` に文字列を渡すと、普通のモジュールのスクリプトとして読み込みます。自分のサーバーで、自分でビルドしたスクリプトを使うときの書き方です。
+- ページは、どのスクリプトより先に `hinote`（`window.hinote` でも同じ）を用意します。
+
+|                                  |                                                                                                       |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `hinote.role`                    | 発表者画面では `"presenter"`、それ以外では `"view"`                                                   |
+| `hinote.position`                | `{ slide, step }`。スライドは 0 から数える                                                            |
+| `hinote.on(name, handler)`       | その名前のイベントが届くたびに `handler` を呼ぶ。止めるための関数を返す                               |
+| `hinote.on("position", handler)` | すぐに今の位置で呼ばれ、そのあとはスライドやステップが変わるたびに呼ばれる                            |
+| `hinote.send(name, data)`        | デッキのすべてのページ（このページも含む）にイベントを送る。`data` は JSON にできる、数 KB までのもの |
+| `hinote.toCanvas(event)`         | ポインタの位置を、今のスライドのキャンバスの座標（px）にする                                          |
+
+- ほかのページにイベントが届くのは、ページが同期しているときだけです。発表者画面が有効なときに、`dev` ならサーバーを通して、`prerender` なら同じブラウザのウィンドウ同士で届きます。書き出した HTML と、発表者画面を有効にしていないデッキでは、そのページの中だけに届きます。
+- 状態は位置から作り直してください。読み直すとそのスライドは何も出ていない状態から始まり、後から開いたページはそれまでのイベントを受け取っていません。準備は `hinote.on("position", ...)` の中で行うのが確実です。
+- スライドはウィンドウに合わせて縮小した固定のキャンバスなので、ポインタの位置は `clientX` をそのまま使わず、`hinote.toCanvas(event)` でキャンバスの座標にしてください。
+- 発表者画面のプレビューは、スライドのマークアップをコピーしています。プレビューを除きたいときは `#deck` で範囲を絞ってください。サンプルの強調表示のように、含めたいときはそのままで構いません。
+
 ## 表示する
 
 ```bash
