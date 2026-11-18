@@ -24,6 +24,9 @@ export type SlideOptions = {
   transition?: Transition;
   // CSS for this slide only. It wins over the CSS of the decks around it.
   css?: CssInput;
+  // `false` hides the deck's page number on this slide. `true` does nothing
+  // unless the deck turned page numbers on.
+  pageNumber?: boolean;
 };
 
 export type Slide = {
@@ -44,6 +47,7 @@ const OPTION_KEYS = new Set([
   "theme",
   "transition",
   "css",
+  "pageNumber",
 ]);
 
 export function isSlide(value: unknown): value is Slide {
@@ -90,5 +94,10 @@ export function parseSlideOptions(
     );
   if (value.css !== undefined)
     options.css = parseCss(value.css, 'Slide option "css"');
+  if (value.pageNumber !== undefined) {
+    if (typeof value.pageNumber !== "boolean")
+      throw new HinoteError('Slide option "pageNumber" must be true or false.');
+    options.pageNumber = value.pageNumber;
+  }
   return options;
 }

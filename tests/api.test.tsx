@@ -90,13 +90,39 @@ describe("createSlide", () => {
     expect(sections[2]).not.toContain("#aaaaaa");
   });
 
-  test("only the top-level deck may set title, aspect, or presenter", () => {
+  test("only the top-level deck may set title, aspect, presenter, or pageNumber", () => {
     const inner = createSlide({ aspect: "4:3" }, [textSlide("x")]);
     expect(() => createSlide([inner])).toThrow(HinoteError);
     const titled = createSlide({ title: "t" }, [textSlide("x")]);
     expect(() => createSlide([titled])).toThrow(HinoteError);
     const presenting = createSlide({ presenter: true }, [textSlide("x")]);
     expect(() => createSlide([presenting])).toThrow(HinoteError);
+    const numbered = createSlide({ pageNumber: true }, [textSlide("x")]);
+    expect(() => createSlide([numbered])).toThrow(HinoteError);
+  });
+
+  test("page numbers are the flattened position, and one slide can hide its own", async () => {
+    const deck = createSlide({ pageNumber: true }, [
+      createSlide({ pageNumber: false }, () => <p>title</p>),
+      createSlide([textSlide("b")]),
+      textSlide("c"),
+    ]);
+    const sections = (await deck.render()).split("<section").slice(1);
+    expect(sections[0]).not.toContain("hinote-page");
+    expect(sections[1]).toContain("2 / 3");
+    expect(sections[2]).toContain("3 / 3");
+    const alone = await deck.renderEach();
+    const third = alone[2];
+    expect(third && "html" in third && third.html).toContain("3 / 3");
+    expect(await createSlide([textSlide("x")]).render()).not.toContain(
+      '<p class="hinote-page">',
+    );
+    expect(() =>
+      createSlide({ pageNumber: "yes" } as never, [textSlide("x")]),
+    ).toThrow(HinoteError);
+    expect(() =>
+      createSlide({ pageNumber: "yes" } as never, () => <p>x</p>),
+    ).toThrow(HinoteError);
   });
 
   test("renders an empty deck without inventing a slide", async () => {

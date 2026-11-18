@@ -46,6 +46,7 @@ const SLIDE_CSS = `
 :where(.slide) :is(code,pre){font-family:var(--hinote-font-mono)}
 :where(.slide) pre.highlights{margin:0;padding:1em 1.25em;border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius);background:var(--hinote-color-surface);font-size:var(--hinote-text-code);line-height:1.5;text-align:left;white-space:pre;overflow:hidden}
 :where(.slide) a{color:var(--hinote-color-accent)}
+:where(.slide) .hinote-page{position:absolute;right:calc(var(--hinote-space-unit) * 4);bottom:calc(var(--hinote-space-unit) * 3);margin:0;color:var(--hinote-color-muted);font-size:var(--hinote-text-small);font-variant-numeric:tabular-nums}
 `.trim();
 
 const FRAME_CSS = `
@@ -263,6 +264,10 @@ export async function renderDeck(input: {
   sync?: Sync;
   // Prerendered pages are directories on a static host, so their URLs end in "/".
   directories?: boolean;
+  // Position of each slide in the whole deck, after nested decks are flattened.
+  // Present only when the deck asked for page numbers. Same length as `slides`.
+  pageNumbers?: readonly number[];
+  pageCount?: number;
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
@@ -293,6 +298,11 @@ ${FRAME_CSS}`;
       .filter(Boolean)
       .join(" ");
     const html = numberSteps(await elementHtml(await slide.render()));
+    const pageNumber = input.pageNumbers?.[index];
+    const pageHtml =
+      pageNumber !== undefined && slide.options.pageNumber !== false
+        ? `<p class="hinote-page">${pageNumber} / ${input.pageCount}</p>`
+        : "";
     slides.push(
       jsx("section", {
         class: className,
@@ -303,7 +313,7 @@ ${FRAME_CSS}`;
         "data-transition":
           slide.options.transition ?? input.transition ?? "none",
         style: slideStyle(slide),
-        dangerouslySetInnerHTML: { __html: html },
+        dangerouslySetInnerHTML: { __html: html + pageHtml },
       }),
     );
   }

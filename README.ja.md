@@ -62,7 +62,7 @@ export default createSlide(
 - `createSlide(render)` は1枚です。
 - `createSlide({ notes, title, background, class, theme }, render)` は、ノートや背景を付けた1枚です。
 - `createSlide([slide, deck])` はデッキです。配列の中にあるデッキは、中のスライドを前から順に取り出して1列にします。デッキはそのまま渡します。自分で `map` や `flatMap` してばらさないでください。
-- `createSlide({ title, theme, aspect }, [...])` は設定付きのデッキです。`title` は文書のタイトルです。`aspect` はキャンバスの比率で、`"16:9"`（既定）、`"4:3"`、任意の `"W:H"` を渡せます。`title` と `aspect` は一番外のデッキだけに書けます。入れ子のデッキの `theme` は中のスライドに効き、スライド自身の `theme` がそれより優先します。
+- `createSlide({ title, theme, aspect }, [...])` は設定付きのデッキです。`title` は文書のタイトルです。`aspect` はキャンバスの比率で、`"16:9"`（既定）、`"4:3"`、任意の `"W:H"` を渡せます。`title` と `aspect` と `pageNumber` は一番外のデッキだけに書けます。`pageNumber: true` にすると、フラットにした順番で `3 / 12` のような番号を各スライドに出します。1枚だけ消すときは、そのスライドに `pageNumber: false` と書きます。入れ子のデッキの `theme` は中のスライドに効き、スライド自身の `theme` がそれより優先します。
 
 スライドは、高さ 1080px でデッキの比率のキャンバスに描かれ、キャンバスごとウィンドウに合わせて拡大縮小されます。
 

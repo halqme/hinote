@@ -60,7 +60,7 @@ export default createSlide(
 - `createSlide(render)` is one slide.
 - `createSlide({ notes, title, background, class, theme }, render)` adds options to that slide.
 - `createSlide([slide, deck])` is a deck. A deck inside the array is expanded in order. Pass that deck as it is; do not map or flatMap it into slides yourself.
-- `createSlide({ title, theme, aspect }, [...])` is a deck with options. `title` is the document title. `aspect` is the canvas ratio: `"16:9"` (default), `"4:3"`, or any `"W:H"`. Only the top-level deck can set `title` and `aspect`. A nested deck's `theme` applies to its slides, under each slide's own `theme`.
+- `createSlide({ title, theme, aspect }, [...])` is a deck with options. `title` is the document title. `aspect` is the canvas ratio: `"16:9"` (default), `"4:3"`, or any `"W:H"`. Only the top-level deck can set `title`, `aspect`, and `pageNumber`. `pageNumber: true` paints `3 / 12` on each slide from the flattened order; a slide's `pageNumber: false` hides it on that slide. A nested deck's `theme` applies to its slides, under each slide's own `theme`.
 - Every slide is laid out on a canvas 1080 px tall with the deck's ratio, and the canvas is scaled to fit the window.
 - A render function and the components in it may be `async`, so a slide can read a file or call an API while it renders. The deck renders once per server start (or reload), and `build` waits for every slide.
 - `transition` sets how slides enter: `"none"` (default), `"fade"`, or `"slide"`. Put it on the deck for every slide or on one slide for that slide; a nested deck lends it to its slides. Steps do not animate this way, and nothing animates when the system asks for reduced motion.

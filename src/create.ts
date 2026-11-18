@@ -31,10 +31,11 @@ function nestedSlides(deck: Deck): Slide[] {
   if (
     deck.config.title !== undefined ||
     deck.config.aspect !== undefined ||
-    deck.config.presenter !== undefined
+    deck.config.presenter !== undefined ||
+    deck.config.pageNumber !== undefined
   )
     throw new HinoteError(
-      'Deck options "title", "aspect", and "presenter" can only be set on the top-level deck.',
+      'Deck options "title", "aspect", "presenter", and "pageNumber" can only be set on the top-level deck.',
     );
   const { theme, transition, css } = deck.config;
   if (!theme && !transition && !css) return [...deck.slides];

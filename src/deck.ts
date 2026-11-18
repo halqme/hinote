@@ -27,6 +27,10 @@ export type DeckOptions = {
   // turns them on for itself when it serves localhost. Only the top-level
   // deck may set it.
   presenter?: boolean;
+  // `n / total` on each slide, counted after nested decks are flattened.
+  // Only the top-level deck may set it. A slide can hide its own with
+  // `pageNumber: false`.
+  pageNumber?: boolean;
 };
 
 export type Canvas = { width: number; height: number };
@@ -58,6 +62,7 @@ const OPTION_KEYS = new Set([
   "transition",
   "css",
   "presenter",
+  "pageNumber",
 ]);
 
 type ParsedDeckOptions = Omit<DeckOptions, "css"> & {
@@ -96,6 +101,11 @@ export function parseDeckOptions(
     if (typeof value.presenter !== "boolean")
       throw new HinoteError('Deck option "presenter" must be true or false.');
     options.presenter = value.presenter;
+  }
+  if (value.pageNumber !== undefined) {
+    if (typeof value.pageNumber !== "boolean")
+      throw new HinoteError('Deck option "pageNumber" must be true or false.');
+    options.pageNumber = value.pageNumber;
   }
   return options;
 }
@@ -239,6 +249,11 @@ export class Deck extends Hono {
     page: Page,
     options: { base?: string; sync?: Sync; directories?: boolean },
   ) {
+    // Numbers come from the whole deck, so rendering one slide still says "2 / 12".
+    const pageNumbers =
+      this.config.pageNumber === true
+        ? slides.map((slide) => this.slides.indexOf(slide) + 1)
+        : undefined;
     return renderDeck({
       ...options,
       slides,
@@ -248,6 +263,8 @@ export class Deck extends Hono {
       transition: this.config.transition,
       css: this.config.css,
       page,
+      pageNumbers,
+      pageCount: pageNumbers && this.slides.length,
     });
   }
 }

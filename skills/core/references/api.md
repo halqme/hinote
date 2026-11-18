@@ -22,8 +22,9 @@ Slide options:
 | `theme`      | Theme                             | Tokens for this slide only                                                     |
 | `transition` | `"none"` \| `"fade"` \| `"slide"` | How it enters                                                                  |
 | `css`        | string \| URL \| array            | CSS for this slide only                                                        |
+| `pageNumber` | boolean                           | `false` hides the deck's page number on this slide                             |
 
-Deck options: `title`, `theme`, `transition`, `css`, and, on the top-level deck only, `aspect` (`"16:9"` default, `"4:3"`, or any `"W:H"`) and `presenter` (`true` serves the presenter view and sync outside `hinote dev`). An unknown option is an error.
+Deck options: `title`, `theme`, `transition`, `css`, and, on the top-level deck only, `aspect` (`"16:9"` default, `"4:3"`, or any `"W:H"`), `presenter` (`true` serves the presenter view and sync outside `hinote dev`), and `pageNumber` (`true` paints `n / total` from the flattened order). An unknown option is an error.
 
 ## Components
 
