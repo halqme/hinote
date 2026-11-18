@@ -47,8 +47,8 @@ export const themes = {
     colors: {
       bg: "#f6f1e7",
       fg: "#1c1915",
-      accent: "#b45309",
-      muted: "#6f6458",
+      accent: "#843d07",
+      muted: "#595047",
       surface: "#fffdf8",
       border: "#e3d8c8",
     },
@@ -60,8 +60,8 @@ export const themes = {
     colors: {
       bg: "#f8fafc",
       fg: "#0f172a",
-      accent: "#0369a1",
-      muted: "#64748b",
+      accent: "#035a8b",
+      muted: "#4b5769",
       surface: "#ffffff",
       border: "#e2e8f0",
     },
