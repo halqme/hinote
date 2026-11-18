@@ -74,8 +74,7 @@ export const init: Command = {
     const { files: written, wrotePackage } = await initProject(dir, pm);
     const install = commands.install.join(" ");
     const next = `${commands.hinote} dev`;
-    const guide =
-      "Hands-on: node_modules/hinote/docs/hands-on.md (日本語: hands-on.ja.md)";
+    const guide = "Guide: hinote skills get core";
     const report = (
       installed: boolean,
       steps: string[],

@@ -75,7 +75,29 @@ export default createSlide(async () => {
 
 ## A chart
 
-Draw an SVG on the server from the data (no library needed), or add `<Script>` for one that responds to clicks; `examples/components/results.client.tsx` switches charts from the presenter.
+Draw an SVG on the server from the data (no library needed), or add `<Script>` for one that responds to clicks. The presenter can switch what every page shows with `hinote.send`:
+
+```tsx
+/// <reference types="hinote/client" />
+import { render } from "hono/jsx/dom";
+
+hinote.on("chart:mode", (mode) => {
+  for (const bar of document.querySelectorAll<HTMLElement>("[data-roast]")) {
+    const on = mode === "all" || bar.dataset.roast === mode;
+    bar.style.opacity = on ? "1" : "0.15";
+  }
+});
+
+if (hinote.role === "presenter") {
+  for (const slot of document.querySelectorAll<HTMLElement>("#deck .chart-slot"))
+    render(
+      <button type="button" onClick={() => hinote.send("chart:mode", "manual")}>
+        Manual
+      </button>,
+      slot,
+    );
+}
+```
 
 ## Reveal a figure and its caption together
 

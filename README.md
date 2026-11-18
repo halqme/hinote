@@ -2,7 +2,7 @@
 
 Write slides with Hono and Hono/JSX. A deck is a Hono app: any way of running Hono serves it. `build` writes the audience view as one HTML file.
 
-New to hinote? Start with the [hands-on](docs/hands-on.md). For a deck written like a real talk, see [`examples/`](examples/README.md); for how hinote compares with Slidev, Marp, and hono-decks in install size and speed, see [the comparison](docs/comparison.md).
+New to hinote? Run `hinote init`, then `hinote skills get core` for the loop and references. For how hinote compares with Slidev, Marp, and hono-decks in install size and speed, see [the comparison](bench/README.md).
 
 ## Getting started
 
@@ -22,7 +22,7 @@ npx hinote dev
 
 `init` writes `deck.tsx`, `style.css`, `tsconfig.json` (JSX from `hono/jsx`, and `*.client.tsx` left out of that program), `tsconfig.client.json` (those browser files, JSX from `hono/jsx/dom`), and a `package.json` that depends on `hinote` and `hono`, then installs them with the package manager that started it: `bunx` runs `bun install`, `npx` runs `npm install`, and `pnpm dlx` and `yarn dlx` use pnpm and yarn. Outside Bun it also adds `esbuild` and `@hono/node-server`, which the CLI uses there in place of Bun's bundler and server. It prints the command it runs; `--no-install` skips it, and a failed install keeps the files and says how to try again. It never overwrites a file. In a directory that already has a `package.json`, it leaves that file alone, installs nothing, and prints what to add. Every command afterwards goes through the CLI the same way: `bunx hinote dev`, `npx hinote build`, and so on.
 
-The [hands-on](docs/hands-on.md) walks from here through adding slides, images, steps, code, and a theme to presenting and handing the deck out.
+From here, add slides, images, steps, code, and a theme, then present with `hinote dev` or hand the deck out with `hinote build`. `hinote skills get core` walks the same loop with the references for the API, browser code, serving, and recipes.
 
 ## Slides
 
@@ -161,7 +161,7 @@ if (hinote.role === "presenter") {
 - Events reach other pages only where pages sync: with the presenter on, through the server under `dev`, and between windows of one browser under `prerender`. The built file and a deck without the presenter reach only the page itself.
 - Build state from the position: a reload starts the slide with no step revealed, and a page opened later has not seen earlier events. `hinote.on("position", ...)` is the place to set things up.
 - The slide is a fixed canvas scaled to the window, so turn pointer positions into canvas pixels with `hinote.toCanvas(event)` instead of reading `clientX` directly.
-- The presenter's previews copy the slide's markup. Scope queries with `#deck` to leave them out, or include them, as the example does for its highlight.
+- The presenter's previews copy the slide's markup. Scope queries with `#deck` to leave them out, or include them when every copy should follow.
 
 ## Running
 
@@ -296,7 +296,7 @@ To show the deck farther away, put it behind whatever you already use: a deck is
 
 ## Developing hinote
 
-In this repository, `bun run dev` shows the example in [`examples/`](examples/README.md): a fictional five-minute talk written the way a real one would be.
+To try a change against a real deck, run `bun src/cli.ts init .tmp/talk --no-install` and then `bun src/cli.ts dev .tmp/talk`.
 
 `src/client/main.ts` runs in the browser. Pages inline the generated `src/client/main.generated.ts`, so rendering never needs a bundler. After editing the client, run `bun run build:client`; `bun test` fails while the generated file is stale.
 
