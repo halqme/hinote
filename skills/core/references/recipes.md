@@ -24,19 +24,25 @@ In a JSX attribute string a backslash is literal: write `\frac`, not `\\frac`.
 ```tsx
 createSlide(
   {
-    css: "& { padding: 0; display: grid; grid-template-columns: 40% 1fr; } .text { padding: 64px; }",
+    css: "& { display: grid; grid-template-columns: 40% 1fr; gap: var(--hinote-space-safe); } .photo { margin: calc(-1 * var(--hinote-space-safe)); margin-right: 0; }",
   },
   () => (
     <>
-      <div style="background: url(./photo.jpg) center / cover" />
-      <div class="text">
+      <div
+        class="photo"
+        data-hinote-bleed
+        style="background: url(./photo.jpg) center / cover"
+      />
+      <Column gap={3}>
         <h2>Title</h2>
         <p>Body</p>
-      </div>
+      </Column>
     </>
   ),
 );
 ```
+
+The slide keeps its `spacing.safe` padding, so the title sits where it does on every other slide. The photo pulls out to the edges with a negative margin of the same size, and `data-hinote-bleed` tells `snapshot` the bleed is intended.
 
 ## Two columns
 
