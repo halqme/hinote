@@ -61,7 +61,7 @@ export default createSlide({ notes: "Say why before how." }, () => (
 - Start from a palette instead of writing one: `import { themes } from "hinote"`, then `theme: themes.ink` (dark, also the default), `themes.paper` (warm light), or `themes.slate` (cool light). Use CSS for layout, not for picking a palette.
 - CSS reaches only its own slides. Use `& { ... }` for the slide element itself; `:root`, `html`, and `body` do not match. Inner CSS (slide over nested deck over deck) wins regardless of selectors.
 - Relative paths (`<img src="./images/a.png">`, `url(bg.png)`) resolve from the deck file's directory and must stay inside it. `check` reports `missing-file` otherwise.
-- Browser code goes in its own file, `<Script src={new URL("./x.client.tsx", import.meta.url)} />`, using `hono/jsx/dom` and the global `hinote` (`role`, `position`, `on`, `send`, `toCanvas`). Set up from `hinote.on("position", ...)`; a reload starts with no step revealed.
+- Browser code goes in its own file, `<Script src={new URL("./x.client.tsx", import.meta.url)} />`, using `hono/jsx/dom`. Start that file with `/// <reference types="hinote/client" />` and import `Position` and `Role` from `hinote/client`. `hinote` is not defined while a slide renders. Do not import `hinote/client` from a slide: that types `hinote` for the whole program. Set up from `hinote.on("position", ...)`; a reload starts with no step revealed.
 - Steps: `<Step>` or any element with `data-hinote-step="n"`. Same `at` reveals together.
 - The URL holds only the slide (`/3`, `/presenter/3`). There are no nested paths.
 - Notes appear only in the presenter view.

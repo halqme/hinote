@@ -3,7 +3,6 @@
 // oxlint-disable-next-line typescript/triple-slash-reference
 /// <reference path="./css-module.d.ts" preserve="true" />
 export type { Aspect, Deck, DeckOptions } from "./deck.ts";
-export type { HinoteClient } from "./client-api.ts";
 export { Code } from "./code.tsx";
 export type { CssInput, CssSource } from "./css.ts";
 export type { CodeProps } from "./code.tsx";

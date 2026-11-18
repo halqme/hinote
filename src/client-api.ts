@@ -1,6 +1,11 @@
 import type { Position, Role } from "./player.ts";
 
+export type { Position, Role };
+
 // What a page offers scripts in the browser as `window.hinote`.
+// The global itself is declared in client-global.ts (`hinote/client`).
+// Declaring it here would type `hinote` in every file that imports "hinote",
+// including slide render functions, which run on the server.
 export type HinoteClient = {
   // "presenter" on the presenter view, "view" everywhere else.
   readonly role: Role;
@@ -25,8 +30,3 @@ export type HinoteClient = {
     y: number;
   };
 };
-
-declare global {
-  // Also window.hinote. Defined before any <Script> runs.
-  var hinote: HinoteClient;
-}

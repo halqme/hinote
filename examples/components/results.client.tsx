@@ -1,3 +1,5 @@
+// oxlint-disable-next-line typescript/triple-slash-reference -- types the browser global without importing it into a slide
+/// <reference types="hinote/client" />
 // Runs in the browser, bundled by hinote from <Script> in slides/results.tsx.
 // The presenter picks which roasts to show; every page follows through
 // hinote.send, and a reload starts again from all of them.

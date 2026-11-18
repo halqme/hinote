@@ -17,8 +17,12 @@ export default createSlide(() => (
 
 ```tsx
 // components/poll.client.tsx
+/// <reference types="hinote/client" />
+import type { Position, Role } from "hinote/client";
 import { render } from "hono/jsx/dom";
 
+const role: Role = hinote.role;
+hinote.on("position", (position: Position) => position.slide);
 hinote.on("poll:vote", (choice) => count(choice as string));
 
 for (const slot of document.querySelectorAll<HTMLElement>("#deck .poll"))
@@ -29,6 +33,7 @@ for (const slot of document.querySelectorAll<HTMLElement>("#deck .poll"))
 ```
 
 - The file is bundled for the browser with JSX from `hono/jsx/dom` and inlined once at the end of the page, however many slides use it. `hinote check` reports a file that does not bundle (`script`).
+- `/// <reference types="hinote/client" />` types the global `hinote`. Import `Position` and `Role` from `hinote/client`. Keep that import and the reference in the `*.client.tsx` file. A slide that imports `hinote/client` types `hinote` for every file in the program. `init` excludes `*.client.tsx` from `tsconfig.json` and writes `tsconfig.client.json` for them.
 - The presenter's previews copy the slide's markup; query with `#deck` to skip them.
 
 ## The hinote global

@@ -1,0 +1,11 @@
+{
+  // Browser files only. Extending the deck config would also inherit its
+  // exclude and drop these files; include and exclude here replace that.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsxImportSource": "hono/jsx/dom",
+    "typeRoots": ["./types", "./node_modules/@types"]
+  },
+  "include": ["**/*.client.ts", "**/*.client.tsx"],
+  "exclude": ["node_modules", "bench"]
+}

@@ -133,22 +133,20 @@ Slides render on the server. For something that runs in the browser, such as a c
 
 ```tsx
 // components/results.client.tsx
+/// <reference types="hinote/client" />
+import type { Position, Role } from "hinote/client";
 import { render, useState } from "hono/jsx/dom";
 
 hinote.on("chart:mode", (mode) => highlight(mode as string));
 
 if (hinote.role === "presenter") {
-  for (const slot of document.querySelectorAll<HTMLElement>(
-    "#deck .chart-slot",
-  ))
-    render(
-      <Controls onPick={(mode) => hinote.send("chart:mode", mode)} />,
-      slot,
-    );
+  for (const slot of document.querySelectorAll<HTMLElement>("#deck .chart-slot"))
+    render(<Controls onPick={(mode) => hinote.send("chart:mode", mode)} />, slot);
 }
 ```
 
 - `hinote dev`, `hinote build`, and `hinote prerender` bundle the file for the browser, with JSX from `hono/jsx/dom`, and inline it at the end of the page once, however many slides use it. A string `src` is loaded as an ordinary module script; use it with a server of your own and a script you built yourself.
+- Start the client file with `/// <reference types="hinote/client" />` so `hinote` is typed, and import `Position` and `Role` from `hinote/client`. Do not import that module from a slide. A global from it covers the whole program, so a render function would typecheck and then throw `hinote is not defined` on the server. `init` keeps `*.client.tsx` out of `tsconfig.json` and checks them with `tsconfig.client.json`.
 - The page offers `hinote` (also `window.hinote`) before any script runs:
 
 |                                  |                                                                                                         |
@@ -172,6 +170,7 @@ hinote dev [deck.tsx] [--port 4321] [--host 127.0.0.1]
 hinote build [deck.tsx] [-o dist/index.html]
 hinote prerender [deck.tsx] [-o dist] [--base /path]
 hinote assets [deck.tsx] [-o public]
+hinote snapshot [deck.tsx] [-o shots] [--browser name]
 ```
 
 `hinote` alone lists every command, and `hinote help <command>` (or `--help`) gives one command's options and examples. A deck argument may be the file or its directory.
@@ -191,6 +190,8 @@ Advance with the left, right, up, and down arrows, Page Up, Page Down, Space, En
 The presenter sends the pointer to the audience. Either window can move, and the other follows. A window opened later jumps to the presenter's position. Pages sync through the deck itself (an SSE stream at `/_hinote/events` and POST to `/_hinote/sync`), so pages on other devices that reach the server follow too.
 
 To make a PDF, print any page and choose "Save as PDF". Each slide becomes one page at canvas size with every step revealed.
+
+`snapshot` writes one PNG per slide, at that same canvas size, into `shots/` (or `-o`), then stops. It does not leave a server running, and it does not write the presenter view. `--browser` is `auto` (the default), `agent-browser`, `puppeteer`, `chrome`, or `chrome-for-testing`. `auto` uses the first of those that can launch. `puppeteer` is that package in the project. `chrome` is Google Chrome, Chromium, or Edge, unless `HINOTE_CHROME` names the binary. `chrome-for-testing` is Chrome for Testing, unless `HINOTE_CHROME_FOR_TESTING` names it.
 
 `build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). Images and other files the slides refer to by relative path (`src`, `href`, `srcset`, and `url()` in CSS) are copied next to the HTML file, keeping their paths. Files outside the deck directory, absolute paths, and other sites are left as they are.
 

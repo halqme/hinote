@@ -1,3 +1,6 @@
+// oxlint-disable-next-line typescript/triple-slash-reference -- types the browser global without importing it into a slide
+/// <reference types="hinote/client" />
+import type { Position } from "hinote/client";
 // Conway's Game of Life, run in the browser and bundled by hinote from
 // <Script> in slides/life.tsx.
 //
@@ -67,9 +70,7 @@ function decode(text: string): Board {
   return board;
 }
 
-const canvases = [
-  ...document.querySelectorAll<HTMLCanvasElement>("#deck .life-board"),
-];
+const canvases = [...document.querySelectorAll<HTMLCanvasElement>("#deck .life-board")];
 const slideOf = (el: Element) => el.closest<HTMLElement>(".slide");
 const slides = [...document.querySelectorAll("#deck .slide")];
 
@@ -111,8 +112,7 @@ hinote.on("life:board", (data) => {
 
 function publish() {
   draw(board, generation);
-  if (hinote.sync !== "none")
-    hinote.send("life:board", { cells: encode(board), generation });
+  if (hinote.sync !== "none") hinote.send("life:board", { cells: encode(board), generation });
 }
 
 if (leads) {
@@ -181,10 +181,8 @@ function Controls() {
 
 if (leads) {
   // Leaving the slide stops the board, so it does not run unseen.
-  hinote.on("position", ({ slide }) => {
-    const here = canvases.some(
-      (canvas) => slides.indexOf(slideOf(canvas) as Element) === slide,
-    );
+  hinote.on("position", ({ slide }: Position) => {
+    const here = canvases.some((canvas) => slides.indexOf(slideOf(canvas) as Element) === slide);
     if (!here) stop();
   });
 }

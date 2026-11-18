@@ -14,6 +14,7 @@ const built = await Bun.build({
   entrypoints: [
     `${root}src/index.ts`,
     `${root}src/code-themes.ts`,
+    `${root}src/client-global.ts`,
     `${root}src/cli.ts`,
   ],
   outdir: dist,

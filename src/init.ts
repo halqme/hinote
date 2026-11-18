@@ -49,6 +49,8 @@ h2 {
 }
 `;
 
+// *.client.tsx is browser code. Leaving it in this program would be checked as
+// server JSX, and a reference to hinote/client would type `hinote` into slides.
 const TSCONFIG = `{
   "compilerOptions": {
     "target": "ESNext",
@@ -60,7 +62,18 @@ const TSCONFIG = `{
     "noEmit": true,
     "strict": true,
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["**/*.client.ts", "**/*.client.tsx"]
+}
+`;
+
+const TSCONFIG_CLIENT = `{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsxImportSource": "hono/jsx/dom"
+  },
+  "include": ["**/*.client.ts", "**/*.client.tsx"],
+  "exclude": ["node_modules"]
 }
 `;
 
@@ -150,6 +163,7 @@ export async function initProject(
     ["deck.tsx", DECK],
     ["style.css", STYLE],
     ["tsconfig.json", TSCONFIG],
+    ["tsconfig.client.json", TSCONFIG_CLIENT],
   ];
   const wrotePackage = !existsSync(join(root, "package.json"));
   if (wrotePackage)

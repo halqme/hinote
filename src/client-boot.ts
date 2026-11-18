@@ -460,7 +460,8 @@ export function boot(): void {
       };
     },
   };
-  globalThis.hinote = api;
+  // Not declared here: hinote/client declares the global for client files only.
+  (globalThis as { hinote?: HinoteClient }).hinote = api;
 
   // The laser is drawn only while it is on and the mouse is over the slide.
   let pointing = false;

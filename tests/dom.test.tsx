@@ -4,8 +4,13 @@
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { boot } from "../src/client-boot.ts";
+import type { HinoteClient } from "../src/client-api.ts";
 import { Step, createSlide } from "../src/index.ts";
 import type { Page, Sync } from "../src/render.ts";
+
+// The page defines this. Importing hinote/client would type it for every file
+// in the program, so the test declares it for itself.
+declare const hinote: HinoteClient;
 
 // A BroadcastChannel that records what the page posts and lets a test
 // deliver messages as if another window sent them.
