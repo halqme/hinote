@@ -1,5 +1,6 @@
 import {
   chmod,
+  copyFile,
   mkdtemp,
   mkdir,
   readFile,
@@ -409,9 +410,17 @@ test("init writes a deck that renders, and never overwrites", async () => {
     const project = join(dir, "talk");
     const created = await run(["init", "talk", "--no-install"], dir);
     expect(created.code).toBe(0);
-    // Stand in for `bun install`: link this package and its hono into the project.
+    // Stand in for `bun install`: the package as `prepack` builds it, and its
+    // hono, linked into the project.
+    const built = join(dir, "hinote");
+    const build = Bun.spawnSync(
+      ["bun", "scripts/build-lib.ts", join(built, "dist")],
+      { cwd: repo, stderr: "pipe" },
+    );
+    if (build.exitCode !== 0) throw new Error(build.stderr.toString());
+    await copyFile(join(repo, "package.json"), join(built, "package.json"));
     await mkdir(join(project, "node_modules"));
-    await symlink(repo, join(project, "node_modules/hinote"));
+    await symlink(built, join(project, "node_modules/hinote"));
     await symlink(
       join(repo, "node_modules/hono"),
       join(project, "node_modules/hono"),

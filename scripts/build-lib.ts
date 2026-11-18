@@ -1,5 +1,5 @@
-// Builds dist/: the library as JavaScript with type declarations, for runtimes
-// other than Bun. Bun itself loads src/ through the "bun" export condition.
+// Builds dist/: the library as JavaScript with type declarations. The package
+// ships only dist/, so Bun and Node load the same files.
 //   bun run build:lib
 import { rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";

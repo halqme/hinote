@@ -66,7 +66,6 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
     );
     if (build.exitCode !== 0) throw new Error(build.stderr.toString());
     await cp(join(repo, "package.json"), join(pkg, "package.json"));
-    await cp(join(repo, "src"), join(pkg, "src"), { recursive: true });
     await cp(join(repo, "skills"), join(pkg, "skills"), { recursive: true });
     full = join(dir, "full");
     bare = join(dir, "bare");
