@@ -1,4 +1,5 @@
 import { HinoteError } from "../errors.ts";
+import { isPlainObject } from "../guards.ts";
 
 // Each group holds named tokens. The listed names are the ones hinote's own CSS
 // reads; any other name is allowed and becomes a CSS variable the same way.
@@ -26,7 +27,11 @@ const GROUPS = {
 
 type Group = keyof typeof GROUPS;
 
-const GROUP_NAMES = Object.keys(GROUPS) as Group[];
+function isGroup(key: string): key is Group {
+  return Object.hasOwn(GROUPS, key);
+}
+
+const GROUP_NAMES = Object.keys(GROUPS).filter(isGroup);
 
 // The dark palette. `defaultTheme` uses the same colors, so a deck with no
 // theme matches `themes.ink`.
@@ -100,10 +105,6 @@ export const defaultTheme: Theme = {
 // Token names become part of a CSS variable name.
 const TOKEN_NAME = /^[A-Za-z][A-Za-z0-9-]*$/;
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
 export function cssValue(value: string, label: string): string {
   // Control characters are what this rejects.
   // oxlint-disable-next-line no-control-regex
@@ -126,7 +127,7 @@ export function parseTheme(value: unknown, label = "theme"): Theme {
       theme.radius = cssValue(group, `${label}.radius`);
       continue;
     }
-    if (!Object.hasOwn(GROUPS, key))
+    if (!isGroup(key))
       throw new HinoteError(
         `${label}.${key} is not a theme group. Use ${GROUP_NAMES.join(", ")}, or radius.`,
       );
@@ -142,7 +143,7 @@ export function parseTheme(value: unknown, label = "theme"): Theme {
         throw new HinoteError(`${label}.${key}.${name} must be a string.`);
       tokens[name] = cssValue(token, `${label}.${key}.${name}`);
     }
-    theme[key as Group] = tokens;
+    theme[key] = tokens;
   }
   return theme;
 }

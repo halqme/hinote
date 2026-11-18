@@ -8,11 +8,20 @@ import {
   type StyleLayer,
 } from "./css.ts";
 import { HinoteError } from "../errors.ts";
+import { isPlainObject } from "../guards.ts";
 import { parseTransition, type Transition } from "./transition.ts";
 import { cssValue, parseTheme, type Theme } from "./theme.ts";
 
+// What a render function is told about its own slide, so a shared heading can
+// read the title once instead of repeating it.
+export type SlideContext = {
+  title?: string;
+  // The `section` of each deck around this slide, outermost first.
+  sections: readonly string[];
+};
+
 // A render function may be async, and so may the components it uses.
-export type SlideRender = () => Child | Promise<Child>;
+export type SlideRender = (slide: SlideContext) => Child | Promise<Child>;
 
 export type SlideOptions = {
   notes?: string;
@@ -37,6 +46,8 @@ export type Slide = {
   readonly render: SlideRender;
   // CSS of the nested decks around this slide, outermost first.
   readonly styles?: readonly StyleLayer[];
+  // Sections of the decks around this slide, outermost first.
+  readonly sections?: readonly string[];
 };
 
 const OPTION_KEYS = new Set([
@@ -52,17 +63,14 @@ const OPTION_KEYS = new Set([
 
 export function isSlide(value: unknown): value is Slide {
   return (
-    !!value &&
-    typeof value === "object" &&
-    (value as Slide).kind === "slide" &&
-    typeof (value as Slide).render === "function"
+    isPlainObject(value) &&
+    value.kind === "slide" &&
+    typeof value.render === "function"
   );
 }
 
-export function isPlainObject(
-  value: unknown,
-): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
+export function isRender(value: unknown): value is SlideRender {
+  return typeof value === "function";
 }
 
 export function parseSlideOptions(

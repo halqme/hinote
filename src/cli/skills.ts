@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HinoteError, UsageError } from "../errors.ts";
+import { stringFlag } from "./args.ts";
 import type { Command } from "./command.ts";
 
 // The skills ship in the package, so they always match this version of the
@@ -130,7 +131,7 @@ To install a skill for an agent that reads skill directories, copy the directory
         "hinote skills [list | get <name> | path [name]]",
       );
     const skill = await findSkill(name);
-    const ref = args.flags.ref as string | undefined;
+    const ref = stringFlag(args, "ref");
     if (ref !== undefined) {
       if (!skill.references.includes(ref))
         throw new HinoteError(`${skill.name} has no reference "${ref}".`, {

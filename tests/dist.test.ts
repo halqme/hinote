@@ -115,7 +115,7 @@ console.log(await (await deck.request("/1")).text());`,
 
     const probe = Bun.serve({ port: 0, fetch: () => new Response() });
     const port = probe.port;
-    probe.stop(true);
+    await probe.stop(true);
     const dev = Bun.spawn(
       [node!, "node_modules/hinote/dist/cli.js", "dev", "--port", String(port)],
       { cwd: full, stdout: "pipe", stderr: "pipe" },
@@ -153,6 +153,19 @@ console.log(await (await deck.request("/1")).text());`,
     );
     expect(pkg.devDependencies).toBeUndefined();
   });
+
+  test("the deck init writes typechecks with tsc, CSS import included", async () => {
+    const made = hinote(bare, ["init", "typed", "--no-install"]);
+    expect(made.exitCode).toBe(0);
+    const typed = join(bare, "typed");
+    await symlink(join(bare, "node_modules"), join(typed, "node_modules"));
+    const tsc = Bun.spawnSync(
+      [join(repo, "node_modules/.bin/tsc"), "-p", "tsconfig.json"],
+      { cwd: typed, stdout: "pipe", stderr: "pipe" },
+    );
+    expect(tsc.stdout.toString()).toBe("");
+    expect(tsc.exitCode).toBe(0);
+  }, 30_000);
 
   test("without those packages or Bun, the CLI says what to install", async () => {
     const onlyNode = join(dir, "only-node");

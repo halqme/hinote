@@ -57,6 +57,8 @@ function createHub(): SyncHub {
 const KEY = Symbol.for("hinote.syncHub");
 
 export function syncHub(): SyncHub {
+  // Only this function reads or writes the key.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   const global = globalThis as { [KEY]?: SyncHub };
   return (global[KEY] ??= createHub());
 }

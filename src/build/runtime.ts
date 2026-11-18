@@ -4,6 +4,7 @@
 // runs on Node. The library itself (src/index.ts) needs neither.
 import { readFile } from "node:fs/promises";
 import { HinoteError } from "../errors.ts";
+import { isPlainObject } from "../guards.ts";
 
 export const isBun = typeof Bun !== "undefined";
 
@@ -40,13 +41,12 @@ const NODE_IMPORTS = {
   "@hono/node-server": () => import("@hono/node-server"),
 } satisfies Record<(typeof NODE_PACKAGES)[number], () => Promise<unknown>>;
 
-async function optional<N extends keyof typeof NODE_IMPORTS>(
-  name: N,
-): Promise<Awaited<ReturnType<(typeof NODE_IMPORTS)[N]>>> {
+async function optional<T>(
+  name: keyof typeof NODE_IMPORTS,
+  load: () => Promise<T>,
+): Promise<T> {
   try {
-    return (await NODE_IMPORTS[name]()) as Awaited<
-      ReturnType<(typeof NODE_IMPORTS)[N]>
-    >;
+    return await load();
   } catch {
     throw new HinoteError(
       `hinote needs ${name} to run on Node. Install it with: npm install -D ${NODE_PACKAGES.join(" ")}`,
@@ -82,6 +82,8 @@ export async function bundle(
       target: browser ? "browser" : "bun",
       packages: "bundle",
       minify: browser,
+      // LoadPlugin is the part of a plugin both bundlers share.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       plugins: plugins as unknown as import("bun").BunPlugin[],
       jsx: {
         runtime: "automatic",
@@ -97,7 +99,7 @@ export async function bundle(
     if (!artifact) throw new HinoteError("build produced no output.");
     return artifact.text();
   }
-  const esbuild = await optional("esbuild");
+  const esbuild = await optional("esbuild", NODE_IMPORTS.esbuild);
   try {
     const result = await esbuild.build({
       entryPoints: [entry],
@@ -107,6 +109,7 @@ export async function bundle(
       minify: browser,
       write: false,
       logLevel: "silent",
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       plugins: plugins as unknown as import("esbuild").Plugin[],
       jsx: "automatic",
       jsxImportSource: jsxSource,
@@ -116,10 +119,14 @@ export async function bundle(
     return output.text;
   } catch (error) {
     if (error instanceof HinoteError) throw error;
-    const errors = (error as { errors?: { text: string }[] }).errors;
+    // esbuild throws an error with the build's messages in `errors`.
+    const errors =
+      isPlainObject(error) && Array.isArray(error.errors) ? error.errors : [];
     throw new HinoteError(
-      errors?.map((item) => item.text).join("\n") ||
-        (error instanceof Error ? error.message : String(error)),
+      errors
+        .map((item: unknown) => (isPlainObject(item) ? item.text : undefined))
+        .filter((text) => typeof text === "string")
+        .join("\n") || (error instanceof Error ? error.message : String(error)),
     );
   }
 }
@@ -143,20 +150,21 @@ export async function serve(options: {
         stop: () => server.stop(true),
       };
     } catch (error) {
-      if ((error as { code?: unknown }).code === "EADDRINUSE") throw inUse();
+      if (isPlainObject(error) && error.code === "EADDRINUSE") throw inUse();
       throw error;
     }
   }
-  const { serve: serveNode } = await optional("@hono/node-server");
+  const { serve: serveNode } = await optional(
+    "@hono/node-server",
+    NODE_IMPORTS["@hono/node-server"],
+  );
   return new Promise((resolve, reject) => {
     const server = serveNode(options, (info) => {
       resolve({
         port: info.port,
         stop: () => {
           server.close();
-          (
-            server as { closeAllConnections?: () => void }
-          ).closeAllConnections?.();
+          if ("closeAllConnections" in server) server.closeAllConnections();
         },
       });
     });

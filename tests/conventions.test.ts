@@ -54,6 +54,22 @@ export default createSlide(() => (
   expect(data).toEqual([]);
 });
 
+test("a .map on a later binding is not blamed on a slide with embedded expressions", () => {
+  for (const body of [
+    `<pre>{"B > Z"}</pre>`,
+    `<p class={tone}>text</p>`,
+    "`${title}`",
+  ]) {
+    const problems = problemsInSource(
+      source(`const a = createSlide(() => (${body}));
+const b = [1].map((x) => x);
+export default createSlide([a]);`),
+      "deck.tsx",
+    );
+    expect(problems).toEqual([]);
+  }
+});
+
 test("hinote outside a client file is reported, including a reference that would type it everywhere", () => {
   const used = problemsInSource(
     source(`export default createSlide(() => <p>{hinote.role}</p>);`),

@@ -11,8 +11,8 @@ A deck is a TSX file whose default export is `createSlide([...])`. Slides render
 
 1. Edit the deck (`deck.tsx`, usually with one file per slide under `slides/`).
 2. `hinote check --json`: loads the deck, renders each slide alone, looks for the files slides load, bundles each `<Script>`, and reads the source for `flattened-deck` and `browser-global`. Exit 1 lists problems with a `code`, a `hint`, and the slide numbers when it has them. Fix them before anything else.
-3. `hinote inspect --json`: what each slide holds (title, steps, notes, files). Use it to confirm the deck says what you meant without opening a browser.
-4. Look at it. `hinote snapshot --json` writes one PNG per slide at the canvas size (`shots/1.png`, `shots/2.png`, …). Every `<Step>` is shown (no mid-fade), so the picture is the finished slide. The same result reports layout: `problems` for canvas overflow (`overflow`) and clipped content (`clipped`) — exit 1 — and `warnings` for safe-area crossings (`safe-area`) — exit 0 alone. Each issue has the slide number, `code`, `hint`, and a short selector. Mark intentional bleed with `data-hinote-bleed`. `--browser` picks `agent-browser`, `puppeteer`, `chrome`, or `chrome-for-testing`; the default uses the first of those that is installed. To present, run `hinote dev --json` in the background; its first line is `{"event":"listening","data":{"urls":[{"deck":...,"presenter":...}]}}`. Open `/<n>` for slide n.
+3. `hinote inspect --json`: what each slide holds (title, steps, notes, files). Read only the titles, in order: they should tell the whole story, each as a claim rather than a topic. Use it to confirm the deck says what you meant without opening a browser.
+4. Look at it. `hinote snapshot --json` writes one PNG per slide at the canvas size (`shots/1.png`, `shots/2.png`, …). Every `<Step>` is shown (no mid-fade), so the picture is the finished slide. The same result reports layout: `problems` for canvas overflow (`overflow`) and clipped content (`clipped`) — exit 1 — and `warnings` for safe-area crossings (`safe-area`) — exit 0 alone. Each issue has `slides` (an array of slide numbers), `code`, `hint`, and a short selector. Mark intentional bleed with `data-hinote-bleed`. `--browser` picks `agent-browser`, `puppeteer`, `chrome`, or `chrome-for-testing`; the default uses the first of those that is installed. To present, run `hinote dev --json` in the background; its first line is `{"event":"listening","data":{"urls":[{"deck":...,"presenter":...}]}}`. Open `/<n>` for slide n.
 5. Ship: `hinote build` (one HTML file), `hinote prerender` (a static site), or `hinote assets` beside a server of your own. `hinote check && hinote build` stops on a broken deck.
 
 Every command takes `--json` and `--help`. Errors come as `{"ok":false,"error":{"code","message","hint"}}`; the hint is usually the next command to run. Exit 2 means the command line was wrong: read `hinote help <command>`.
@@ -55,6 +55,17 @@ export default createSlide({ notes: "Say why before how." }, () => (
 - JSX is `hono/jsx`: write `class`, `style` as a string or object, and plain HTML elements. React hooks and event handlers do nothing on a slide.
 - Render functions may be `async` (read a file, fetch data).
 
+## What makes a slide work
+
+A deck that passes `check` and `snapshot` can still say nothing. Before you finish:
+
+- One message per slide, and the title states it as a claim ("Size does not explain it", not "Relation to size").
+- Every number sits next to what it is compared with.
+- One emphasis per slide. Spread a dense slide over time with `<Step>` instead of shrinking it.
+- Lay out with `Row`, `Column`, `Grid`, and `Card` and a numeric `gap`; do not write `px` for spacing.
+
+`--ref design` has the reasons, the sources, and a checklist.
+
 ## Rules that are easy to get wrong
 
 - Import CSS as text: `import style from "./style.css" with { type: "text" }`. Without the attribute hinote refuses it.
@@ -72,7 +83,8 @@ Load one with `hinote skills get core --ref <name>`:
 
 - `api`: every option of `createSlide`, the components (`Step`, `Code`, `Center`, `Row`, `Column`, `Grid`, `Card`, `Script`), themes, and CSS.
 - `client`: `<Script>` and the `hinote` browser API, with sync between presenter and audience.
-- `serving`: build, prerender, and mounting the deck in Bun, Node, or Cloudflare Workers.
+- `serving`: presenting with `dev`, what `build`, `prerender`, and `snapshot` write, mounting the deck in Bun, Node, or Cloudflare Workers, and the one-step commands.
+- `design`: what makes a slide say something, how hinote supports it, and how to check it.
 - `recipes`: formulas, a background image beside text, two columns, charts, and other common slides.
 
 `hinote help <command>` gives the options and examples for each command.

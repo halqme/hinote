@@ -1,6 +1,7 @@
 // Measures one open slide in the browser: canvas overflow, clipped content,
 // and safe-area crossings. Runs as a page expression through CapturePage.evaluate
 // so every browser backend can return the same plain JSON.
+import { isPlainObject } from "../guards.ts";
 import type { CapturePage } from "./browser.ts";
 
 export type LayoutCode = "overflow" | "clipped" | "safe-area";
@@ -48,11 +49,13 @@ export async function measureSlide(
   page: CapturePage,
   index: number,
 ): Promise<LayoutReport> {
-  const report = await page.evaluate<LayoutReport>(measureExpression(index));
-  return {
-    problems: report.problems ?? [],
-    warnings: report.warnings ?? [],
-  };
+  // The report comes from measureExpression below, so only its lists are checked.
+  const report = await page.evaluate(measureExpression(index));
+  const list = (value: unknown): LayoutIssue[] =>
+    Array.isArray(value) ? value : [];
+  return isPlainObject(report)
+    ? { problems: list(report.problems), warnings: list(report.warnings) }
+    : { problems: [], warnings: [] };
 }
 
 // Built as a string so agent-browser, puppeteer, and CDP each run the same code.
@@ -123,7 +126,7 @@ function measureExpression(index: number): string {
           code: "safe-area",
           message: \`\${id.selector} crosses the safe area on the \${cross.edge} by \${cross.by}px.\`,
           slides: [number],
-          hint: "Keep content inside spacing.safe from each edge, or set data-hinote-bleed.",
+          hint: "Keep content inside spacing.safe from each edge, or set data-hinote-bleed. If deck CSS changes the slide padding, set the theme's spacing.safe to match it.",
           ...id,
         });
       }

@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 import { cssAsText } from "./css-text.ts";
 import type { Deck } from "../deck/deck.ts";
 import { HinoteError } from "../errors.ts";
+import { isPlainObject } from "../guards.ts";
 import {
   bundle,
   isBun,
@@ -83,11 +84,9 @@ export async function loadDeckFile(file: string): Promise<Deck> {
   const outfile = join(dir, "deck.mjs");
   try {
     await writeFile(outfile, code);
-    const loaded = (await import(pathToFileURL(outfile).href)) as Record<
-      string,
-      unknown
-    >;
-    if (!isDeck(loaded.default))
+    const loaded: unknown = await import(pathToFileURL(outfile).href);
+    const deck = isPlainObject(loaded) ? loaded.default : undefined;
+    if (!isDeck(deck))
       throw new HinoteError(
         `Could not load ${absolute}: the default export must be createSlide([...]).`,
         {
@@ -95,7 +94,7 @@ export async function loadDeckFile(file: string): Promise<Deck> {
           hint: "End deck.tsx with: export default createSlide([...])",
         },
       );
-    return loaded.default;
+    return deck;
   } catch (error) {
     if (error instanceof HinoteError) throw error;
     const message = error instanceof Error ? error.message : String(error);

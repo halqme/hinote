@@ -14,7 +14,12 @@ export type {
 } from "./components/layout.tsx";
 export { createSlide } from "./deck/create.ts";
 export type { SlideInput } from "./deck/create.ts";
-export type { Slide, SlideOptions, SlideRender } from "./deck/slide.ts";
+export type {
+  Slide,
+  SlideContext,
+  SlideOptions,
+  SlideRender,
+} from "./deck/slide.ts";
 export { Script } from "./components/script.tsx";
 export type { ScriptProps } from "./components/script.tsx";
 export { Step } from "./components/step.tsx";

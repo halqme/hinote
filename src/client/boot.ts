@@ -38,15 +38,21 @@ function broadcastPort(base: string): Port {
   };
 }
 
+function isReload(message: unknown): boolean {
+  return (
+    typeof message === "object" &&
+    message !== null &&
+    "type" in message &&
+    message.type === "reload"
+  );
+}
+
 // Under `hinote dev` without the presenter, a page only listens for reloads.
 function reloadPort(base: string): Port {
   const query = new URLSearchParams({ id: crypto.randomUUID(), channel: base });
   const events = new EventSource(`${base}/_hinote/events?${query}`);
   events.onmessage = (event) => {
-    if (
-      (JSON.parse(event.data) as { type?: unknown } | null)?.type === "reload"
-    )
-      location.reload();
+    if (isReload(JSON.parse(event.data))) location.reload();
   };
   return NO_PORT;
 }
@@ -72,8 +78,7 @@ function serverPort(base: string): Port {
     listen: (handler) => {
       events.onmessage = (event) => {
         const message: unknown = JSON.parse(event.data);
-        if ((message as { type?: unknown } | null)?.type === "reload")
-          location.reload();
+        if (isReload(message)) location.reload();
         else handler(message);
       };
     },
@@ -82,8 +87,8 @@ function serverPort(base: string): Port {
 
 function stepCount(slide: Element): number {
   let count = 0;
-  for (const el of slide.querySelectorAll("[data-hinote-step]")) {
-    count = Math.max(count, Number((el as HTMLElement).dataset.hinoteStep));
+  for (const el of slide.querySelectorAll<HTMLElement>("[data-hinote-step]")) {
+    count = Math.max(count, Number(el.dataset.hinoteStep));
   }
   return count;
 }
@@ -97,7 +102,8 @@ function revealSteps(slide: ParentNode, revealed: number): void {
 
 // A copy of a slide scaled into `box`, which keeps the canvas ratio in CSS.
 function fillThumb(box: HTMLElement, slide: HTMLElement, revealed: number) {
-  const copy = slide.cloneNode(true) as HTMLElement;
+  const copy = slide.cloneNode(true);
+  if (!(copy instanceof HTMLElement)) return;
   revealSteps(copy, revealed);
   box.replaceChildren(copy);
 }
@@ -149,11 +155,11 @@ function presenterView(
   steps: readonly number[],
   canvasWidth: number,
   actions: {
-    go(position: Position): void;
-    next(): void;
-    prev(): void;
+    go: (position: Position) => void;
+    next: () => void;
+    prev: () => void;
     // Called when the laser is turned off, to hide it on every page.
-    laserOff(): void;
+    laserOff: () => void;
   },
 ): PresenterView {
   const { go } = actions;
@@ -164,7 +170,8 @@ function presenterView(
 
   const sizes = new ResizeObserver((entries) => {
     for (const entry of entries) {
-      const box = entry.target as HTMLElement;
+      const box = entry.target;
+      if (!(box instanceof HTMLElement)) continue;
       box.style.setProperty(
         "--hinote-scale",
         String(box.clientWidth / canvasWidth),
@@ -435,6 +442,9 @@ export function boot(): void {
     on(name: string, handler: (data: never) => void) {
       const handlers = listeners.get(name) ?? new Set();
       listeners.set(name, handlers);
+      // The overloads in api.ts pair each name with its data, and emit only
+      // calls a "position" handler with a Position.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       const call = handler as (data: unknown) => void;
       handlers.add(call);
       if (name === "position") call(current);
@@ -461,7 +471,7 @@ export function boot(): void {
     },
   };
   // Not declared here: hinote/client declares the global for client files only.
-  (globalThis as { hinote?: HinoteClient }).hinote = api;
+  Reflect.set(globalThis, "hinote", api);
 
   // The laser is drawn only while it is on and the mouse is over the slide.
   let pointing = false;

@@ -26,9 +26,9 @@ export function overview(
 ): string {
   const width =
     Math.max(...commands.map((c) => `${c.name} ${c.args}`.length)) + 2;
-  const sections = (Object.keys(GROUPS) as Group[]).map((group) =>
+  const sections = Object.entries(GROUPS).map(([group, label]) =>
     [
-      GROUPS[group],
+      label,
       ...commands
         .filter((c) => c.group === group)
         .map((c) => `  ${`${c.name} ${c.args}`.padEnd(width)}${c.summary}`),

@@ -3,8 +3,9 @@
 import { Deck, parseDeckOptions, type DeckOptions } from "./deck.ts";
 import type { StyleLayer } from "./css.ts";
 import { HinoteError } from "../errors.ts";
+import { isPlainObject } from "../guards.ts";
 import {
-  isPlainObject,
+  isRender,
   isSlide,
   parseSlideOptions,
   type Slide,
@@ -18,11 +19,10 @@ export type SlideInput = Slide | Deck;
 // Duck-typed because `hinote dev` loads the deck with its own bundled copy of hinote.
 export function isDeck(value: unknown): value is Deck {
   return (
-    !!value &&
-    typeof value === "object" &&
-    (value as Deck).kind === "deck" &&
-    Array.isArray((value as Deck).slides) &&
-    typeof (value as Deck).fetch === "function"
+    isPlainObject(value) &&
+    value.kind === "deck" &&
+    Array.isArray(value.slides) &&
+    typeof value.fetch === "function"
   );
 }
 
@@ -49,6 +49,14 @@ function nestedSlides(deck: Deck): Slide[] {
   });
 }
 
+function inSection(slides: Slide[], section: string | undefined): Slide[] {
+  if (section === undefined) return slides;
+  return slides.map((slide) => ({
+    ...slide,
+    sections: [section, ...(slide.sections ?? [])],
+  }));
+}
+
 function flatten(nodes: readonly unknown[]): Slide[] {
   const slides: Slide[] = [];
   for (const node of nodes) {
@@ -72,8 +80,8 @@ export function createSlide(
   nodes: readonly SlideInput[],
 ): Deck;
 export function createSlide(first?: unknown, second?: unknown): Slide | Deck {
-  if (typeof first === "function" && second === undefined) {
-    return { kind: "slide", options: {}, render: first as SlideRender };
+  if (isRender(first) && second === undefined) {
+    return { kind: "slide", options: {}, render: first };
   }
   if (Array.isArray(first) && second === undefined) {
     return new Deck(flatten(first));
@@ -84,18 +92,19 @@ export function createSlide(first?: unknown, second?: unknown): Slide | Deck {
     !isDeck(first) &&
     Array.isArray(second)
   ) {
-    return new Deck(flatten(second), parseDeckOptions(first));
+    const options = parseDeckOptions(first);
+    return new Deck(inSection(flatten(second), options.section), options);
   }
   if (
     isPlainObject(first) &&
     !isSlide(first) &&
     !isDeck(first) &&
-    typeof second === "function"
+    isRender(second)
   ) {
     return {
       kind: "slide",
       options: parseSlideOptions(first),
-      render: second as SlideRender,
+      render: second,
     };
   }
   throw new HinoteError(

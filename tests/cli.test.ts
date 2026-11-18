@@ -102,7 +102,7 @@ test("CSS imported as text reaches the page, under hinote and in a server of you
   const dir = await tempDir();
   const probe = Bun.serve({ port: 0, fetch: () => new Response() });
   const port = probe.port;
-  probe.stop(true);
+  await probe.stop(true);
   try {
     await writeFile(join(dir, "style.css"), "h1 { color: teal; }");
     await writeFile(join(dir, "logo.svg"), "<svg/>");
@@ -114,7 +114,7 @@ export default createSlide({ css: style }, [createSlide(() => <div><h1>x</h1><im
     const html = await (await loadDeckFile(join(dir, "deck.tsx"))).render();
     expect(html).toContain("h1 { color: teal; }");
 
-    // The README's Bun server: the deck mounted next to what hinote assets copied.
+    // The Bun server in skills/core/references/serving.md: the deck mounted next to what hinote assets copied.
     expect((await run(["assets", "deck.tsx", "-o", "public"], dir)).code).toBe(
       0,
     );
@@ -478,7 +478,7 @@ test("dev explains a port that is already in use", async () => {
     expect(result.code).toBe(1);
     expect(result.stderr).toContain(`Port ${busy.port} is in use`);
   } finally {
-    busy.stop(true);
+    await busy.stop(true);
     await rm(dir, { recursive: true, force: true });
   }
 });
@@ -488,7 +488,7 @@ test("dev on the network keeps the presenter off unless the deck turns it on", a
   const start = async (deck: string) => {
     const probe = Bun.serve({ port: 0, fetch: () => new Response() });
     const port = probe.port;
-    probe.stop(true);
+    await probe.stop(true);
     await writeFile(join(dir, "deck.tsx"), deckSource(deck));
     const proc = Bun.spawn(
       [
@@ -549,6 +549,66 @@ async function fakePackageManager(dir: string, name: string, code: number) {
     npm_config_user_agent: `${name}/1.0.0 node/v26.0.0`,
   };
 }
+
+test("init --diff reports what differs from this version's init and changes nothing", async () => {
+  const dir = await tempDir();
+  try {
+    const project = join(dir, "talk");
+    await run(["init", "talk", "--no-install"], dir);
+    const same = await run(["init", "--diff", "talk", "--json"], dir);
+    expect(same.code).toBe(0);
+    const clean = JSON.parse(same.stdout).data;
+    expect(clean.packages).toEqual([]);
+    expect(clean.files.map((file: { status: string }) => file.status)).toEqual([
+      "same",
+      "same",
+    ]);
+
+    const tsconfig = join(project, "tsconfig.json");
+    const edited = (await readFile(tsconfig, "utf8")).replace(
+      '"strict": true,',
+      '"strict": false,',
+    );
+    await writeFile(tsconfig, edited);
+    await rm(join(project, "tsconfig.client.json"));
+    const pkg = JSON.parse(
+      await readFile(join(project, "package.json"), "utf8"),
+    );
+    pkg.dependencies.hinote = "^0.0.1";
+    await writeFile(join(project, "package.json"), JSON.stringify(pkg));
+    const deck = await readFile(join(project, "deck.tsx"), "utf8");
+    await writeFile(join(project, "deck.tsx"), `${deck}// mine\n`);
+
+    const diff = await run(["init", "--diff", "talk", "--json"], dir);
+    expect(diff.code).toBe(0);
+    const report = JSON.parse(diff.stdout).data;
+    expect(report.files).toEqual([
+      {
+        file: "tsconfig.json",
+        status: "differs",
+        lines: expect.arrayContaining([
+          '-    "strict": false,',
+          '+    "strict": true,',
+        ]),
+      },
+      { file: "tsconfig.client.json", status: "missing" },
+    ]);
+    expect(report.packages).toEqual([
+      expect.objectContaining({ name: "hinote", have: "^0.0.1" }),
+    ]);
+    // It reports and writes nothing.
+    expect(await readFile(tsconfig, "utf8")).toBe(edited);
+    expect(await Bun.file(join(project, "tsconfig.client.json")).exists()).toBe(
+      false,
+    );
+
+    const refused = await run(["init", "talk", "--no-install"], dir);
+    expect(refused.code).toBe(1);
+    expect(refused.stderr).toContain("hinote init --diff");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 
 test("init installs with the package manager that started it", async () => {
   const dir = await tempDir();
@@ -877,7 +937,7 @@ test(
       fetch: () => new Response("busy"),
     });
     const port = server.port;
-    server.stop(true);
+    await server.stop(true);
     const deck = join(root, "deck.tsx");
     await writeFile(
       deck,
