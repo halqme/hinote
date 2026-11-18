@@ -42,8 +42,8 @@ Deck options: `title`, `section` (a name its slides receive in `sections`), `the
 
 ## Components
 
-- `<Step as="li" at={2} class="x">` reveals on a key press. Without `at`, steps count 1, 2, 3 in document order. Hidden steps keep their space.
-- `<Code lang="ts">{`...`}</Code>` or `<Code lang="ts" code={source} theme={githubLight} />` highlights on the server; the JSX indentation is removed. Size from `typography.code`.
+- `<Step as="li" at={2} class="x">` reveals on a key press. Without `at`, steps count 1, 2, 3 in document order, also inside async components. Hidden steps keep their space (`opacity: 0`, `visibility: hidden`) and fade in over 0.2 s. `→` reveals the next step, then moves on; `←` hides them in reverse, and from the first step lands on the previous slide with every step shown. Printing and `snapshot` show every step; `transition` does not animate steps, and nothing animates under reduced motion.
+- `<Code lang="ts">{`...`}</Code>` or `<Code lang="ts" code={source} theme={githubLight} />` highlights on the server with `@pierre/highlights`, colors inline, so the page runs no highlighter; the JSX indentation is removed. Themes come from `hinote/code-themes`; the default is Pierre's dark theme. Size from `typography.code`. The highlighter is WebAssembly, loaded on the first `<Code>`, so a deck without code runs on hosts that refuse WebAssembly.
 - `<Center>`, `<Row>`, `<Column>` take `gap` (a number is multiples of `spacing.unit`, or a CSS length), `align`, and `justify`. Props become `--hinote-gap` / `--hinote-align` / `--hinote-justify`; the flex rules sit on `.hinote-row` / `.hinote-column` / `.hinote-center` in `@layer hinote`, so deck or slide CSS can override them without `!important`.
 - `<Grid columns={2} gap={3}>` sets the column track count (`--hinote-grid-columns`) and gap. `<Card span={2}>` is one cell: each child is a row (`.hinote-card-cell`). Cards use `grid-template-rows: subgrid` so a band of cards shares heading/body row heights. Chrome for `.hinote-grid` / `.hinote-card` lives in `@layer hinote` (surface, border, radius, cell padding from spacing tokens); deck CSS can restyle without `!important`.
 - `<Script src={new URL("./x.client.tsx", import.meta.url)} />` bundles a file for the browser (see `--ref client`).
@@ -75,4 +75,6 @@ Each token becomes a CSS variable: `colors.bg` is `--hinote-color-bg`, `typograp
 - `css` takes text (usually `import style from "./style.css" with { type: "text" }`), a file URL (`new URL("./style.css", import.meta.url)`, needs a file system), or an array of them.
 - Selectors are scoped to the slides it belongs to; `&` is the slide's `<section>`.
 - Layers: hinote defaults < deck < nested deck < slide, regardless of specificity.
-- `@import` is refused; pass several files in an array.
+- `@import` is refused; pass several files in an array. `@keyframes`, `@font-face`, and similar rules work anywhere in the file.
+- Without `with { type: "text" }` the import is an object, which hinote refuses with a hint. The CLI, Bun, esbuild, and Wrangler all read the attribute.
+- `url()` resolves from the deck file's directory. Deck CSS never reaches the presenter panel.

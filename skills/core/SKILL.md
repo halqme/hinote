@@ -72,7 +72,7 @@ Load one with `hinote skills get core --ref <name>`:
 
 - `api`: every option of `createSlide`, the components (`Step`, `Code`, `Center`, `Row`, `Column`, `Grid`, `Card`, `Script`), themes, and CSS.
 - `client`: `<Script>` and the `hinote` browser API, with sync between presenter and audience.
-- `serving`: build, prerender, and mounting the deck in Bun, Node, or Cloudflare Workers.
+- `serving`: presenting with `dev`, what `build`, `prerender`, and `snapshot` write, mounting the deck in Bun, Node, or Cloudflare Workers, and the one-step commands.
 - `recipes`: formulas, a background image beside text, two columns, charts, and other common slides.
 
 `hinote help <command>` gives the options and examples for each command.

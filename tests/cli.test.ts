@@ -114,7 +114,7 @@ export default createSlide({ css: style }, [createSlide(() => <div><h1>x</h1><im
     const html = await (await loadDeckFile(join(dir, "deck.tsx"))).render();
     expect(html).toContain("h1 { color: teal; }");
 
-    // The README's Bun server: the deck mounted next to what hinote assets copied.
+    // The Bun server in skills/core/references/serving.md: the deck mounted next to what hinote assets copied.
     expect((await run(["assets", "deck.tsx", "-o", "public"], dir)).code).toBe(
       0,
     );
