@@ -140,8 +140,13 @@ import { render, useState } from "hono/jsx/dom";
 hinote.on("chart:mode", (mode) => highlight(mode as string));
 
 if (hinote.role === "presenter") {
-  for (const slot of document.querySelectorAll<HTMLElement>("#deck .chart-slot"))
-    render(<Controls onPick={(mode) => hinote.send("chart:mode", mode)} />, slot);
+  for (const slot of document.querySelectorAll<HTMLElement>(
+    "#deck .chart-slot",
+  ))
+    render(
+      <Controls onPick={(mode) => hinote.send("chart:mode", mode)} />,
+      slot,
+    );
 }
 ```
 

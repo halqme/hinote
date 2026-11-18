@@ -89,7 +89,9 @@ hinote.on("chart:mode", (mode) => {
 });
 
 if (hinote.role === "presenter") {
-  for (const slot of document.querySelectorAll<HTMLElement>("#deck .chart-slot"))
+  for (const slot of document.querySelectorAll<HTMLElement>(
+    "#deck .chart-slot",
+  ))
     render(
       <button type="button" onClick={() => hinote.send("chart:mode", "manual")}>
         Manual
