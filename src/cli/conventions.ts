@@ -118,6 +118,8 @@ function tokenize(source: string): Tok[] {
   };
   // `nested` reads one `{...}` expression and stops after its closing brace.
   // The top-level read must not: a `}` there is just the end of a block.
+  // The caller consumed the opening brace without a token, so the closing one
+  // gets none either; the scans below rely on balanced brackets.
   const code = (nested: boolean) => {
     let depth = nested ? 1 : 0;
     while (i < source.length) {
@@ -177,13 +179,14 @@ function tokenize(source: string): Tok[] {
         bump(2);
         continue;
       }
+      if (nested && c === "}" && depth === 1) {
+        bump(1);
+        return;
+      }
       out.push({ k: "punct", v: c, line });
       bump(1);
       if (c === "{") depth++;
-      else if (c === "}") {
-        depth--;
-        if (nested && depth === 0) return;
-      }
+      else if (c === "}") depth--;
     }
   };
   // `<` opens a tag only where an expression could start, not after a value.
