@@ -687,6 +687,78 @@ export default createSlide([
   }
 });
 
+test("check warns on weak theme contrast and keeps exit 0", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`export default createSlide([
+  createSlide(() => <h1>ink</h1>),
+])`),
+    );
+    const ink = await run(["check", "--json"], dir);
+    expect(ink.code).toBe(0);
+    const inkBody = JSON.parse(ink.stdout);
+    expect(inkBody.ok).toBe(true);
+    expect(inkBody.data.problems).toEqual([]);
+    expect(inkBody.data.warnings).toEqual([]);
+
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`import { themes } from ${JSON.stringify(api)}
+export default createSlide({
+  theme: {
+    ...themes.paper,
+    colors: { ...themes.paper.colors, accent: "#b45309" },
+  },
+}, [
+  createSlide(() => <h1>paper</h1>),
+  createSlide(() => <p>two</p>),
+])`),
+    );
+    const weak = await run(["check", "--json"], dir);
+    expect(weak.code).toBe(0);
+    const weakBody = JSON.parse(weak.stdout);
+    expect(weakBody.ok).toBe(true);
+    expect(weakBody.data.problems).toEqual([]);
+    expect(weakBody.data.warnings.length).toBeGreaterThan(0);
+    expect(weakBody.data.warnings[0]).toMatchObject({
+      code: "contrast",
+      slides: [1, 2],
+      message: expect.stringContaining("4.46:1"),
+      hint: expect.stringContaining("colors.accent"),
+    });
+
+    const weakText = await run(["check"], dir);
+    expect(weakText.code).toBe(0);
+    expect(weakText.stdout).toContain("warning contrast:");
+    expect(weakText.stdout).toMatch(/\d+ warnings?/);
+
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`export default createSlide({
+  theme: {
+    colors: {
+      fg: "var(--fg)",
+      muted: "color-mix(in srgb, black, white)",
+      accent: "hsl(10 80% 40%)",
+      bg: "#ffffff",
+      surface: "rgb(255 255 255 / 0.5)",
+    },
+  },
+}, [createSlide(() => <h1>skip</h1>)])`),
+    );
+    const skip = await run(["check", "--json"], dir);
+    expect(skip.code).toBe(0);
+    const skipBody = JSON.parse(skip.stdout);
+    expect(skipBody.ok).toBe(true);
+    expect(skipBody.data.problems).toEqual([]);
+    expect(skipBody.data.warnings).toEqual([]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("inspect reports each slide's title, steps, notes, and files", async () => {
   const dir = await tempDir();
   try {

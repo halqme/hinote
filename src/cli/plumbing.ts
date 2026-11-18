@@ -5,6 +5,10 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { decode, referencedPaths } from "../build/assets.ts";
+import {
+  contrastWarningsForTheme,
+  type ContrastWarning,
+} from "../deck/contrast.ts";
 import type { Deck } from "../deck/deck.ts";
 import { conventionProblems } from "./conventions.ts";
 import { HinoteError, UsageError } from "../errors.ts";
@@ -12,6 +16,7 @@ import { deckPath, loadDeckFile } from "../build/load.ts";
 import type { Page } from "../deck/render.ts";
 import { inlineScripts } from "../build/scripts.ts";
 import { resolveInside } from "../build/server.ts";
+import { defaultTheme, mergeTheme } from "../deck/theme.ts";
 import type { Command } from "./command.ts";
 
 export const DECK_ARG = "[deck.tsx]";
@@ -261,6 +266,24 @@ type Problem = {
   hint?: string;
 };
 
+// Effective colors after default → deck → slide (nested decks already merged
+// into each slide's theme). Group identical failures across slides.
+function themeContrastWarnings(deck: Deck): ContrastWarning[] {
+  const base = mergeTheme(defaultTheme, deck.config.theme);
+  const groups = new Map<string, ContrastWarning>();
+  for (let i = 0; i < deck.slides.length; i++) {
+    const theme = mergeTheme(base, deck.slides[i]!.options.theme);
+    const number = i + 1;
+    for (const warning of contrastWarningsForTheme(theme)) {
+      const key = `${warning.message}\0${warning.hint}`;
+      const existing = groups.get(key);
+      if (existing) existing.slides.push(number);
+      else groups.set(key, { ...warning, slides: [number] });
+    }
+  }
+  return [...groups.values()];
+}
+
 export const check: Command = {
   name: "check",
   group: "plumbing",
@@ -276,6 +299,11 @@ export const check: Command = {
   flattened-deck                           A deck was mapped or flattened into slides
   browser-global                           hinote was used outside a *.client.tsx file
 
+Theme colors are also checked: fg, muted, and accent against bg and surface must
+reach 7:1 when the values are #rgb, #rrggbb, or rgb(). Shortfalls are warnings
+(code contrast), not problems — warnings alone keep exit 0. var() and color-mix()
+are skipped.
+
 Exits 1 when there is a problem, so it can gate a build: hinote check && hinote build`,
   flags: {},
   examples: [
@@ -287,6 +315,7 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
   async run(args, out) {
     const file = deckPath(args.positionals[0]);
     const problems: Problem[] = [];
+    const warnings: ContrastWarning[] = [];
     let count = 0;
     try {
       const deck = await loadDeckFile(file);
@@ -320,6 +349,7 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
           if (!(error instanceof HinoteError)) throw error;
           problems.push({ code: "script", message: error.message });
         });
+      for (const warning of themeContrastWarnings(deck)) warnings.push(warning);
     } catch (error) {
       if (!(error instanceof HinoteError)) throw error;
       problems.push({
@@ -333,19 +363,28 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
     if (existsSync(file))
       for (const problem of conventionProblems(file)) problems.push(problem);
     const ok = problems.length === 0;
-    out.result(
-      { file, slides: count, problems },
-      ok
+    const lines = ok
+      ? warnings.length === 0
         ? `ok: ${count} slides, no problems`
         : [
-            ...problems.flatMap((p) => [
-              `${p.slides ? `slide ${p.slides.join(", ")}: ` : ""}${p.code}: ${p.message}`,
-              ...(p.hint ? [`  hint: ${p.hint}`] : []),
+            ...warnings.flatMap((w) => [
+              `slide ${w.slides.join(", ")}: warning ${w.code}: ${w.message}`,
+              ...(w.hint ? [`  hint: ${w.hint}`] : []),
             ]),
-            `${problems.length} problem${problems.length > 1 ? "s" : ""}`,
-          ],
-      ok,
-    );
+            `${warnings.length} warning${warnings.length > 1 ? "s" : ""}`,
+          ]
+      : [
+          ...problems.flatMap((p) => [
+            `${p.slides ? `slide ${p.slides.join(", ")}: ` : ""}${p.code}: ${p.message}`,
+            ...(p.hint ? [`  hint: ${p.hint}`] : []),
+          ]),
+          ...warnings.flatMap((w) => [
+            `slide ${w.slides.join(", ")}: warning ${w.code}: ${w.message}`,
+            ...(w.hint ? [`  hint: ${w.hint}`] : []),
+          ]),
+          `${problems.length} problem${problems.length > 1 ? "s" : ""}`,
+        ];
+    out.result({ file, slides: count, problems, warnings }, lines, ok);
     return ok ? 0 : 1;
   },
 };
