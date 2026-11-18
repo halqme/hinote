@@ -33,7 +33,7 @@ for (const slot of document.querySelectorAll<HTMLElement>("#deck .poll"))
 ```
 
 - The file is bundled for the browser with JSX from `hono/jsx/dom` and inlined once at the end of the page, however many slides use it. `hinote check` reports a file that does not bundle (`script`).
-- `/// <reference types="hinote/client" />` types the global `hinote`. Import `Position` and `Role` from `hinote/client`. Keep that import and the reference in the `*.client.tsx` file. A slide that imports `hinote/client` types `hinote` for every file in the program. `init` excludes `*.client.tsx` from `tsconfig.json` and writes `tsconfig.client.json` for them.
+- `/// <reference types="hinote/client" />` types the global `hinote`. Import `Position` and `Role` from `hinote/client`. Keep that import and the reference in the `*.client.tsx` file. A slide that imports `hinote/client` types `hinote` for every file in the program, and `hinote check` reports both that import and any `hinote.` outside a client file as `browser-global`. `init` excludes `*.client.tsx` from `tsconfig.json` and writes `tsconfig.client.json` for them.
 - The presenter's previews copy the slide's markup; query with `#deck` to skip them.
 
 ## The hinote global

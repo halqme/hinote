@@ -1,10 +1,12 @@
 // The steps the everyday commands are made of. Each does one thing, reads a
 // deck or HTML, and writes text or HTML that the next step can take, so an
 // agent can run them one at a time to see where something goes wrong.
+import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { decode, referencedPaths } from "../assets.ts";
 import type { Deck } from "../deck.ts";
+import { conventionProblems } from "../conventions.ts";
 import { HinoteError, UsageError } from "../errors.ts";
 import { deckPath, loadDeckFile } from "../load.ts";
 import type { Page } from "../render.ts";
@@ -265,12 +267,14 @@ export const check: Command = {
   summary: "Render every slide and report what is broken",
   args: DECK_ARG,
   maxArgs: 1,
-  description: `Loads the deck, renders each slide by itself, looks for the files the slides refer to, and bundles every <Script>. Each problem names its slides and has a code:
+  description: `Loads the deck, renders each slide by itself, looks for the files the slides refer to, bundles every <Script>, and reads the source for two rules a render cannot see. Each problem names its slides when it can, and has a code:
 
   deck-not-found, deck-load, deck-export   The deck file could not be loaded
   render                                   A slide threw while rendering
   missing-file                             A slide loads a file that is not there
   script                                   A <Script> file did not bundle
+  flattened-deck                           A deck was mapped or flattened into slides
+  browser-global                           hinote was used outside a *.client.tsx file
 
 Exits 1 when there is a problem, so it can gate a build: hinote check && hinote build`,
   flags: {},
@@ -294,6 +298,9 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
             code: "render",
             message: slide.error,
             slides: [slide.number],
+            hint: slide.error.includes("hinote is not defined")
+              ? "hinote exists only in the browser. Use it from a *.client.tsx file. See: hinote skills get core --ref client"
+              : undefined,
           });
       const users = new Map<string, number[]>();
       for (const slide of slides)
@@ -321,6 +328,10 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
         hint: error.hint,
       });
     }
+    // Read the source even when the deck failed to load: flattening a deck is
+    // often why the array is rejected, and that hint is the one to follow.
+    if (existsSync(file))
+      for (const problem of conventionProblems(file)) problems.push(problem);
     const ok = problems.length === 0;
     out.result(
       { file, slides: count, problems },

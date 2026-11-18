@@ -201,13 +201,13 @@ To make a PDF, print any page and choose "Save as PDF". Each slide becomes one p
 
 Each command above is a few smaller commands in a row, in the way of Git's plumbing. They run on their own, so a script or an agent can do one step and look at the result:
 
-| Command                                                 | What it does                                                                                                                                                       |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `hinote check [deck]`                                   | Renders each slide alone, looks for the files slides load, and bundles each `<Script>`; lists every problem with its slide and a code, and exits 1 if there is one |
-| `hinote inspect [deck]`                                 | Each slide's title, steps, notes, and the files it loads                                                                                                           |
-| `hinote refs [deck]`                                    | The files the slides refer to, and whether each is there                                                                                                           |
-| `hinote render [deck] [--page view\|presenter\|static]` | One page's HTML, with `<Script>` left as placeholders                                                                                                              |
-| `hinote inline [page.html]`                             | Bundles the `<Script>` files of a page from a file or stdin                                                                                                        |
+| Command                                                 | What it does                                                                                                                                                                                                                                   |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hinote check [deck]`                                   | Renders each slide alone, looks for the files slides load, bundles each `<Script>`, and reports a deck flattened into slides or `hinote` used outside a client file; lists every problem with its code and a hint, and exits 1 if there is one |
+| `hinote inspect [deck]`                                 | Each slide's title, steps, notes, and the files it loads                                                                                                                                                                                       |
+| `hinote refs [deck]`                                    | The files the slides refer to, and whether each is there                                                                                                                                                                                       |
+| `hinote render [deck] [--page view\|presenter\|static]` | One page's HTML, with `<Script>` left as placeholders                                                                                                                                                                                          |
+| `hinote inline [page.html]`                             | Bundles the `<Script>` files of a page from a file or stdin                                                                                                                                                                                    |
 
 `hinote build` is `hinote render | hinote inline` followed by `hinote assets`, and `hinote check && hinote build` stops on a broken deck.
 
@@ -300,6 +300,6 @@ In this repository, `bun run dev` shows the example in [`examples/`](examples/RE
 
 `src/client.ts` runs in the browser. Pages inline the generated `src/client.generated.ts`, so rendering never needs a bundler. After editing the client, run `bun run build:client`; `bun test` fails while the generated file is stale.
 
-`bun run build:lib` writes `dist/`: the library and the CLI (`dist/cli.js`, the package's `bin`) as JavaScript, with type declarations. `prepack` runs it before packing. Bun loads `src/` directly through the `bun` export condition. `bun test` also builds `dist/` and runs it under Node when Node is installed.
+`bun run build:lib` writes `dist/`: the library and the CLI (`dist/cli.js`, the package's `bin`) as JavaScript, with type declarations. `prepack` runs it before packing. The package ships `dist/` and not `src/`, so Bun and Node load the same JavaScript. `bun test` also builds `dist/` and runs it under Node when Node is installed.
 
 Before committing, run `bun test`, `bun run typecheck`, and `bun run lint`. `lint` runs [oxlint](https://oxc.rs/docs/guide/usage/linter) with the rules in `.oxlintrc.json` (each rule turned off there says why) and [oxdg](https://www.npmjs.com/package/oxdg), which fails on a circular import between modules in `src/`. `createSlide` lives in `src/create.ts` for that reason: it builds decks, and a deck renders slides.
