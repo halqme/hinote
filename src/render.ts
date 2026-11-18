@@ -71,7 +71,9 @@ html[data-transition="slide"][data-direction="back"]::view-transition-new(hinote
 html[data-page="presenter"] body{display:grid;grid-template-columns:minmax(0,1fr) minmax(18rem,30vw);background:#111318;color:#f4f4f5;font:16px/1.6 system-ui,sans-serif}
 html[data-page="presenter"] #deck{position:relative;inset:auto;min-width:0;min-height:0;padding:1.25rem;background:#0b0d12}
 html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45)}
-#hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;padding:1.25rem;overflow:auto;background:#181b22;border-left:1px solid #2c313c}
+#hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;padding:1.25rem;overflow:hidden;background:#181b22;border-left:1px solid #2c313c}
+#hinote-next{flex:none}
+#hinote-notes{white-space:pre-wrap;flex:1;min-height:0;overflow:auto}
 .hinote-label{margin:0;color:#a1a1aa;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 #hinote-next[data-end]::after{content:"End";position:absolute;inset:0;display:grid;place-items:center;color:#71717a;background:#0b0d12}
 #hinote-meta{display:flex;align-items:baseline;justify-content:space-between;gap:1rem}
@@ -82,7 +84,7 @@ html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45
 #hinote-toolbar button[aria-pressed="true"]{border-color:#ff2d2d;color:#ff8a8a}
 #hinote-timer{all:unset;cursor:pointer;font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
 #hinote-step,#hinote-clock{margin:0;color:#a1a1aa;font-size:13px;font-variant-numeric:tabular-nums}
-#hinote-notes{white-space:pre-wrap;flex:1}
+
 #hinote-overview{display:none;position:fixed;inset:0;z-index:20;overflow:auto;padding:2rem;background:rgb(10 12 16 / .96);grid-template-columns:repeat(auto-fill,minmax(16rem,1fr));gap:1.25rem;align-content:start}
 #hinote-overview.is-open{display:grid}
 .hinote-overview-item{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:.4rem;color:#d4d4d8;font:13px system-ui,sans-serif}
