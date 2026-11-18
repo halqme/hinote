@@ -3,6 +3,13 @@
   "version": "0.3.0",
   "private": false,
   "description": "Local slide tool using Hono and Hono/JSX",
+  "keywords": [
+    "bun",
+    "hono",
+    "jsx",
+    "presentation",
+    "slides"
+  ],
   "license": "MIT",
   "author": "HALQME",
   "bin": {
@@ -24,12 +31,6 @@
       "types": "./dist/code-themes.d.ts",
       "bun": "./src/code-themes.ts",
       "default": "./dist/code-themes.js"
-    }
-  },
-  "devEngines": {
-    "runtime": {
-      "name": "bun",
-      "version": ">=1.4.4"
     }
   },
   "scripts": {
@@ -56,23 +57,22 @@
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
-    "hono": "^4.13.19",
+    "@hono/node-server": "^2.1.9",
     "esbuild": "^0.28.2",
-    "@hono/node-server": "^2.1.9"
+    "hono": "^4.13.19"
   },
-  "keywords": [
-    "slides",
-    "presentation",
-    "hono",
-    "jsx",
-    "bun"
-  ],
   "peerDependenciesMeta": {
     "esbuild": {
       "optional": true
     },
     "@hono/node-server": {
       "optional": true
+    }
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "bun",
+      "version": ">=1.4.4"
     }
   }
 }
