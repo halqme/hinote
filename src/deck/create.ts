@@ -49,6 +49,14 @@ function nestedSlides(deck: Deck): Slide[] {
   });
 }
 
+function inSection(slides: Slide[], section: string | undefined): Slide[] {
+  if (section === undefined) return slides;
+  return slides.map((slide) => ({
+    ...slide,
+    sections: [section, ...(slide.sections ?? [])],
+  }));
+}
+
 function flatten(nodes: readonly unknown[]): Slide[] {
   const slides: Slide[] = [];
   for (const node of nodes) {
@@ -84,7 +92,8 @@ export function createSlide(first?: unknown, second?: unknown): Slide | Deck {
     !isDeck(first) &&
     Array.isArray(second)
   ) {
-    return new Deck(flatten(second), parseDeckOptions(first));
+    const options = parseDeckOptions(first);
+    return new Deck(inSection(flatten(second), options.section), options);
   }
   if (
     isPlainObject(first) &&

@@ -307,7 +307,14 @@ ${FRAME_CSS}`;
     ]
       .filter(Boolean)
       .join(" ");
-    const html = numberSteps(await elementHtml(await slide.render()));
+    const html = numberSteps(
+      await elementHtml(
+        await slide.render({
+          title: slide.options.title,
+          sections: slide.sections ?? [],
+        }),
+      ),
+    );
     const pageNumber = input.pageNumbers?.[index];
     const pageHtml =
       pageNumber !== undefined && slide.options.pageNumber !== false

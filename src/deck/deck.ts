@@ -14,6 +14,9 @@ export type Aspect = "16:9" | "4:3" | `${number}:${number}`;
 export type DeckOptions = {
   // Document title. Defaults to the first slide title.
   title?: string;
+  // A name for this deck's part of the talk. Each slide's render function
+  // receives it in `sections`.
+  section?: string;
   theme?: Theme;
   // Canvas ratio, "16:9" by default. Only the top-level deck may set it.
   aspect?: Aspect;
@@ -63,6 +66,7 @@ const OPTION_KEYS = new Set([
   "css",
   "presenter",
   "pageNumber",
+  "section",
 ]);
 
 type ParsedDeckOptions = Omit<DeckOptions, "css"> & {
@@ -87,6 +91,11 @@ export function parseDeckOptions(
       throw new HinoteError('Deck option "aspect" must be a string.');
     parseAspect(value.aspect);
     options.aspect = value.aspect as Aspect;
+  }
+  if (value.section !== undefined) {
+    if (typeof value.section !== "string")
+      throw new HinoteError('Deck option "section" must be a string.');
+    options.section = value.section;
   }
   if (value.theme !== undefined)
     options.theme = parseTheme(value.theme, "deck theme");

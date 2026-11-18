@@ -24,7 +24,21 @@ Slide options:
 | `css`        | string \| URL \| array            | CSS for this slide only                                                        |
 | `pageNumber` | boolean                           | `false` hides the deck's page number on this slide                             |
 
-Deck options: `title`, `theme`, `transition`, `css`, and, on the top-level deck only, `aspect` (`"16:9"` default, `"4:3"`, or any `"W:H"`), `presenter` (`true` serves the presenter view and sync outside `hinote dev`), and `pageNumber` (`true` paints `n / total` from the flattened order). An unknown option is an error.
+The render function receives `{ title, sections }`: its own `title`, and the `section` of each deck around it, outermost first. A shared heading can read them instead of repeating the title in the options and the body:
+
+```tsx
+const Heading = ({ title, sections }: SlideContext) => (
+  <h2>{[...sections, title].join("　")}</h2>
+);
+const results = createSlide({ title: "結果" }, (slide) => (
+  <Column>
+    <Heading {...slide} />
+  </Column>
+));
+export default createSlide({ section: "実験1-1" }, [results]);
+```
+
+Deck options: `title`, `section` (a name its slides receive in `sections`), `theme`, `transition`, `css`, and, on the top-level deck only, `aspect` (`"16:9"` default, `"4:3"`, or any `"W:H"`), `presenter` (`true` serves the presenter view and sync outside `hinote dev`), and `pageNumber` (`true` paints `n / total` from the flattened order). An unknown option is an error.
 
 ## Components
 

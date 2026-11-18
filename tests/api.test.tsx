@@ -92,6 +92,26 @@ describe("createSlide", () => {
     expect(sections[2]).not.toContain("#aaaaaa");
   });
 
+  test("a render function receives its slide title and the sections around it", async () => {
+    const heading = createSlide({ title: "Results" }, ({ title, sections }) => (
+      <h2>{[...sections, title].join(" / ")}</h2>
+    ));
+    const deck = createSlide({ section: "Talk" }, [
+      createSlide({ section: "Experiment 1" }, [
+        createSlide({ section: "1-1" }, [heading]),
+      ]),
+      createSlide(({ title, sections }) => (
+        <p>{`${title ?? "untitled"} in ${sections.length}`}</p>
+      )),
+    ]);
+    const sections = (await deck.render()).split("<section").slice(1);
+    expect(sections[0]).toContain(
+      "<h2>Talk / Experiment 1 / 1-1 / Results</h2>",
+    );
+    expect(sections[1]).toContain("<p>untitled in 1</p>");
+    expect(() => createSlide({ section: 1 } as never, [])).toThrow(HinoteError);
+  });
+
   test("only the top-level deck may set title, aspect, presenter, or pageNumber", () => {
     const inner = createSlide({ aspect: "4:3" }, [textSlide("x")]);
     expect(() => createSlide([inner])).toThrow(HinoteError);
