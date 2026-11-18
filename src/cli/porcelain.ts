@@ -10,6 +10,7 @@ import type { Deck } from "../deck/deck.ts";
 import { HinoteError, UsageError } from "../errors.ts";
 import {
   COMMANDS,
+  diffProject,
   initProject,
   NODE_DEV_PACKAGES,
   packageManager,
@@ -20,8 +21,8 @@ import { parseBase, prerender as prerenderDeck } from "../build/prerender.ts";
 import { serve } from "../build/runtime.ts";
 import { inlineScripts } from "../build/scripts.ts";
 import { createDevApp } from "../build/server.ts";
-import type { Command } from "./command.ts";
 import { numberFlag, stringFlag } from "./args.ts";
+import type { Command } from "./command.ts";
 import { DECK_ARG, OUTPUT_FLAG, writeOutput } from "./plumbing.ts";
 
 const files = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
@@ -56,21 +57,50 @@ export const init: Command = {
   summary: "Create a deck project and install it",
   args: "[dir]",
   maxArgs: 1,
-  description: `Writes deck.tsx, style.css, tsconfig.json, and package.json into the directory (the current one by default), then installs with the package manager that ran hinote: bunx runs bun install, npx runs npm install. It never overwrites a file. Where a package.json already exists it is left alone, nothing is installed, and the packages to add are printed.`,
+  description: `Writes deck.tsx, style.css, tsconfig.json, and package.json into the directory (the current one by default), then installs with the package manager that ran hinote: bunx runs bun install, npx runs npm install. It never overwrites a file. Where a package.json already exists it is left alone, nothing is installed, and the packages to add are printed.
+
+--diff writes nothing. It compares an existing project with what this version of init writes: tsconfig.json and tsconfig.client.json line by line, and the package ranges in package.json. deck.tsx and style.css are yours, so it leaves them out. Take what you want from the report by hand.`,
   flags: {
     install: {
       type: "boolean",
       description: "Install the packages. --no-install only writes the files.",
       default: "true",
     },
+    diff: {
+      type: "boolean",
+      description:
+        "Compare an existing project with what this version writes, and change nothing.",
+    },
   },
   examples: [
     "bunx hinote init my-talk",
     "npx hinote init my-talk --no-install",
+    "bunx hinote init --diff",
   ],
   async run(args, out) {
     const dir = args.positionals[0] ?? ".";
     const pm = packageManager();
+    if (args.flags.diff === true) {
+      const diff = await diffProject(dir, pm);
+      const text: string[] = [];
+      for (const file of diff.files) {
+        if (file.status === "same") continue;
+        text.push(
+          file.status === "missing"
+            ? `${file.file}: missing`
+            : `${file.file}: differs\n--- ${file.file}\n+++ hinote init ${diff.version}\n${file.lines?.join("\n") ?? ""}`,
+        );
+      }
+      for (const pkg of diff.packages)
+        text.push(
+          `package.json: ${pkg.name} ${pkg.have ?? "(missing)"} -> ${pkg.want}`,
+        );
+      out.result(
+        diff,
+        text.length > 0 ? text : `Matches hinote init ${diff.version}.`,
+      );
+      return;
+    }
     const commands = COMMANDS[pm];
     const { files: written, wrotePackage } = await initProject(dir, pm);
     const install = commands.install.join(" ");
