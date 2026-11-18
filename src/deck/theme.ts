@@ -34,7 +34,8 @@ const inkColors = {
   bg: "#0f1115",
   fg: "#f4f4f5",
   accent: "#7dd3fc",
-  muted: "#a1a1aa",
+  // Lightened so muted×surface stays ≥7:1 (G-40 AAA). Was #a1a1aa at ~6.72.
+  muted: "#a5a5ae",
   surface: "#181b22",
   border: "#2c313c",
 };
