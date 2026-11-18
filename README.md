@@ -1,7 +1,5 @@
 # hinote
 
-[日本語](README.ja.md)
-
 Write slides with Hono and Hono/JSX. A deck is a Hono app: any way of running Hono serves it. `build` writes the audience view as one HTML file.
 
 New to hinote? Start with the [hands-on](docs/hands-on.md). For a deck written like a real talk, see [`examples/`](examples/README.md); for how hinote compares with Slidev, Marp, and hono-decks in install size and speed, see [the comparison](docs/comparison.md).

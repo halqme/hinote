@@ -8,7 +8,7 @@ hono-decks has a somewhat different aim: it adds MDX decks to an existing Hono a
 
 ## Results
 
-Measured on 2026-11-18. hinote was measured twice, run by Bun and run by Node; on Node it has esbuild and `@hono/node-server` added. hinote's numbers include KaTeX, added for the formula.
+hinote was measured twice, run by Bun and run by Node; on Node it has esbuild and `@hono/node-server` added. hinote's numbers include KaTeX, added for the formula.
 
 |                                                          | hinote 0.1.0 (Bun) | hinote 0.1.0 (Node) | hono-decks 2.2.0 |       Slidev 53.1.0 | Marp CLI 4.5.1 |
 | -------------------------------------------------------- | -----------------: | ------------------: | ---------------: | ------------------: | -------------: |
@@ -61,8 +61,6 @@ The build outputs do not contain the same things:
 - **hono-decks:** `compile` writes TypeScript modules for a Hono app, not something to hand out, so no size is given. The host that serves it, Wrangler or Vite, is not counted in its packages or size either.
 - **Slidev:** A static site, a single-page app built on Vue. It includes the presenter view and its other features.
 - **Marp:** One HTML file that also includes a presenter view.
-
-Part of hinote's lightness comes from doing less. Keep that in mind when reading the numbers above.
 
 ## Features
 

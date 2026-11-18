@@ -11,9 +11,7 @@
   "files": [
     "src",
     "dist",
-    "docs",
-    "skills",
-    "README.ja.md"
+    "skills"
   ],
   "type": "module",
   "exports": {
