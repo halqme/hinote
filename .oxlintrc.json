@@ -17,5 +17,17 @@
     // Each channel and event source has one handler, set once.
     "unicorn/prefer-add-event-listener": "off"
   },
+  "overrides": [
+    {
+      "files": ["tests/**"],
+      "rules": {
+        // Tests pass values the types reject, to check the runtime errors.
+        "typescript/no-unsafe-type-assertion": "off",
+        // bun-types declare expect().rejects matchers as void, but they
+        // return a promise that has to be awaited.
+        "typescript/await-thenable": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["dist", "bench", "src/client/main.generated.ts"]
 }

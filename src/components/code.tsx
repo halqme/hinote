@@ -47,7 +47,7 @@ export async function Code(props: CodeProps) {
   const { codeToHtml, isSupportedLanguage } = await highlighter;
   if (!isSupportedLanguage(props.lang))
     throw new HinoteError(
-      `<Code lang="${props.lang}"> is not a supported language.`,
+      `<Code lang="${String(props.lang)}"> is not a supported language.`,
     );
   // The result is a view into WebAssembly memory that the next call reuses, so decode it now.
   const html = new TextDecoder().decode(

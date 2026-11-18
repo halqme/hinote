@@ -63,7 +63,7 @@ test("an unknown browser is a usage error", async () => {
 });
 
 test("a browser that is not installed names itself", async () => {
-  const installed = await installedBrowsers();
+  const installed = installedBrowsers();
   if (installed.includes("puppeteer")) return;
   const dir = await tempDir();
   try {

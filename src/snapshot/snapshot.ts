@@ -86,7 +86,7 @@ async function photograph(
   await page.goto(`http://127.0.0.1:${port}/${index + 1}`);
   const expression = ready(index, canvas);
   await poll(
-    () => page.evaluate<boolean>(expression),
+    async () => (await page.evaluate(expression)) === true,
     () =>
       new HinoteError(`Slide ${index + 1} was not ready to photograph.`, {
         code: "browser",
@@ -96,7 +96,7 @@ async function photograph(
   // Every step must be visible with no fade: the picture and the layout report
   // both use the finished slide, not the empty first frame.
   await poll(
-    () => page.evaluate<boolean>(revealAllExpression(index)),
+    async () => (await page.evaluate(revealAllExpression(index))) === true,
     () =>
       new HinoteError(`Slide ${index + 1} did not reveal every step.`, {
         code: "browser",

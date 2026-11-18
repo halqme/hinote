@@ -56,7 +56,7 @@ export type Client = HinoteClient;
 `,
     );
     const server = tsc(dir, "tsconfig.json");
-    const serverText = `${server.stdout}${server.stderr}`;
+    const serverText = `${server.stdout.toString()}${server.stderr.toString()}`;
     expect(server.exitCode).not.toBe(0);
     expect(serverText).toContain("HinoteClient");
     expect(serverText).toMatch(

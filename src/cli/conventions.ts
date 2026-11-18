@@ -273,9 +273,11 @@ function callContainsSlide(
 function forbiddenFlat(tokens: Tok[], dot: number): string | undefined {
   const name = tokens[dot + 1];
   const open = tokens[dot + 2];
-  if (name?.k !== "id" || !FLAT.has(name.v) || open?.v !== "(") return;
+  if (name?.k !== "id" || !FLAT.has(name.v) || open?.v !== "(")
+    return undefined;
   const close = matching(tokens, dot + 2, "(", ")");
-  if (name.v !== "flat" && callContainsSlide(tokens, dot + 2, close)) return;
+  if (name.v !== "flat" && callContainsSlide(tokens, dot + 2, close))
+    return undefined;
   return name.v;
 }
 
@@ -494,7 +496,7 @@ function resolveImport(
   spec: string,
   root: string,
 ): string | undefined {
-  if (!spec.startsWith(".")) return;
+  if (!spec.startsWith(".")) return undefined;
   const base = resolve(dirname(fromFile), spec);
   const candidates = [
     base,
@@ -510,7 +512,7 @@ function resolveImport(
     if (!existsSync(candidate) || !statSync(candidate).isFile()) continue;
     return candidate;
   }
-  return;
+  return undefined;
 }
 
 const IMPORT_FROM =

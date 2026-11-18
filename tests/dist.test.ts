@@ -115,7 +115,7 @@ console.log(await (await deck.request("/1")).text());`,
 
     const probe = Bun.serve({ port: 0, fetch: () => new Response() });
     const port = probe.port;
-    probe.stop(true);
+    await probe.stop(true);
     const dev = Bun.spawn(
       [node!, "node_modules/hinote/dist/cli.js", "dev", "--port", String(port)],
       { cwd: full, stdout: "pipe", stderr: "pipe" },

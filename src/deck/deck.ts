@@ -44,8 +44,14 @@ const PING_MS = 5000;
 // Sync messages are small JSON objects; anything larger is not from a hinote page.
 const MAX_MESSAGE_BYTES = 4096;
 
+const ASPECT = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/;
+
+function isAspect(value: string): value is Aspect {
+  return ASPECT.test(value);
+}
+
 export function parseAspect(aspect: string): Canvas {
-  const match = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(aspect);
+  const match = ASPECT.exec(aspect);
   const width = Number(match?.[1]);
   const height = Number(match?.[2]);
   if (!match || !(width > 0) || !(height > 0))
@@ -60,13 +66,13 @@ export function parseAspect(aspect: string): Canvas {
 
 const OPTION_KEYS = new Set([
   "title",
+  "section",
   "theme",
   "aspect",
   "transition",
   "css",
   "presenter",
   "pageNumber",
-  "section",
 ]);
 
 type ParsedDeckOptions = Omit<DeckOptions, "css"> & {
@@ -86,16 +92,16 @@ export function parseDeckOptions(
       throw new HinoteError('Deck option "title" must be a string.');
     options.title = value.title;
   }
-  if (value.aspect !== undefined) {
-    if (typeof value.aspect !== "string")
-      throw new HinoteError('Deck option "aspect" must be a string.');
-    parseAspect(value.aspect);
-    options.aspect = value.aspect as Aspect;
-  }
   if (value.section !== undefined) {
     if (typeof value.section !== "string")
       throw new HinoteError('Deck option "section" must be a string.');
     options.section = value.section;
+  }
+  if (value.aspect !== undefined) {
+    if (typeof value.aspect !== "string")
+      throw new HinoteError('Deck option "aspect" must be a string.');
+    parseAspect(value.aspect);
+    if (isAspect(value.aspect)) options.aspect = value.aspect;
   }
   if (value.theme !== undefined)
     options.theme = parseTheme(value.theme, "deck theme");

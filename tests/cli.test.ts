@@ -102,7 +102,7 @@ test("CSS imported as text reaches the page, under hinote and in a server of you
   const dir = await tempDir();
   const probe = Bun.serve({ port: 0, fetch: () => new Response() });
   const port = probe.port;
-  probe.stop(true);
+  await probe.stop(true);
   try {
     await writeFile(join(dir, "style.css"), "h1 { color: teal; }");
     await writeFile(join(dir, "logo.svg"), "<svg/>");
@@ -478,7 +478,7 @@ test("dev explains a port that is already in use", async () => {
     expect(result.code).toBe(1);
     expect(result.stderr).toContain(`Port ${busy.port} is in use`);
   } finally {
-    busy.stop(true);
+    await busy.stop(true);
     await rm(dir, { recursive: true, force: true });
   }
 });
@@ -488,7 +488,7 @@ test("dev on the network keeps the presenter off unless the deck turns it on", a
   const start = async (deck: string) => {
     const probe = Bun.serve({ port: 0, fetch: () => new Response() });
     const port = probe.port;
-    probe.stop(true);
+    await probe.stop(true);
     await writeFile(join(dir, "deck.tsx"), deckSource(deck));
     const proc = Bun.spawn(
       [
@@ -877,7 +877,7 @@ test(
       fetch: () => new Response("busy"),
     });
     const port = server.port;
-    server.stop(true);
+    await server.stop(true);
     const deck = join(root, "deck.tsx");
     await writeFile(
       deck,

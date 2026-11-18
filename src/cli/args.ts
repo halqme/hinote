@@ -15,6 +15,18 @@ export type Parsed = {
   flags: Record<string, string | number | boolean>;
 };
 
+// A flag's value, read as the type its spec declares. parseArgs only stores
+// that type, so anything else means the flag was left out.
+export function stringFlag(args: Parsed, name: string): string | undefined {
+  const value = args.flags[name];
+  return typeof value === "string" ? value : undefined;
+}
+
+export function numberFlag(args: Parsed, name: string): number | undefined {
+  const value = args.flags[name];
+  return typeof value === "number" ? value : undefined;
+}
+
 // Parses `argv` against the flags a command declares. Every command also takes
 // --json and --help. A boolean flag can be turned off with --no-<name>.
 export function parseArgs(

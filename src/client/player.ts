@@ -17,15 +17,20 @@ export function isEventName(name: unknown): name is string {
   return typeof name === "string" && /^[\w:.-]{1,64}$/.test(name);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export function isEventMessage(
   message: unknown,
 ): message is { type: "event"; name: string; data: unknown } {
-  const record = message as Record<string, unknown> | null;
   return (
-    !!record &&
-    typeof record === "object" &&
-    record.type === "event" &&
-    isEventName(record.name)
+    typeof message === "object" &&
+    message !== null &&
+    "type" in message &&
+    message.type === "event" &&
+    "name" in message &&
+    isEventName(message.name)
   );
 }
 
@@ -187,8 +192,8 @@ export function createPlayer(options: PlayerOptions): Player {
       if (source === "local") options.post({ type: "pointer", x, y, active });
     },
     onMessage(message) {
-      if (!message || typeof message !== "object") return;
-      const record = message as Record<string, unknown>;
+      if (!isRecord(message)) return;
+      const record = message;
       if (record.type === "hello") {
         if (options.role === "presenter")
           options.post({ type: "navigate", ...position });

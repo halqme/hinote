@@ -11,18 +11,22 @@ export type CssInput = CssSource | readonly CssSource[];
 export type StyleLayer = { readonly sources: readonly CssSource[] };
 
 export function parseCss(value: unknown, label: string): readonly CssSource[] {
-  const sources = Array.isArray(value) ? value : [value];
+  const sources: unknown[] = Array.isArray(value) ? value : [value];
+  const parsed: CssSource[] = [];
   for (const source of sources) {
-    if (source && typeof source === "object" && !(source instanceof URL))
+    if (typeof source === "string" || source instanceof URL) {
+      parsed.push(source);
+      continue;
+    }
+    if (source && typeof source === "object")
       throw new HinoteError(
         `${label} got an object, not CSS text. Import the file as text: import style from "./style.css" with { type: "text" }.`,
       );
-    if (typeof source !== "string" && !(source instanceof URL))
-      throw new HinoteError(
-        `${label} must be CSS text, a file URL, or an array of them.`,
-      );
+    throw new HinoteError(
+      `${label} must be CSS text, a file URL, or an array of them.`,
+    );
   }
-  return sources as CssSource[];
+  return parsed;
 }
 
 export async function loadCss(sources: readonly CssSource[]): Promise<string> {

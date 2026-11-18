@@ -21,6 +21,7 @@ import { serve } from "../build/runtime.ts";
 import { inlineScripts } from "../build/scripts.ts";
 import { createDevApp } from "../build/server.ts";
 import type { Command } from "./command.ts";
+import { numberFlag, stringFlag } from "./args.ts";
 import { DECK_ARG, OUTPUT_FLAG, writeOutput } from "./plumbing.ts";
 
 const files = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
@@ -159,12 +160,12 @@ With --json it prints one {"event", "data"} line per event: listening (the URLs)
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
     const root = dirname(deckFile);
-    const port = (args.flags.port as number | undefined) ?? 4321;
+    const port = numberFlag(args, "port") ?? 4321;
     if (port < 1 || port > 65535)
       throw new UsageError("--port must be from 1 to 65535.");
     // Only this machine by default. --host 0.0.0.0 lets a phone or another
     // laptop on the network open the deck and follow along.
-    const host = (args.flags.host as string | undefined) ?? "127.0.0.1";
+    const host = stringFlag(args, "host") ?? "127.0.0.1";
     // The presenter view, sync, and pointer are for presenting from this
     // machine. On localhost dev turns them on; on the network only a deck that
     // says presenter: true gets them, since anyone who can reach the server
@@ -256,7 +257,7 @@ The same as:
   bundles: true,
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
-    const output = resolve((args.flags.output as string) ?? "dist/index.html");
+    const output = resolve(stringFlag(args, "output") ?? "dist/index.html");
     const deck = await loadDeckFile(deckFile);
     const html = await inlineScripts(await deck.render("static"));
     await writeOutput(output, html);
@@ -289,8 +290,8 @@ export const prerender: Command = {
   bundles: true,
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
-    const outDir = resolve((args.flags.output as string) ?? "dist");
-    const base = parseBase(args.flags.base as string | undefined);
+    const outDir = resolve(stringFlag(args, "output") ?? "dist");
+    const base = parseBase(stringFlag(args, "base"));
     const deck = await loadDeckFile(deckFile);
     const { pages, copied } = await prerenderDeck(
       deck,
@@ -318,7 +319,7 @@ export const assets: Command = {
   bundles: true,
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
-    const outDir = resolve((args.flags.output as string) ?? "public");
+    const outDir = resolve(stringFlag(args, "output") ?? "public");
     const deck = await loadDeckFile(deckFile);
     const copied = await copyAssets(
       await deck.render("static"),
@@ -358,14 +359,14 @@ export const snapshot: Command = {
   ],
   bundles: true,
   async run(args, out) {
-    const requested = (args.flags.browser as string | undefined) ?? "auto";
+    const requested = stringFlag(args, "browser") ?? "auto";
     if (requested !== "auto" && !isBrowserName(requested))
       throw new UsageError(
         `--browser ${requested} is not a browser hinote knows.`,
         "Use auto, agent-browser, puppeteer, chrome, or chrome-for-testing.",
       );
     const deckFile = deckPath(args.positionals[0]);
-    const outDir = resolve((args.flags.output as string) ?? "shots");
+    const outDir = resolve(stringFlag(args, "output") ?? "shots");
     const shot = await takeSnapshots(deckFile, outDir, requested);
     const ok = shot.problems.length === 0;
     const lines = [

@@ -489,6 +489,8 @@ describe("theme and output", () => {
     const end = html.lastIndexOf("</script>");
     const script = html.slice(start + "<script>".length, end);
     expect(script).not.toContain("</script");
+    // Parses the inlined client script without running it.
+    // oxlint-disable-next-line typescript/no-implied-eval
     expect(() => new Function(script)).not.toThrow();
     expect(html).toContain('id="hinote-panel"');
   });

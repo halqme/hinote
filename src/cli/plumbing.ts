@@ -2,6 +2,7 @@
 // deck or HTML, and writes text or HTML that the next step can take, so an
 // agent can run them one at a time to see where something goes wrong.
 import { existsSync } from "node:fs";
+import { text as readText } from "node:stream/consumers";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { decode, referencedPaths } from "../build/assets.ts";
@@ -13,10 +14,10 @@ import type { Deck } from "../deck/deck.ts";
 import { conventionProblems } from "./conventions.ts";
 import { HinoteError, UsageError } from "../errors.ts";
 import { deckPath, loadDeckFile } from "../build/load.ts";
-import type { Page } from "../deck/render.ts";
 import { inlineScripts } from "../build/scripts.ts";
 import { resolveInside } from "../build/server.ts";
 import { defaultTheme, mergeTheme } from "../deck/theme.ts";
+import { stringFlag } from "./args.ts";
 import type { Command } from "./command.ts";
 
 export const DECK_ARG = "[deck.tsx]";
@@ -57,9 +58,7 @@ async function readInput(file: string | undefined): Promise<string> {
       "inline reads HTML from a file or from stdin.",
       "hinote render | hinote inline > deck.html",
     );
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-  return Buffer.concat(chunks).toString("utf8");
+  return readText(process.stdin);
 }
 
 // Prints HTML, or writes it to -o and says where.
@@ -157,18 +156,20 @@ static is the one-file page that build writes. view and presenter are the pages 
   ],
   bundles: true,
   async run(args, out) {
-    const page = (args.flags.page ?? "static") as Page;
-    if (!PAGES.includes(page))
+    const requested = stringFlag(args, "page") ?? "static";
+    const page = PAGES.find((name) => name === requested);
+    if (!page)
       throw new UsageError(
         `--page must be one of ${PAGES.join(", ")}.`,
         "hinote help render",
       );
     const deck = await loadDeckFile(deckPath(args.positionals[0]));
-    const base = page === "static" ? undefined : String(args.flags.base ?? "");
+    const base =
+      page === "static" ? undefined : (stringFlag(args, "base") ?? "");
     await emit(
       out,
       await deck.render(page, { base }),
-      args.flags.output as string | undefined,
+      stringFlag(args, "output"),
     );
   },
 };
@@ -188,11 +189,7 @@ export const inline: Command = {
   bundles: true,
   async run(args, out) {
     const html = await readInput(args.positionals[0]);
-    await emit(
-      out,
-      await inlineScripts(html),
-      args.flags.output as string | undefined,
-    );
+    await emit(out, await inlineScripts(html), stringFlag(args, "output"));
   },
 };
 
