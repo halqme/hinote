@@ -244,14 +244,14 @@ function isTestingBinary(file: string): boolean {
 // Asks `ready` every 50 ms until it says yes, for up to READY_MS.
 export async function poll(
   ready: () => boolean | Promise<boolean>,
-  timedOut: () => Error,
+  timedOut: () => Error | Promise<Error>,
 ): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < READY_MS) {
     if (await ready()) return;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
-  throw timedOut();
+  throw await timedOut();
 }
 
 function spawnCommand(
@@ -387,7 +387,11 @@ async function withPuppeteer<T>(
       height: viewport.height,
       deviceScaleFactor: 1,
     },
-    args: ["--hide-scrollbars", "--force-device-scale-factor=1"],
+    args: [
+      "--hide-scrollbars",
+      "--force-device-scale-factor=1",
+      ...chromeExtraArgs(),
+    ],
   });
   try {
     const opened = await browser.newPage();
@@ -525,19 +529,28 @@ async function withChrome<T>(
       "--force-device-scale-factor=1",
       `--user-data-dir=${dir}`,
       `--window-size=${viewport.width},${viewport.height}`,
+      ...chromeExtraArgs(),
     ],
-    { stdio: "ignore", detached: true },
+    // Keep stderr: when Chrome dies on start (sandbox, missing libs, …) the
+    // message is the diagnosis. stdout stays ignored; CDP talks over the port.
+    { stdio: ["ignore", "ignore", "pipe"], detached: true },
   );
+  const stderr = collectStderr(child);
   let cdp: Cdp | undefined;
   try {
-    const port = await debugPort(join(dir, "DevToolsActivePort"), child);
+    const port = await debugPort(
+      join(dir, "DevToolsActivePort"),
+      child,
+      stderr,
+    );
     const version = (await (
       await fetch(`http://127.0.0.1:${port}/json/version`)
     ).json()) as { webSocketDebuggerUrl?: string };
     if (!version.webSocketDebuggerUrl)
-      throw new HinoteError("Chrome did not open a debugging port.", {
-        code: "browser",
-      });
+      throw chromeStartError(
+        "Chrome did not open a debugging port.",
+        await stderr.tail(),
+      );
     cdp = await Cdp.connect(version.webSocketDebuggerUrl);
     return await runPage(await chromePage(cdp, viewport), name);
   } finally {
@@ -631,24 +644,29 @@ async function evaluate<T>(
   return result.result?.value as T;
 }
 
-async function debugPort(file: string, child: ChildProcess): Promise<number> {
+async function debugPort(
+  file: string,
+  child: ChildProcess,
+  stderr: StderrBuffer,
+): Promise<number> {
   let port = 0;
   await poll(
     async () => {
       if (child.exitCode != null)
-        throw new HinoteError(
+        throw chromeStartError(
           "Chrome exited before it opened a debugging port.",
-          { code: "browser" },
+          await stderr.tail(),
         );
       // Chrome writes the file once the port is listening.
       const text = await readFile(file, "utf8").catch(() => "");
       port = Number(text.trim().split("\n")[0]);
       return port > 0;
     },
-    () =>
-      new HinoteError("Chrome did not open a debugging port.", {
-        code: "browser",
-      }),
+    async () =>
+      chromeStartError(
+        "Chrome did not open a debugging port.",
+        await stderr.tail(),
+      ),
   );
   return port;
 }
@@ -664,4 +682,70 @@ function killProcess(child: ChildProcess): void {
     }
   }
   child.kill("SIGKILL");
+}
+
+// Shared by the chrome and puppeteer paths so root/container and odd Chromium
+// builds get the same flags without a CLI option.
+export function chromeExtraArgs(
+  env: NodeJS.ProcessEnv = process.env,
+  uid: number | null = typeof process.getuid === "function"
+    ? process.getuid()
+    : null,
+): string[] {
+  const args: string[] = [];
+  // Chromium refuses its sandbox as root; that is the usual container case.
+  if (uid === 0) args.push("--no-sandbox");
+  const raw = env.HINOTE_CHROME_FLAGS;
+  if (raw) {
+    for (const flag of splitChromeFlags(raw)) {
+      if (!args.includes(flag)) args.push(flag);
+    }
+  }
+  return args;
+}
+
+// Chromium flags are space-separated tokens (`--foo`, `--bar=baz`). Values with
+// spaces are rare; quote a wrapper script through HINOTE_CHROME instead.
+export function splitChromeFlags(raw: string): string[] {
+  return raw.trim().split(/\s+/).filter(Boolean);
+}
+
+type StderrBuffer = { tail(): Promise<string | undefined> };
+
+function collectStderr(child: ChildProcess): StderrBuffer {
+  let text = "";
+  let ended = child.stderr == null;
+  if (child.stderr) {
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk: string) => {
+      text += chunk;
+    });
+    child.stderr.on("end", () => {
+      ended = true;
+    });
+    child.stderr.on("error", () => {
+      ended = true;
+    });
+  }
+  return {
+    async tail() {
+      if (!ended && child.stderr) {
+        await Promise.race([
+          new Promise<void>((resolve) => child.stderr!.once("end", resolve)),
+          new Promise<void>((resolve) => setTimeout(resolve, 200)),
+        ]);
+      }
+      const trimmed = text.trim();
+      if (!trimmed) return undefined;
+      // The useful Chromium line is usually at the end.
+      return trimmed.length > 800 ? trimmed.slice(-800) : trimmed;
+    },
+  };
+}
+
+function chromeStartError(message: string, stderr?: string): HinoteError {
+  return new HinoteError(message, {
+    code: "browser",
+    hint: stderr,
+  });
 }

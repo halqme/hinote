@@ -1,4 +1,11 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { inflateSync } from "node:zlib";
 import { expect, test } from "bun:test";
@@ -18,11 +25,16 @@ async function tempDir() {
   return mkdtemp(join(scratch, "hinote-"));
 }
 
-async function run(args: string[], cwd: string) {
+async function run(
+  args: string[],
+  cwd: string,
+  env: Record<string, string | undefined> = {},
+) {
   const proc = Bun.spawn(["bun", cli, ...args], {
     cwd,
     stdout: "pipe",
     stderr: "pipe",
+    env: { ...process.env, ...env },
   });
   const [stdout, stderr, code] = await Promise.all([
     new Response(proc.stdout).text(),
@@ -69,6 +81,34 @@ test("a browser that is not installed names itself", async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("when chrome dies on start, the error hint carries its stderr", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(join(dir, "deck.tsx"), deck);
+    const fake = join(dir, "fake-chrome");
+    await writeFile(
+      fake,
+      "#!/bin/sh\necho 'Running as root without --no-sandbox is not supported.' >&2\nexit 1\n",
+    );
+    await chmod(fake, 0o755);
+    const failed = await run(
+      ["snapshot", "--browser", "chrome", "--json"],
+      dir,
+      {
+        HINOTE_CHROME: fake,
+      },
+    );
+    expect(failed.code).toBe(1);
+    expect(JSON.parse(failed.stdout).error).toMatchObject({
+      code: "browser",
+      message: expect.stringMatching(/Chrome exited|debugging port/),
+      hint: expect.stringContaining("without --no-sandbox"),
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}, 30_000);
 
 async function pictures(browser: string) {
   const dir = await tempDir();
