@@ -4,12 +4,12 @@ Everything comes from `import { ... } from "hinote"`; code themes from `"hinote/
 
 ## createSlide
 
-| Call                                | Result                                      |
-| ----------------------------------- | ------------------------------------------- |
-| `createSlide(render)`               | A slide                                     |
-| `createSlide(slideOptions, render)` | A slide with options                        |
-| `createSlide([slide, deck, ...])`   | A deck; nested decks are flattened in order |
-| `createSlide(deckOptions, [...])`   | A deck with options                         |
+| Call                                | Result                                                                                       |
+| ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| `createSlide(render)`               | A slide                                                                                      |
+| `createSlide(slideOptions, render)` | A slide with options                                                                         |
+| `createSlide([slide, deck, ...])`   | A deck; nested decks are flattened in order. Pass a deck as it is; do not map it into slides |
+| `createSlide(deckOptions, [...])`   | A deck with options                                                                          |
 
 Slide options:
 

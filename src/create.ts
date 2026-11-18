@@ -63,7 +63,9 @@ function flatten(nodes: readonly unknown[]): Slide[] {
 
 export function createSlide(render: SlideRender): Slide;
 export function createSlide(options: SlideOptions, render: SlideRender): Slide;
+/** A deck. Nested decks in `nodes` are flattened in order. Pass a deck as it is; do not map or flatMap it into slides yourself. */
 export function createSlide(nodes: readonly SlideInput[]): Deck;
+/** A deck with options. Nested decks in `nodes` are flattened in order. Pass a deck as it is; do not map or flatMap it into slides yourself. */
 export function createSlide(
   options: DeckOptions,
   nodes: readonly SlideInput[],

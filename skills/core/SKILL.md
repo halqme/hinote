@@ -50,7 +50,7 @@ export default createSlide({ notes: "Say why before how." }, () => (
 ));
 ```
 
-- `createSlide(render)` or `createSlide(options, render)` is one slide; `createSlide([...])` or `createSlide(options, [...])` is a deck. Decks nest and are flattened in order. Slide numbers in URLs and in `check` count from 1 across the flattened deck.
+- `createSlide(render)` or `createSlide(options, render)` is one slide; `createSlide([...])` or `createSlide(options, [...])` is a deck. Decks nest and are flattened in order. Pass a nested deck in the array as it is. Do not `.map`, `.flat()`, or `.flatMap()` it into slides yourself. Slide numbers in URLs and in `check` count from 1 across the flattened deck.
 - The canvas is 1080 px tall; 16:9 is 1920 x 1080 and 4:3 is 1440 x 1080. Size text and images for that canvas, not for a browser window.
 - JSX is `hono/jsx`: write `class`, `style` as a string or object, and plain HTML elements. React hooks and event handlers do nothing on a slide.
 - Render functions may be `async` (read a file, fetch data).
