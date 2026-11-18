@@ -34,6 +34,7 @@ import {
 // Center sets flex:1, which fills the slide only because .slide is a column flex container.
 // Row / Column / Center put flex props on these classes (not on style=) so deck CSS in a
 // later layer can override them. Props only set --hinote-gap / --hinote-align / --hinote-justify.
+// Grid lays out Cards; each Card uses subgrid so cards in a band share row heights.
 const SLIDE_CSS = `
 *{box-sizing:border-box}
 .slide{display:flex;flex-direction:column;padding:var(--hinote-space-safe);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
@@ -41,6 +42,9 @@ const SLIDE_CSS = `
 .hinote-row{flex-direction:row;align-items:var(--hinote-align,stretch);justify-content:var(--hinote-justify,start)}
 .hinote-column{flex-direction:column;align-items:var(--hinote-align,stretch);justify-content:var(--hinote-justify,start)}
 .hinote-center{flex:1;flex-direction:column;align-items:var(--hinote-align,center);justify-content:var(--hinote-justify,center)}
+.hinote-grid{display:grid;width:100%;grid-template-columns:repeat(var(--hinote-grid-columns,2),minmax(0,1fr));gap:var(--hinote-gap,calc(var(--hinote-space-unit) * 3))}
+.hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span var(--hinote-card-rows,1);grid-column:span var(--hinote-card-span,1);min-width:0;background:var(--hinote-color-surface);color:var(--hinote-color-fg);border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius)}
+.hinote-card-cell{min-width:0;min-height:0;padding:calc(var(--hinote-space-unit) * 2)}
 :where(.slide) :is(h1,h2,h3,p){margin:0}
 :where(.slide) h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
 :where(.slide) h2{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}

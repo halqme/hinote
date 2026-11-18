@@ -346,6 +346,47 @@ export default createSlide([
   60_000,
 );
 
+test.skipIf(!browser)(
+  "default Grid and Card slides report no snapshot problems",
+  async () => {
+    const dir = await tempDir();
+    try {
+      await writeFile(
+        join(dir, "deck.tsx"),
+        `import { Card, Grid, createSlide } from ${JSON.stringify(api)}
+export default createSlide([
+  createSlide(() => (
+    <Grid columns={2} gap={3}>
+      <Card>
+        <h3>Short</h3>
+        <p>Finding A</p>
+      </Card>
+      <Card>
+        <h3>A longer heading that wraps further than the other card</h3>
+        <p>Finding B</p>
+      </Card>
+    </Grid>
+  )),
+]);
+`,
+      );
+      const shot = await run(
+        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
+        dir,
+      );
+      expect(shot.stderr).toBe("");
+      expect(shot.code).toBe(0);
+      const body = JSON.parse(shot.stdout);
+      expect(body.ok).toBe(true);
+      expect(body.data.problems).toEqual([]);
+      expect(body.data.warnings).toEqual([]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  60_000,
+);
+
 // A solid #ff00aa block only paints when its <Step> is revealed (and fully
 // opaque). Counting near-magenta pixels proves the PNG shows every step.
 function nearMagentaCount(png: Buffer): number {
