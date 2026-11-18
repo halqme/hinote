@@ -336,10 +336,10 @@ export const assets: Command = {
 export const snapshot: Command = {
   name: "snapshot",
   group: "porcelain",
-  summary: "Write one PNG per slide, at the canvas size",
+  summary: "Write one PNG per slide and report layout problems",
   args: DECK_ARG,
   maxArgs: 1,
-  description: `Serves the deck on this machine, opens each slide in a browser, and writes shots/1.png, shots/2.png, and so on. Each picture is the canvas (1920×1080 at 16:9), not the window. The server stops when the pictures are written. Presenter pages are not included.
+  description: `Serves the deck on this machine, opens each slide in a browser with every step revealed, and writes shots/1.png, shots/2.png, and so on. Each picture is the canvas (1920×1080 at 16:9), not the window. The same pass reports layout issues: elements that leave the canvas (\`overflow\`) or whose content is clipped inside a box (\`clipped\`) are problems; elements that cross the safe area (\`safe-area\`, the theme's \`spacing.safe\` inset) are warnings. Problems exit 1; warnings alone exit 0. Mark intentional bleed with \`data-hinote-bleed\`. The server stops when the pictures are written. Presenter pages are not included. Default \`hinote check\` still does not open a browser.
 
 --browser chooses who takes them: agent-browser, puppeteer, chrome, or chrome-for-testing. auto, the default, uses the first of those that is installed. puppeteer means the puppeteer package in this project, which downloads its own browser. chrome is Google Chrome, Chromium, or Edge (or HINOTE_CHROME). chrome-for-testing is Chrome for Testing (or HINOTE_CHROME_FOR_TESTING).`,
   flags: {
@@ -354,7 +354,8 @@ export const snapshot: Command = {
   },
   examples: [
     "hinote snapshot",
-    "hinote snapshot --browser chrome-for-testing -o shots",
+    "hinote snapshot --browser chrome -o shots",
+    "hinote snapshot --json",
   ],
   bundles: true,
   async run(args, out) {
@@ -367,6 +368,27 @@ export const snapshot: Command = {
     const deckFile = deckPath(args.positionals[0]);
     const outDir = resolve((args.flags.output as string) ?? "shots");
     const shot = await takeSnapshots(deckFile, outDir, requested);
-    out.result(shot, shot.files);
+    const ok = shot.problems.length === 0;
+    const lines = [
+      ...shot.files,
+      ...shot.problems.flatMap((p) => [
+        `slide ${p.slides.join(", ")}: ${p.code}: ${p.message}`,
+        ...(p.hint ? [`  hint: ${p.hint}`] : []),
+      ]),
+      ...shot.warnings.flatMap((w) => [
+        `slide ${w.slides.join(", ")}: warning ${w.code}: ${w.message}`,
+        ...(w.hint ? [`  hint: ${w.hint}`] : []),
+      ]),
+    ];
+    if (!ok)
+      lines.push(
+        `${shot.problems.length} problem${shot.problems.length > 1 ? "s" : ""}`,
+      );
+    else if (shot.warnings.length > 0)
+      lines.push(
+        `${shot.warnings.length} warning${shot.warnings.length > 1 ? "s" : ""}`,
+      );
+    out.result(shot, lines, ok);
+    return ok ? 0 : 1;
   },
 };

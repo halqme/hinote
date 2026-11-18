@@ -1,6 +1,6 @@
 // One PNG per flattened slide, at the canvas size, then the server is gone.
-// The browser is the shared one in browser.ts, so a later measurement of the
-// same page (whether a slide overflows, for instance) can open it the same way.
+// The same pass measures layout: canvas overflow and clipped content are
+// problems; safe-area crossings are warnings.
 import { mkdir, readFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import {
@@ -9,6 +9,12 @@ import {
   type BrowserName,
   type CapturePage,
 } from "./browser.ts";
+import {
+  measureSlide,
+  revealAllExpression,
+  type LayoutIssue,
+  type LayoutReport,
+} from "./layout.ts";
 import type { Canvas } from "../deck/deck.ts";
 import { HinoteError } from "../errors.ts";
 import { loadDeckFile } from "../build/load.ts";
@@ -22,6 +28,8 @@ export type Snapshot = {
   canvas: Canvas;
   browser: BrowserName;
   files: string[];
+  problems: LayoutIssue[];
+  warnings: LayoutIssue[];
 };
 
 export async function takeSnapshots(
@@ -43,15 +51,26 @@ export async function takeSnapshots(
   });
   try {
     const files: string[] = [];
+    const problems: LayoutIssue[] = [];
+    const warnings: LayoutIssue[] = [];
     const used = await withBrowser(browser, canvas, async (page, name) => {
       for (let index = 0; index < deck.slides.length; index++) {
         const file = resolve(directory, `${index + 1}.png`);
-        await photograph(page, server.port, index, canvas, file);
+        const layout = await photograph(page, server.port, index, canvas, file);
         files.push(shown(file));
+        problems.push(...layout.problems);
+        warnings.push(...layout.warnings);
       }
       return name;
     });
-    return { output: shown(directory), canvas, browser: used, files };
+    return {
+      output: shown(directory),
+      canvas,
+      browser: used,
+      files,
+      problems,
+      warnings,
+    };
   } finally {
     server.stop();
   }
@@ -63,7 +82,7 @@ async function photograph(
   index: number,
   canvas: Canvas,
   file: string,
-): Promise<void> {
+): Promise<LayoutReport> {
   await page.goto(`http://127.0.0.1:${port}/${index + 1}`);
   const expression = ready(index, canvas);
   await poll(
@@ -74,6 +93,10 @@ async function photograph(
         hint: "The slide did not become the size of the canvas. Try another browser with --browser.",
       }),
   );
+  // Every step must be visible: the picture and the layout report both use
+  // the finished slide, not the empty first frame.
+  await page.evaluate(revealAllExpression(index));
+  const layout = await measureSlide(page, index);
   await page.screenshot(file, STAGE);
   const size = pngSize(await readFile(file));
   if (size.width !== canvas.width || size.height !== canvas.height)
@@ -84,6 +107,7 @@ async function photograph(
         hint: "The browser scaled the page. Try another with --browser.",
       },
     );
+  return layout;
 }
 
 // True once the URL's slide is the one on screen and the stage is the canvas,

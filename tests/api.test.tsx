@@ -422,6 +422,14 @@ describe("theme and output", () => {
     expect(html).toContain('id="hinote-panel"');
   });
 
+  test("spacing.safe is the default slide padding", async () => {
+    const html = await deckOf(textSlide("x")).render();
+    expect(html).toContain(
+      "--hinote-space-safe:calc(var(--hinote-space-unit) * 6)",
+    );
+    expect(html).toContain("padding:var(--hinote-space-safe)");
+  });
+
   test("tokens beyond the built-in names become CSS variables too", async () => {
     const deck = createSlide(
       { theme: { colors: { brand: "#ff5500" }, spacing: { gutter: "3rem" } } },

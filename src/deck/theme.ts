@@ -11,7 +11,7 @@ export type Theme = {
   fonts?: Tokens<"base" | "heading" | "mono">;
   typography?: Tokens<"h1" | "h2" | "h3" | "body" | "small" | "code">;
   shadows?: Tokens<"sm" | "md" | "lg">;
-  spacing?: Tokens<"unit">;
+  spacing?: Tokens<"unit" | "safe">;
   radius?: string;
 };
 
@@ -90,7 +90,9 @@ export const defaultTheme: Theme = {
     md: "0 8px 24px rgb(0 0 0 / 0.35)",
     lg: "0 24px 48px rgb(0 0 0 / 0.45)",
   },
-  spacing: { unit: "8px" },
+  // `safe` is the inset from each canvas edge. Slide padding reads it, so a
+  // deck that sets neither keeps the old 48px margin (unit × 6).
+  spacing: { unit: "8px", safe: "calc(var(--hinote-space-unit) * 6)" },
   radius: "12px",
 };
 

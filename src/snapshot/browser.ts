@@ -1,6 +1,6 @@
-// Launches one browser so a command can open pages and photograph them.
-// `hinote snapshot` uses this. A later look at whether a slide overflows the
-// canvas should use it too, instead of starting a browser of its own.
+// Launches one browser so a command can open pages, photograph them, and
+// measure layout. `hinote snapshot` uses this for both the PNGs and the
+// overflow / clipped / safe-area report.
 //
 // `--browser auto` tries these in order and uses the first that can launch:
 // agent-browser, puppeteer, Chrome (or Chromium or Edge), Chrome for Testing.
