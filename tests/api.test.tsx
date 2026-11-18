@@ -321,7 +321,7 @@ describe("Script", () => {
 });
 
 describe("layout", () => {
-  test("Column, Row, and Center expose gap, align, and justify", async () => {
+  test("Column, Row, and Center expose gap, align, and justify as CSS variables", async () => {
     const slide = createSlide(() => (
       <Column gap={2} align="center" justify="space-between">
         <Row gap="1rem" align="end">
@@ -333,16 +333,30 @@ describe("layout", () => {
       </Column>
     ));
     const html = await deckOf(slide).render();
-    expect(html).toContain("flex-direction:column");
-    expect(html).toContain("align-items:center");
-    expect(html).toContain("justify-content:space-between");
-    expect(html).toContain("gap:calc(var(--hinote-space-unit) * 2)");
-    expect(html).toContain("flex-direction:row");
-    expect(html).toContain("align-items:end");
-    expect(html).toContain("gap:1rem");
-    expect(html).toContain("align-items:start");
-    expect(html).toContain("justify-content:center");
-    expect(html).toContain("flex:1");
+    expect(html).toContain('class="hinote-column"');
+    expect(html).toContain('class="hinote-row"');
+    expect(html).toContain('class="hinote-center"');
+    expect(html).toContain("--hinote-gap:calc(var(--hinote-space-unit) * 2)");
+    expect(html).toContain("--hinote-align:center");
+    expect(html).toContain("--hinote-justify:space-between");
+    expect(html).toContain("--hinote-gap:1rem");
+    expect(html).toContain("--hinote-align:end");
+    expect(html).toContain("--hinote-align:start");
+    // Flex rules live in @layer hinote, not on the style attribute.
+    expect(html).toContain(
+      ".hinote-row{flex-direction:row;align-items:var(--hinote-align,stretch);justify-content:var(--hinote-justify,start)}",
+    );
+    expect(html).toContain(
+      ".hinote-column{flex-direction:column;align-items:var(--hinote-align,stretch);justify-content:var(--hinote-justify,start)}",
+    );
+    expect(html).toContain(
+      ".hinote-center{flex:1;flex-direction:column;align-items:var(--hinote-align,center);justify-content:var(--hinote-justify,center)}",
+    );
+    // Props set variables only; gap / flex-direction stay out of the style attribute.
+    for (const style of html.matchAll(/\bstyle="([^"]*)"/g)) {
+      expect(style[1]).not.toMatch(/(?:^|;)\s*gap:/);
+      expect(style[1]).not.toMatch(/flex-direction:/);
+    }
   });
 
   test("rejects a layout value that would break out of the style attribute", async () => {

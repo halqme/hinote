@@ -29,32 +29,24 @@ function gapValue(gap: string | number | undefined): string | undefined {
   return cssToken(gap, "gap");
 }
 
-function layoutStyle(
-  direction: "row" | "column",
-  props: LayoutProps,
-  defaults: { align: string; justify: string; flex?: string },
-): Record<string, string> {
-  const style: Record<string, string> = {
-    display: "flex",
-    "flex-direction": direction,
-    "align-items": cssToken(props.align ?? defaults.align, "align"),
-    "justify-content": cssToken(props.justify ?? defaults.justify, "justify"),
-    width: "100%",
-  };
+// Props become CSS variables on the element. The real flex rules live on
+// `.hinote-row` / `.hinote-column` / `.hinote-center` in `@layer hinote`, so
+// deck CSS in a later layer can override gap, alignment, and width without
+// `!important`.
+function layoutVars(props: LayoutProps): Record<string, string> | undefined {
+  const style: Record<string, string> = {};
   const gap = gapValue(props.gap);
-  if (gap !== undefined) style.gap = gap;
-  if (defaults.flex) style.flex = defaults.flex;
-  return style;
+  if (gap !== undefined) style["--hinote-gap"] = gap;
+  if (props.align !== undefined)
+    style["--hinote-align"] = cssToken(props.align, "align");
+  if (props.justify !== undefined)
+    style["--hinote-justify"] = cssToken(props.justify, "justify");
+  return Object.keys(style).length > 0 ? style : undefined;
 }
 
 export function Column(props: LayoutProps) {
   return (
-    <div
-      style={layoutStyle("column", props, {
-        align: "stretch",
-        justify: "start",
-      })}
-    >
+    <div class="hinote-column" style={layoutVars(props)}>
       {props.children}
     </div>
   );
@@ -62,9 +54,7 @@ export function Column(props: LayoutProps) {
 
 export function Row(props: LayoutProps) {
   return (
-    <div
-      style={layoutStyle("row", props, { align: "stretch", justify: "start" })}
-    >
+    <div class="hinote-row" style={layoutVars(props)}>
       {props.children}
     </div>
   );
@@ -72,13 +62,7 @@ export function Row(props: LayoutProps) {
 
 export function Center(props: LayoutProps) {
   return (
-    <div
-      style={layoutStyle("column", props, {
-        align: "center",
-        justify: "center",
-        flex: "1",
-      })}
-    >
+    <div class="hinote-center" style={layoutVars(props)}>
       {props.children}
     </div>
   );

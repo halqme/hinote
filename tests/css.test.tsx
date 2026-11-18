@@ -5,7 +5,13 @@ import { pathToFileURL } from "node:url";
 import { expect, test } from "bun:test";
 import { scopeCss } from "../src/deck/css.ts";
 import { HinoteError } from "../src/errors.ts";
-import { createSlide } from "../src/index.ts";
+import { Row, createSlide } from "../src/index.ts";
+import {
+  findChrome,
+  findChromeForTesting,
+  hasCommand,
+  withBrowser,
+} from "../src/snapshot/browser.ts";
 
 const slide = (text: string, options = {}) =>
   createSlide(options, () => <p>{text}</p>);
@@ -95,3 +101,61 @@ test("rejects CSS it cannot place safely", () => {
     HinoteError,
   );
 });
+
+const browser =
+  (hasCommand("agent-browser") && "agent-browser") ||
+  (findChromeForTesting() && "chrome-for-testing") ||
+  (findChrome() && "chrome") ||
+  undefined;
+
+test.skipIf(!browser)(
+  "deck CSS overrides Row gap without !important",
+  async () => {
+    const plain = await createSlide([
+      createSlide(() => (
+        <Row gap="40px">
+          <span>a</span>
+          <span>b</span>
+        </Row>
+      )),
+    ]).render("static");
+    const overridden = await createSlide({ css: ".hinote-row{gap:0}" }, [
+      createSlide(() => (
+        <Row gap="40px">
+          <span>a</span>
+          <span>b</span>
+        </Row>
+      )),
+    ]).render("static");
+
+    const dir = await mkdtemp(join(tmpdir(), "hinote-layout-"));
+    try {
+      const plainFile = join(dir, "plain.html");
+      const overriddenFile = join(dir, "overridden.html");
+      await writeFile(plainFile, plain);
+      await writeFile(overriddenFile, overridden);
+
+      const gaps = await withBrowser(
+        browser!,
+        { width: 1920, height: 1080 },
+        async (page) => {
+          await page.goto(pathToFileURL(plainFile).href);
+          const before = await page.evaluate(
+            `getComputedStyle(document.querySelector(".hinote-row")).columnGap`,
+          );
+          await page.goto(pathToFileURL(overriddenFile).href);
+          const after = await page.evaluate(
+            `getComputedStyle(document.querySelector(".hinote-row")).columnGap`,
+          );
+          return { before, after };
+        },
+      );
+
+      expect(gaps.before).toBe("40px");
+      expect(gaps.after).toBe("0px");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);
