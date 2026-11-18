@@ -34,7 +34,7 @@ import {
 // Center sets flex:1, which fills the slide only because .slide is a column flex container.
 const SLIDE_CSS = `
 *{box-sizing:border-box}
-.slide{display:flex;flex-direction:column;padding:calc(var(--hinote-space-unit) * 6);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
+.slide{display:flex;flex-direction:column;padding:var(--hinote-space-safe);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
 :where(.slide) :is(h1,h2,h3,p){margin:0}
 :where(.slide) h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
 :where(.slide) h2{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}
