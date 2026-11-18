@@ -135,11 +135,12 @@ type PresenterView = {
 // The laser survives reloads from `hinote dev`, like the timer.
 const LASER_KEY = "hinote-laser";
 
+// Off until the presenter turns it on. A choice stays for this tab, including reloads.
 function savedLaser(): boolean {
   try {
-    return sessionStorage.getItem(LASER_KEY) !== "off";
+    return sessionStorage.getItem(LASER_KEY) === "on";
   } catch {
-    return true;
+    return false;
   }
 }
 

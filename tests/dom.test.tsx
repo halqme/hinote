@@ -191,19 +191,20 @@ describe("the presenter view", () => {
     ).toBe(false);
   });
 
-  test("the laser turns off and on, by button and by L, and stays off across a reload", async () => {
+  test("the laser starts off, and a choice stays across a reload", async () => {
     await open("presenter", "http://localhost/presenter/1", "broadcast");
     const laser = () =>
       document
         .querySelector('[data-action="laser"]')
         ?.getAttribute("aria-pressed");
-    expect(laser()).toBe("true");
-    click("laser");
     expect(laser()).toBe("false");
-    press("l");
+    click("laser");
     expect(laser()).toBe("true");
-    press("L");
-    expect(sessionStorage.getItem("hinote-laser")).toBe("off");
+    expect(sessionStorage.getItem("hinote-laser")).toBe("on");
+    await open("presenter", "http://localhost/presenter/1", "broadcast");
+    expect(laser()).toBe("true");
+    press("l");
+    expect(laser()).toBe("false");
     await open("presenter", "http://localhost/presenter/1", "broadcast");
     expect(laser()).toBe("false");
   });

@@ -165,7 +165,7 @@ function presenterPanel(slideCount: number, notes: string) {
           {
             type: "button",
             "data-action": "laser",
-            "aria-pressed": "true",
+            "aria-pressed": "false",
             title: "Laser pointer (L)",
           },
           "Laser",
