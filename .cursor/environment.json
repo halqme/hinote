@@ -1,0 +1,3 @@
+{
+  "install": "bunx -y skills add halqme/skills --all -g -a cursor -y"
+}
