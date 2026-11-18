@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { chooseBrowser } from "../src/browser.ts";
+import { chooseBrowser } from "../src/snapshot/browser.ts";
 
 test("auto picks the first installed browser, in a fixed order", () => {
   expect(chooseBrowser("auto", ["chrome", "agent-browser"])).toBe(

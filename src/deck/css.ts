@@ -1,4 +1,4 @@
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 
 // CSS text, usually `import style from "./style.css" with { type: "text" }`, or a file as
 // `new URL("./style.css", import.meta.url)`. A file URL is read when the deck

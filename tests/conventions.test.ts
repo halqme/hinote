@@ -1,7 +1,7 @@
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { expect, test } from "bun:test";
-import { problemsInSource } from "../src/conventions.ts";
+import { problemsInSource } from "../src/cli/conventions.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
 const api = resolve(import.meta.dir, "../src/index.ts");

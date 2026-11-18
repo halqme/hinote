@@ -1,8 +1,8 @@
 import { jsx } from "hono/jsx";
 import { HtmlEscapedCallbackPhase, resolveCallback } from "hono/utils/html";
-import clientScript from "./client.generated.ts";
+import clientScript from "../client/main.generated.ts";
 import { loadCss, scopeCss, type CssSource, type StyleLayer } from "./css.ts";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 // `view` and `presenter` are served by the deck and sync through it. `static` is
 // the single file from `hinote build`: one audience view with no sync.
 export type Page = "view" | "presenter" | "static";
@@ -11,7 +11,7 @@ export type Page = "view" | "presenter" | "static";
 // `hinote dev` reloaded the deck. Without one, a page syncs with nothing.
 export type Sync = "server" | "broadcast" | "reload";
 import type { Slide } from "./slide.ts";
-import { numberSteps } from "./step.tsx";
+import { numberSteps } from "../components/step.tsx";
 import type { Transition } from "./transition.ts";
 import {
   defaultTheme,

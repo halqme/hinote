@@ -1,4 +1,4 @@
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 
 // Each group holds named tokens. The listed names are the ones hinote's own CSS
 // reads; any other name is allowed and becomes a CSS variable the same way.

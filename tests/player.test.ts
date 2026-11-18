@@ -4,7 +4,7 @@ import {
   parseServedPath,
   servedPath,
   slideHash,
-} from "../src/location.ts";
+} from "../src/client/location.ts";
 import {
   createPlayer,
   isEventMessage,
@@ -13,7 +13,7 @@ import {
   type Position,
   type Role,
   type SyncMessage,
-} from "../src/player.ts";
+} from "../src/client/player.ts";
 
 function player(role: Role, steps: number[], initial?: Position) {
   const shown: Position[] = [];

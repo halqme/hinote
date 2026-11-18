@@ -2,7 +2,7 @@
 // depends on slide.ts; neither of those depends back on this module.
 import { Deck, parseDeckOptions, type DeckOptions } from "./deck.ts";
 import type { StyleLayer } from "./css.ts";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 import {
   isPlainObject,
   isSlide,

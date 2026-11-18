@@ -298,8 +298,8 @@ To show the deck farther away, put it behind whatever you already use: a deck is
 
 In this repository, `bun run dev` shows the example in [`examples/`](examples/README.md): a fictional five-minute talk written the way a real one would be.
 
-`src/client.ts` runs in the browser. Pages inline the generated `src/client.generated.ts`, so rendering never needs a bundler. After editing the client, run `bun run build:client`; `bun test` fails while the generated file is stale.
+`src/client/main.ts` runs in the browser. Pages inline the generated `src/client/main.generated.ts`, so rendering never needs a bundler. After editing the client, run `bun run build:client`; `bun test` fails while the generated file is stale.
 
 `bun run build:lib` writes `dist/`: the library and the CLI (`dist/cli.js`, the package's `bin`) as JavaScript, with type declarations. `prepack` runs it before packing. The package ships `dist/` and not `src/`, so Bun and Node load the same JavaScript. `bun test` also builds `dist/` and runs it under Node when Node is installed.
 
-Before committing, run `bun test`, `bun run typecheck`, and `bun run lint`. `lint` runs [oxlint](https://oxc.rs/docs/guide/usage/linter) with the rules in `.oxlintrc.json` (each rule turned off there says why) and [oxdg](https://www.npmjs.com/package/oxdg), which fails on a circular import between modules in `src/`. `createSlide` lives in `src/create.ts` for that reason: it builds decks, and a deck renders slides.
+Before committing, run `bun test`, `bun run typecheck`, and `bun run lint`. `lint` runs [oxlint](https://oxc.rs/docs/guide/usage/linter) with the rules in `.oxlintrc.json` (each rule turned off there says why) and [oxdg](https://www.npmjs.com/package/oxdg), which fails on a circular import between modules in `src/`. `createSlide` lives in `src/deck/create.ts` for that reason: it builds decks, and a deck renders slides.

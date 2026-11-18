@@ -1,5 +1,5 @@
 import { jsx, type Child } from "hono/jsx";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 
 export type StepProps = {
   // 1-based step that reveals this element. Without it, steps count up in document order.

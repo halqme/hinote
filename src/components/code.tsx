@@ -1,7 +1,7 @@
 import type { Lang, Theme as CodeTheme, ThemeFamily } from "@pierre/highlights";
 import { pierreDark } from "@pierre/highlights/themes";
 import { raw } from "hono/html";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 
 export type CodeProps = {
   // Language name or alias, such as "ts" or "rust".

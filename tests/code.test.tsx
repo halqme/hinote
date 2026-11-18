@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { githubLight } from "../src/code-themes.ts";
-import { dedent } from "../src/code.tsx";
+import { dedent } from "../src/components/code.tsx";
 import { HinoteError } from "../src/errors.ts";
 import { Code, createSlide } from "../src/index.ts";
 

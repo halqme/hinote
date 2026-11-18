@@ -1,12 +1,12 @@
 // The page's runtime: navigation, steps, sync, the presenter view, and
-// window.hinote. client.ts starts it; tests start it on a rendered page.
+// window.hinote. main.ts starts it; tests start it on a rendered page.
 import {
   parseHash,
   parseServedPath,
   servedPath,
   slideHash,
 } from "./location.ts";
-import type { HinoteClient } from "./client-api.ts";
+import type { HinoteClient } from "./api.ts";
 import {
   createPlayer,
   isEventMessage,

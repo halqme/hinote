@@ -17,5 +17,5 @@
     // Each channel and event source has one handler, set once.
     "unicorn/prefer-add-event-listener": "off"
   },
-  "ignorePatterns": ["dist", "bench", "src/client.generated.ts"]
+  "ignorePatterns": ["dist", "bench", "src/client/main.generated.ts"]
 }

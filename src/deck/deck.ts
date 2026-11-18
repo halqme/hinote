@@ -1,9 +1,9 @@
 import { Hono, type Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import { parseCss, type CssInput, type CssSource } from "./css.ts";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 import { syncHub } from "./hub.ts";
-import { parseServedPath } from "./location.ts";
+import { parseServedPath } from "../client/location.ts";
 import { renderDeck, type Page, type Sync } from "./render.ts";
 import type { Slide } from "./slide.ts";
 import { parseTheme, type Theme } from "./theme.ts";

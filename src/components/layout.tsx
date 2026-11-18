@@ -1,5 +1,5 @@
 import type { Child } from "hono/jsx";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 
 export type LayoutProps = {
   gap?: string | number;

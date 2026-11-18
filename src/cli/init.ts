@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
-import packageJson from "../package.json" with { type: "json" };
-import { HinoteError } from "./errors.ts";
-import { isBun } from "./runtime.ts";
+import packageJson from "../../package.json" with { type: "json" };
+import { HinoteError } from "../errors.ts";
+import { isBun } from "../build/runtime.ts";
 
 const DECK = `import { Center, Code, Column, Step, createSlide } from "hinote";
 import style from "./style.css" with { type: "text" };

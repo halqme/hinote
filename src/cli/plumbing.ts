@@ -4,14 +4,14 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { decode, referencedPaths } from "../assets.ts";
-import type { Deck } from "../deck.ts";
-import { conventionProblems } from "../conventions.ts";
+import { decode, referencedPaths } from "../build/assets.ts";
+import type { Deck } from "../deck/deck.ts";
+import { conventionProblems } from "./conventions.ts";
 import { HinoteError, UsageError } from "../errors.ts";
-import { deckPath, loadDeckFile } from "../load.ts";
-import type { Page } from "../render.ts";
-import { inlineScripts } from "../scripts.ts";
-import { resolveInside } from "../server.ts";
+import { deckPath, loadDeckFile } from "../build/load.ts";
+import type { Page } from "../deck/render.ts";
+import { inlineScripts } from "../build/scripts.ts";
+import { resolveInside } from "../build/server.ts";
 import type { Command } from "./command.ts";
 
 export const DECK_ARG = "[deck.tsx]";

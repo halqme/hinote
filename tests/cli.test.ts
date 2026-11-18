@@ -11,8 +11,8 @@ import {
 import { join, resolve } from "node:path";
 import { expect, test } from "bun:test";
 import { Hono } from "hono";
-import { loadDeckFile } from "../src/load.ts";
-import { createDevApp, resolveInside } from "../src/server.ts";
+import { loadDeckFile } from "../src/build/load.ts";
+import { createDevApp, resolveInside } from "../src/build/server.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
 const api = resolve(import.meta.dir, "../src/index.ts");

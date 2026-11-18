@@ -16,8 +16,8 @@ import {
 import { readFile, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import type { Canvas } from "./deck.ts";
-import { HinoteError } from "./errors.ts";
+import type { Canvas } from "../deck/deck.ts";
+import { HinoteError } from "../errors.ts";
 
 export const BROWSER_NAMES = [
   "agent-browser",

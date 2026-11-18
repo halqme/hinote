@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { referencedPaths } from "../src/assets.ts";
+import { referencedPaths } from "../src/build/assets.ts";
 
 test("finds the relative files a page loads, and nothing else", () => {
   const html = `

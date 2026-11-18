@@ -7,7 +7,7 @@ import {
   type CssSource,
   type StyleLayer,
 } from "./css.ts";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 import { parseTransition, type Transition } from "./transition.ts";
 import { cssValue, parseTheme, type Theme } from "./theme.ts";
 

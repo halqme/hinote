@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { expect, test } from "bun:test";
-import { scopeCss } from "../src/css.ts";
+import { scopeCss } from "../src/deck/css.ts";
 import { HinoteError } from "../src/errors.ts";
 import { createSlide } from "../src/index.ts";
 

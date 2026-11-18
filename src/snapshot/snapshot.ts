@@ -9,11 +9,11 @@ import {
   type BrowserName,
   type CapturePage,
 } from "./browser.ts";
-import type { Canvas } from "./deck.ts";
-import { HinoteError } from "./errors.ts";
-import { loadDeckFile } from "./load.ts";
-import { serve } from "./runtime.ts";
-import { createDevApp } from "./server.ts";
+import type { Canvas } from "../deck/deck.ts";
+import { HinoteError } from "../errors.ts";
+import { loadDeckFile } from "../build/load.ts";
+import { serve } from "../build/runtime.ts";
+import { createDevApp } from "../build/server.ts";
 
 const STAGE = ".hinote-stage";
 

@@ -1,4 +1,4 @@
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 
 // How the next slide enters. Steps inside a slide never animate this way.
 export type Transition = "none" | "fade" | "slide";

@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { cssAsText } from "./css-text.ts";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 import { bundle, isBun } from "./runtime.ts";
 
 const PLACEHOLDER =

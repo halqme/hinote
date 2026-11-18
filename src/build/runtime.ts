@@ -3,7 +3,7 @@
 // @hono/node-server, optional peer dependencies that `hinote init` adds when it
 // runs on Node. The library itself (src/index.ts) needs neither.
 import { readFile } from "node:fs/promises";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 
 export const isBun = typeof Bun !== "undefined";
 

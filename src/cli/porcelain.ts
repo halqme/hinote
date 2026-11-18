@@ -4,22 +4,22 @@ import { spawn } from "node:child_process";
 import { watch } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { dirname, relative, resolve, sep } from "node:path";
-import { copyAssets } from "../assets.ts";
-import { isBrowserName } from "../browser.ts";
-import type { Deck } from "../deck.ts";
+import { copyAssets } from "../build/assets.ts";
+import { isBrowserName } from "../snapshot/browser.ts";
+import type { Deck } from "../deck/deck.ts";
 import { HinoteError, UsageError } from "../errors.ts";
 import {
   COMMANDS,
   initProject,
   NODE_DEV_PACKAGES,
   packageManager,
-} from "../init.ts";
-import { deckPath, loadDeckFile } from "../load.ts";
-import { takeSnapshots } from "../snapshot.ts";
-import { parseBase, prerender as prerenderDeck } from "../prerender.ts";
-import { serve } from "../runtime.ts";
-import { inlineScripts } from "../scripts.ts";
-import { createDevApp } from "../server.ts";
+} from "./init.ts";
+import { deckPath, loadDeckFile } from "../build/load.ts";
+import { takeSnapshots } from "../snapshot/snapshot.ts";
+import { parseBase, prerender as prerenderDeck } from "../build/prerender.ts";
+import { serve } from "../build/runtime.ts";
+import { inlineScripts } from "../build/scripts.ts";
+import { createDevApp } from "../build/server.ts";
 import type { Command } from "./command.ts";
 import { DECK_ARG, OUTPUT_FLAG, writeOutput } from "./plumbing.ts";
 
@@ -214,7 +214,7 @@ With --json it prints one {"event", "data"} line per event: listening (the URLs)
     const reload = () => {
       loading = loading.then(async () => {
         try {
-          // Building the new deck tells open pages to reload (see hub.ts).
+          // Building the new deck tells open pages to reload (see deck/hub.ts).
           deck = prepare(await loadDeckFile(deckFile));
           out.event("reloaded", { file: deckFile }, "reloaded");
         } catch (error) {

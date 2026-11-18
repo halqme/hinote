@@ -5,7 +5,7 @@ import {
   findChromeForTesting,
   hasCommand,
   installedBrowsers,
-} from "../src/browser.ts";
+} from "../src/snapshot/browser.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
 const api = resolve(import.meta.dir, "../src/index.ts");

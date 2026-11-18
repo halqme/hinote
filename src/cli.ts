@@ -17,7 +17,7 @@ import {
   snapshot,
 } from "./cli/porcelain.ts";
 import { skills } from "./cli/skills.ts";
-import { hasNodePackages, isBun } from "./runtime.ts";
+import { hasNodePackages, isBun } from "./build/runtime.ts";
 import pkg from "../package.json" with { type: "json" };
 
 export const COMMANDS: readonly Command[] = [

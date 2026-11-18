@@ -1,5 +1,5 @@
 import { jsx } from "hono/jsx";
-import { HinoteError } from "./errors.ts";
+import { HinoteError } from "../errors.ts";
 
 export type ScriptProps = {
   // A file to bundle for the browser, `new URL("./chart.client.tsx",

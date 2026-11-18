@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { copyAssets } from "./assets.ts";
-import type { Deck } from "./deck.ts";
-import { HinoteError } from "./errors.ts";
+import type { Deck } from "../deck/deck.ts";
+import { HinoteError } from "../errors.ts";
 import { inlineScripts } from "./scripts.ts";
 
 // "/talk" for a deck hosted under /talk/, "" at the root of a host.

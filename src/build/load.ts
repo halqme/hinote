@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { cssAsText } from "./css-text.ts";
-import type { Deck } from "./deck.ts";
-import { HinoteError } from "./errors.ts";
+import type { Deck } from "../deck/deck.ts";
+import { HinoteError } from "../errors.ts";
 import {
   bundle,
   isBun,
@@ -13,7 +13,7 @@ import {
   readText,
   type LoadPlugin,
 } from "./runtime.ts";
-import { isDeck } from "./create.ts";
+import { isDeck } from "../deck/create.ts";
 
 // Bundle the deck so hinote and hono resolve from this package. The bundle is a
 // second copy of hinote, so the deck is recognized by shape, not by class.
