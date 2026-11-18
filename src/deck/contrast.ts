@@ -95,10 +95,9 @@ function formatRatio(ratio: number): string {
 
 // One warning per failing text×surface pair on this theme. Callers attach
 // slide numbers; check groups identical messages across slides.
-export function contrastWarningsForTheme(theme: Theme): Omit<
-  ContrastWarning,
-  "slides"
->[] {
+export function contrastWarningsForTheme(
+  theme: Theme,
+): Omit<ContrastWarning, "slides">[] {
   const colors = theme.colors ?? {};
   const warnings: Omit<ContrastWarning, "slides">[] = [];
   for (const text of TEXT_TOKENS) {
