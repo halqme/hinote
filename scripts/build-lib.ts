@@ -20,6 +20,8 @@ const built = await Bun.build({
   root: `${root}src`,
   format: "esm",
   target: "node",
+  // Code shared by the entry points goes in one chunk, not a copy in each.
+  splitting: true,
   // hono and @pierre/highlights stay imports, so the app shares one Hono.
   packages: "external",
   jsx: { runtime: "automatic", importSource: "hono/jsx", development: false },
