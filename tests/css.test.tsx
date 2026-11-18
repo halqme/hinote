@@ -172,8 +172,8 @@ test.skipIf(!browser)(
           </Card>
           <Card>
             <h3>
-              A much longer heading that wraps to more lines than the other
-              card so the row heights would diverge without subgrid
+              A much longer heading that wraps to more lines than the other card
+              so the row heights would diverge without subgrid
             </h3>
             <p>Body B</p>
           </Card>
