@@ -123,7 +123,7 @@ function measureExpression(index: number): string {
           code: "safe-area",
           message: \`\${id.selector} crosses the safe area on the \${cross.edge} by \${cross.by}px.\`,
           slides: [number],
-          hint: "Keep content inside spacing.safe from each edge, or set data-hinote-bleed.",
+          hint: "Keep content inside spacing.safe from each edge, or set data-hinote-bleed. If deck CSS changes the slide padding, set the theme's spacing.safe to match it.",
           ...id,
         });
       }

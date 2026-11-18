@@ -54,7 +54,7 @@ createSlide({ theme: themes.paper }, [/* slides */]);
 }
 ```
 
-Each token becomes a CSS variable: `colors.bg` is `--hinote-color-bg`, `typography.h1` is `--hinote-text-h1`, `fonts.mono` is `--hinote-font-mono`, `shadows.md` is `--hinote-shadow-md`, `spacing.unit` is `--hinote-space-unit`, `spacing.safe` is `--hinote-space-safe`, `radius` is `--hinote-radius`. hinote's own styles read the names above except `shadows`. `spacing.safe` defaults to `unit × 6` and is both the slide padding and the safe-area inset that `hinote snapshot` warns about. Lists use `body`. Names of your own work the same way. A preset leaves unset tokens at the default. A nested deck's or slide's theme sets only the tokens it names. Put `data-hinote-bleed` on an element (and its contents) to skip overflow and safe-area reports for intentional full-bleed.
+Each token becomes a CSS variable: `colors.bg` is `--hinote-color-bg`, `typography.h1` is `--hinote-text-h1`, `fonts.mono` is `--hinote-font-mono`, `shadows.md` is `--hinote-shadow-md`, `spacing.unit` is `--hinote-space-unit`, `spacing.safe` is `--hinote-space-safe`, `radius` is `--hinote-radius`. hinote's own styles read the names above except `shadows`. `spacing.safe` defaults to `unit × 6` and is both the slide padding and the safe-area inset that `hinote snapshot` warns about. Padding set in deck CSS does not change it, so set `spacing.safe` to match. Lists use `body`. Names of your own work the same way. A preset leaves unset tokens at the default. A nested deck's or slide's theme sets only the tokens it names. Put `data-hinote-bleed` on an element (and its contents) to skip overflow and safe-area reports for intentional full-bleed.
 
 ## CSS
 
