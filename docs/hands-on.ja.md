@@ -140,6 +140,7 @@ export default createSlide(
 
 - `aspect` はキャンバスの比率です。`"16:9"`（既定）、`"4:3"`、任意の `"W:H"` を選べます。
 - `transition` はスライドが入ってくるときの動きです。`"none"`、`"fade"`、`"slide"` から選びます。
+- 上の色を自分で書かないときは、`import { themes } from "hinote"` と `theme: themes.paper` で足ります。`ink` は暗い既定、`slate` は明るい寒色です。
 - `theme` の値は CSS 変数になります。`colors.brand` のように自分で名前を足すと `var(--hinote-color-brand)` として使えます。
 
 - `css` は全部のスライドに効く CSS です。`deck.tsx` の先頭で、`style.css` を `import style from "./style.css" with { type: "text" }` と文字列として読み込んでいます。

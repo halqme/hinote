@@ -143,6 +143,7 @@ export default createSlide(
 
 - `aspect` is the canvas ratio: `"16:9"` (default), `"4:3"`, or any `"W:H"`.
 - `transition` is how slides enter: `"none"`, `"fade"`, or `"slide"`.
+- To skip writing those colors, `import { themes } from "hinote"` and pass `theme: themes.paper` (`ink` is the dark default, `slate` is a cool light).
 - `theme` values become CSS variables. A name of your own, such as `colors.brand`, is available as `var(--hinote-color-brand)`.
 
 - `css` is CSS for every slide. The top of `deck.tsx` reads `style.css` as a string with `import style from "./style.css" with { type: "text" }`.

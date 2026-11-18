@@ -7,6 +7,7 @@ import {
   Script,
   Step,
   createSlide,
+  themes,
 } from "../src/index.ts";
 import { HinoteError } from "../src/errors.ts";
 
@@ -325,6 +326,44 @@ describe("layout", () => {
 });
 
 describe("theme and output", () => {
+  test("a named preset replaces the default palette, and ink is that default", async () => {
+    const slide = createSlide(() => <p>x</p>);
+    const bare = await createSlide([slide]).render();
+    const ink = await createSlide({ theme: themes.ink }, [slide]).render();
+    const paper = await createSlide({ theme: themes.paper }, [slide]).render();
+    const slate = await createSlide({ theme: themes.slate }, [slide]).render();
+    const token = (html: string, name: string) =>
+      new RegExp(`${name}:([^;}]+)`).exec(html)?.[1];
+    expect(token(ink, "--hinote-color-bg")).toBe(
+      token(bare, "--hinote-color-bg"),
+    );
+    expect(token(paper, "--hinote-color-bg")).not.toBe(
+      token(bare, "--hinote-color-bg"),
+    );
+    expect(token(slate, "--hinote-color-bg")).not.toBe(
+      token(paper, "--hinote-color-bg"),
+    );
+    // A preset leaves out the type scale, so the default sizes remain.
+    expect(token(paper, "--hinote-text-h1")).toBe(
+      token(bare, "--hinote-text-h1"),
+    );
+    expect(token(paper, "--hinote-font-heading")).not.toBe(
+      token(bare, "--hinote-font-heading"),
+    );
+    expect(bare).toContain("font-size:var(--hinote-text-h3)");
+    expect(bare).toContain(":is(ul,ol)");
+    expect(bare).toContain("var(--hinote-color-surface)");
+    expect(bare).toContain("var(--hinote-color-border)");
+    const overridden = await createSlide({ theme: themes.paper }, [
+      createSlide({ theme: { colors: { bg: "#123456" } } }, () => <p>x</p>),
+    ]).render();
+    const paperBg = token(paper, "--hinote-color-bg");
+    const section = overridden.split("<section")[1] ?? "";
+    expect(paperBg).toBeTruthy();
+    expect(section).toContain("--hinote-color-bg:#123456");
+    expect(section).not.toContain(paperBg ?? "");
+  });
+
   test("inlines theme variables, per-slide overrides, css, and the runtime", async () => {
     const deck = createSlide({ theme: { colors: { accent: "#111111" } } }, [
       createSlide({ theme: { colors: { bg: "#abc123" } } }, () => <p>one</p>),

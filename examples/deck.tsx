@@ -29,6 +29,7 @@ export default createSlide(
         muted: "#a8968a",
         // A token of our own: --hinote-color-surface, used by .card in style.css.
         surface: "#2a1e17",
+        border: "#4a3428",
       },
       fonts: {
         base: "'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif",

@@ -37,11 +37,14 @@ const SLIDE_CSS = `
 .slide{display:flex;flex-direction:column;padding:calc(var(--hinote-space-unit) * 6);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
 :where(.slide) :is(h1,h2,h3,p){margin:0}
 :where(.slide) h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
-:where(.slide) :is(h2,h3){font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}
+:where(.slide) h2{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}
+:where(.slide) h3{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h3);line-height:1.25}
 :where(.slide) p{font-size:var(--hinote-text-body);line-height:1.5}
+:where(.slide) :is(ul,ol){margin:0.4em 0;padding-left:1.4em;font-size:var(--hinote-text-body);line-height:1.45}
+:where(.slide) li+li{margin-top:0.25em}
 :where(.slide) small{font-size:var(--hinote-text-small);color:var(--hinote-color-muted)}
 :where(.slide) :is(code,pre){font-family:var(--hinote-font-mono)}
-:where(.slide) pre.highlights{margin:0;padding:1em 1.25em;border-radius:var(--hinote-radius);font-size:var(--hinote-text-code);line-height:1.5;text-align:left;white-space:pre;overflow:hidden}
+:where(.slide) pre.highlights{margin:0;padding:1em 1.25em;border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius);background:var(--hinote-color-surface);font-size:var(--hinote-text-code);line-height:1.5;text-align:left;white-space:pre;overflow:hidden}
 :where(.slide) a{color:var(--hinote-color-accent)}
 `.trim();
 

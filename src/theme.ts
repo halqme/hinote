@@ -7,9 +7,9 @@ type Tokens<Known extends string> = { [K in Known]?: string } & {
 };
 
 export type Theme = {
-  colors?: Tokens<"bg" | "fg" | "accent" | "muted">;
+  colors?: Tokens<"bg" | "fg" | "accent" | "muted" | "surface" | "border">;
   fonts?: Tokens<"base" | "heading" | "mono">;
-  typography?: Tokens<"h1" | "h2" | "body" | "small" | "code">;
+  typography?: Tokens<"h1" | "h2" | "h3" | "body" | "small" | "code">;
   shadows?: Tokens<"sm" | "md" | "lg">;
   spacing?: Tokens<"unit">;
   radius?: string;
@@ -28,8 +28,49 @@ type Group = keyof typeof GROUPS;
 
 const GROUP_NAMES = Object.keys(GROUPS) as Group[];
 
+// The dark palette. `defaultTheme` uses the same colors, so a deck with no
+// theme matches `themes.ink`.
+const inkColors = {
+  bg: "#0f1115",
+  fg: "#f4f4f5",
+  accent: "#7dd3fc",
+  muted: "#a1a1aa",
+  surface: "#181b22",
+  border: "#2c313c",
+};
+
+// Named starting points. Pass one as a deck `theme` instead of writing a palette.
+// Anything a preset leaves out stays at `defaultTheme`.
+export const themes = {
+  ink: { colors: { ...inkColors } },
+  paper: {
+    colors: {
+      bg: "#f6f1e7",
+      fg: "#1c1915",
+      accent: "#b45309",
+      muted: "#6f6458",
+      surface: "#fffdf8",
+      border: "#e3d8c8",
+    },
+    fonts: {
+      heading: "Georgia, 'Hiragino Mincho ProN', 'Yu Mincho', serif",
+    },
+  },
+  slate: {
+    colors: {
+      bg: "#f8fafc",
+      fg: "#0f172a",
+      accent: "#0369a1",
+      muted: "#64748b",
+      surface: "#ffffff",
+      border: "#e2e8f0",
+    },
+    radius: "8px",
+  },
+} as const satisfies Record<string, Theme>;
+
 export const defaultTheme: Theme = {
-  colors: { bg: "#0f1115", fg: "#f4f4f5", accent: "#7dd3fc", muted: "#a1a1aa" },
+  colors: { ...inkColors },
   fonts: {
     base: "system-ui, sans-serif",
     heading: "system-ui, sans-serif",
@@ -39,6 +80,7 @@ export const defaultTheme: Theme = {
   typography: {
     h1: "6rem",
     h2: "3.5rem",
+    h3: "2.75rem",
     body: "2.25rem",
     small: "1.5rem",
     code: "1.75rem",

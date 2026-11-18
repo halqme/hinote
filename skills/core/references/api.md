@@ -35,17 +35,24 @@ Deck options: `title`, `theme`, `transition`, `css`, and, on the top-level deck 
 ## Theme
 
 ```ts
+import { themes } from "hinote";
+
+// themes.ink (default dark), themes.paper (warm light), themes.slate (cool light)
+createSlide({ theme: themes.paper }, [/* slides */]);
+```
+
+```ts
 {
-  colors: { bg, fg, accent, muted, ...yours },
+  colors: { bg, fg, accent, muted, surface, border, ...yours },
   fonts: { base, heading, mono },
-  typography: { h1, h2, body, small, code },
+  typography: { h1, h2, h3, body, small, code },
   shadows: { sm, md, lg },
   spacing: { unit },
   radius: "12px",
 }
 ```
 
-Each token becomes a CSS variable: `colors.bg` is `--hinote-color-bg`, `typography.h1` is `--hinote-text-h1`, `fonts.mono` is `--hinote-font-mono`, `shadows.md` is `--hinote-shadow-md`, `spacing.unit` is `--hinote-space-unit`, `radius` is `--hinote-radius`. Names of your own work the same way. A nested deck's or slide's theme sets only the tokens it names.
+Each token becomes a CSS variable: `colors.bg` is `--hinote-color-bg`, `typography.h1` is `--hinote-text-h1`, `fonts.mono` is `--hinote-font-mono`, `shadows.md` is `--hinote-shadow-md`, `spacing.unit` is `--hinote-space-unit`, `radius` is `--hinote-radius`. hinote's own styles read the names above except `shadows`. Lists use `body`. Names of your own work the same way. A preset leaves unset tokens at the default. A nested deck's or slide's theme sets only the tokens it names.
 
 ## CSS
 

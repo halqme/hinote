@@ -17,4 +17,5 @@ export type { ScriptProps } from "./script.tsx";
 export { Step } from "./step.tsx";
 export type { StepProps } from "./step.tsx";
 export type { Theme } from "./theme.ts";
+export { themes } from "./theme.ts";
 export type { Transition } from "./transition.ts";

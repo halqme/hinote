@@ -58,6 +58,7 @@ export default createSlide({ notes: "Say why before how." }, () => (
 ## Rules that are easy to get wrong
 
 - Import CSS as text: `import style from "./style.css" with { type: "text" }`. Without the attribute hinote refuses it.
+- Start from a palette instead of writing one: `import { themes } from "hinote"`, then `theme: themes.ink` (dark, also the default), `themes.paper` (warm light), or `themes.slate` (cool light). Use CSS for layout, not for picking a palette.
 - CSS reaches only its own slides. Use `& { ... }` for the slide element itself; `:root`, `html`, and `body` do not match. Inner CSS (slide over nested deck over deck) wins regardless of selectors.
 - Relative paths (`<img src="./images/a.png">`, `url(bg.png)`) resolve from the deck file's directory and must stay inside it. `check` reports `missing-file` otherwise.
 - Browser code goes in its own file, `<Script src={new URL("./x.client.tsx", import.meta.url)} />`, using `hono/jsx/dom` and the global `hinote` (`role`, `position`, `on`, `send`, `toCanvas`). Set up from `hinote.on("position", ...)`; a reload starts with no step revealed.

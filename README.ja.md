@@ -76,7 +76,9 @@ export default createSlide(
 
 テーマには `colors`、`fonts`、`typography`、`shadows`、`spacing` のグループと `radius` があります。グループの中の値はそれぞれ `--hinote-<グループ>-<名前>` という CSS 変数になります。グループの部分は `color`、`font`、`text`、`shadow`、`space` と書きます。たとえば `colors.bg` は `--hinote-color-bg`、`typography.h1` は `--hinote-text-h1`、`radius` は `--hinote-radius` です。
 
-hinote 自身のスタイルが読むのは、`colors` の `bg`・`fg`・`accent`・`muted`、`fonts` の `base`・`heading`・`mono`、`typography` の `h1`・`h2`・`body`・`small`、それに `spacing.unit` です。それ以外の名前も同じように変数になります。`colors: { brand: "#f50" }` と書けば、スライドの中で `var(--hinote-color-brand)` を使えます。スライドに `theme` を書くと、その1枚で、書いた値だけを上書きします。
+hinote 自身のスタイルが読むのは、`colors` の `bg`・`fg`・`accent`・`muted`・`surface`・`border`、`fonts` の `base`・`heading`・`mono`、`typography` の `h1`・`h2`・`h3`・`body`・`small`・`code`、それに `spacing.unit` です。リストの文字の大きさは `body` です。それ以外の名前も同じように変数になります。`colors: { brand: "#f50" }` と書けば、スライドの中で `var(--hinote-color-brand)` を使えます。スライドに `theme` を書くと、その1枚で、書いた値だけを上書きします。
+
+配色は `hinote` の `themes` から選べます。`themes.ink` は暗い配色で、テーマを書かないときの見た目と同じです。`themes.paper` は明るい暖色で、見出しがセリフ体です。`themes.slate` は明るい寒色です。`theme: themes.paper` のように渡します。プリセットが書いていない値は、既定のままです。
 
 ## CSS
 
