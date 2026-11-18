@@ -5,6 +5,7 @@ import { watch } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { dirname, relative, resolve, sep } from "node:path";
 import { copyAssets } from "../assets.ts";
+import { isBrowserName } from "../browser.ts";
 import type { Deck } from "../deck.ts";
 import { HinoteError, UsageError } from "../errors.ts";
 import {
@@ -14,6 +15,7 @@ import {
   packageManager,
 } from "../init.ts";
 import { deckPath, loadDeckFile } from "../load.ts";
+import { takeSnapshots } from "../snapshot.ts";
 import { parseBase, prerender as prerenderDeck } from "../prerender.ts";
 import { serve } from "../runtime.ts";
 import { inlineScripts } from "../scripts.ts";
@@ -328,5 +330,43 @@ export const assets: Command = {
       { output: outDir, copied },
       copied.length > 0 ? copied : "The slides refer to no files.",
     );
+  },
+};
+
+export const snapshot: Command = {
+  name: "snapshot",
+  group: "porcelain",
+  summary: "Write one PNG per slide, at the canvas size",
+  args: DECK_ARG,
+  maxArgs: 1,
+  description: `Serves the deck on this machine, opens each slide in a browser, and writes shots/1.png, shots/2.png, and so on. Each picture is the canvas (1920×1080 at 16:9), not the window. The server stops when the pictures are written. Presenter pages are not included.
+
+--browser chooses who takes them: agent-browser, puppeteer, chrome, or chrome-for-testing. auto, the default, uses the first of those that is installed. puppeteer means the puppeteer package in this project, which downloads its own browser. chrome is Google Chrome, Chromium, or Edge (or HINOTE_CHROME). chrome-for-testing is Chrome for Testing (or HINOTE_CHROME_FOR_TESTING).`,
+  flags: {
+    output: OUTPUT_FLAG("The directory to write the PNGs into.", "shots"),
+    browser: {
+      type: "string",
+      value: "name",
+      default: "auto",
+      description:
+        "Which browser takes the pictures: auto, agent-browser, puppeteer, chrome, or chrome-for-testing. auto uses the first one installed, in that order.",
+    },
+  },
+  examples: [
+    "hinote snapshot",
+    "hinote snapshot --browser chrome-for-testing -o shots",
+  ],
+  bundles: true,
+  async run(args, out) {
+    const requested = (args.flags.browser as string | undefined) ?? "auto";
+    if (requested !== "auto" && !isBrowserName(requested))
+      throw new UsageError(
+        `--browser ${requested} is not a browser hinote knows.`,
+        "Use auto, agent-browser, puppeteer, chrome, or chrome-for-testing.",
+      );
+    const deckFile = deckPath(args.positionals[0]);
+    const outDir = resolve((args.flags.output as string) ?? "shots");
+    const shot = await takeSnapshots(deckFile, outDir, requested);
+    out.result(shot, shot.files);
   },
 };

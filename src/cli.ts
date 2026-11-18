@@ -8,7 +8,14 @@ import type { Command } from "./cli/command.ts";
 import { commandHelp, overview } from "./cli/help.ts";
 import { createOutput, reportError } from "./cli/output.ts";
 import { check, inline, inspect, refs, render } from "./cli/plumbing.ts";
-import { assets, build, dev, init, prerender } from "./cli/porcelain.ts";
+import {
+  assets,
+  build,
+  dev,
+  init,
+  prerender,
+  snapshot,
+} from "./cli/porcelain.ts";
 import { skills } from "./cli/skills.ts";
 import { hasNodePackages, isBun } from "./runtime.ts";
 import pkg from "../package.json" with { type: "json" };
@@ -19,6 +26,7 @@ export const COMMANDS: readonly Command[] = [
   build,
   prerender,
   assets,
+  snapshot,
   render,
   inline,
   refs,
