@@ -32,10 +32,7 @@ test("root gets --no-sandbox; HINOTE_CHROME_FLAGS appends without duplicating it
     chromeExtraArgs({ HINOTE_CHROME_FLAGS: "--foo --bar=1" }, 1000),
   ).toEqual(["--foo", "--bar=1"]);
   expect(
-    chromeExtraArgs(
-      { HINOTE_CHROME_FLAGS: "--no-sandbox --disable-gpu" },
-      0,
-    ),
+    chromeExtraArgs({ HINOTE_CHROME_FLAGS: "--no-sandbox --disable-gpu" }, 0),
   ).toEqual(["--no-sandbox", "--disable-gpu"]);
   expect(splitChromeFlags("  --a   --b=c  ")).toEqual(["--a", "--b=c"]);
   expect(splitChromeFlags("")).toEqual([]);

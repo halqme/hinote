@@ -1,4 +1,11 @@
-import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { inflateSync } from "node:zlib";
 import { expect, test } from "bun:test";
@@ -85,9 +92,13 @@ test("when chrome dies on start, the error hint carries its stderr", async () =>
       "#!/bin/sh\necho 'Running as root without --no-sandbox is not supported.' >&2\nexit 1\n",
     );
     await chmod(fake, 0o755);
-    const failed = await run(["snapshot", "--browser", "chrome", "--json"], dir, {
-      HINOTE_CHROME: fake,
-    });
+    const failed = await run(
+      ["snapshot", "--browser", "chrome", "--json"],
+      dir,
+      {
+        HINOTE_CHROME: fake,
+      },
+    );
     expect(failed.code).toBe(1);
     expect(JSON.parse(failed.stdout).error).toMatchObject({
       code: "browser",
