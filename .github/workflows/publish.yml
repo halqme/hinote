@@ -1,0 +1,34 @@
+name: Publish
+
+# Trusted publishing: npm exchanges the GitHub OIDC token. No npm token.
+# The publisher configured on npmjs.com must name this file publish.yml.
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      # target_commitish stays on the default branch once the tag exists,
+      # so check that the tagged commit is actually contained in main.
+      - name: Require the tagged commit on main
+        run: |
+          status=$(gh api "repos/${GITHUB_REPOSITORY}/compare/main...${GITHUB_SHA}" --jq .status)
+          case "$status" in
+            behind|identical) ;;
+            *)
+              echo "Release commit ${GITHUB_SHA} is not on main (${status})"
+              exit 1
+              ;;
+          esac
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - run: bun install --frozen-lockfile
+      - run: npm publish
