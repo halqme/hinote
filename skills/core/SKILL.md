@@ -70,7 +70,7 @@ export default createSlide({ notes: "Say why before how." }, () => (
 
 Load one with `hinote skills get core --ref <name>`:
 
-- `api`: every option of `createSlide`, the components (`Step`, `Code`, `Center`, `Row`, `Column`, `Script`), themes, and CSS.
+- `api`: every option of `createSlide`, the components (`Step`, `Code`, `Center`, `Row`, `Column`, `Grid`, `Card`, `Script`), themes, and CSS.
 - `client`: `<Script>` and the `hinote` browser API, with sync between presenter and audience.
 - `serving`: build, prerender, and mounting the deck in Bun, Node, or Cloudflare Workers.
 - `recipes`: formulas, a background image beside text, two columns, charts, and other common slides.

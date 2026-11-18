@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { expect, test } from "bun:test";
 import { scopeCss } from "../src/deck/css.ts";
 import { HinoteError } from "../src/errors.ts";
-import { Row, createSlide } from "../src/index.ts";
+import { Card, Grid, Row, createSlide } from "../src/index.ts";
 import {
   findChrome,
   findChromeForTesting,
@@ -153,6 +153,127 @@ test.skipIf(!browser)(
 
       expect(gaps.before).toBe("40px");
       expect(gaps.after).toBe("0px");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);
+
+test.skipIf(!browser)(
+  "Grid cards with uneven headings share height and body start",
+  async () => {
+    const html = await createSlide([
+      createSlide(() => (
+        <Grid columns={2} gap={3}>
+          <Card>
+            <h3>Short</h3>
+            <p>Body A</p>
+          </Card>
+          <Card>
+            <h3>
+              A much longer heading that wraps to more lines than the other
+              card so the row heights would diverge without subgrid
+            </h3>
+            <p>Body B</p>
+          </Card>
+        </Grid>
+      )),
+    ]).render("static");
+
+    const dir = await mkdtemp(join(tmpdir(), "hinote-card-align-"));
+    try {
+      const file = join(dir, "cards.html");
+      await writeFile(file, html);
+      const measured = (await withBrowser(
+        browser!,
+        { width: 1920, height: 1080 },
+        async (page) => {
+          await page.goto(pathToFileURL(file).href);
+          return page.evaluate(`(() => {
+            const cards = [...document.querySelectorAll(".hinote-card")];
+            const boxes = cards.map((el) => el.getBoundingClientRect());
+            const bodies = cards.map((el) =>
+              el.querySelectorAll(".hinote-card-cell")[1].getBoundingClientRect(),
+            );
+            // h3 content height (not the subgrid cell) shows the titles differ;
+            // cell boxes match because of subgrid.
+            const titleHeights = cards.map((el) =>
+              el.querySelector("h3").getBoundingClientRect().height,
+            );
+            return {
+              heights: boxes.map((b) => b.height),
+              bodyTops: bodies.map((b) => b.top),
+              titleHeights,
+            };
+          })()`);
+        },
+      )) as {
+        heights: number[];
+        bodyTops: number[];
+        titleHeights: number[];
+      };
+
+      expect(measured.titleHeights[0]).toBeLessThan(measured.titleHeights[1]!);
+      expect(measured.heights[0]).toBe(measured.heights[1]);
+      expect(measured.bodyTops[0]).toBe(measured.bodyTops[1]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);
+
+test.skipIf(!browser)(
+  "deck CSS overrides Card surface without !important",
+  async () => {
+    const plain = await createSlide([
+      createSlide(() => (
+        <Grid>
+          <Card>
+            <h3>A</h3>
+            <p>one</p>
+          </Card>
+        </Grid>
+      )),
+    ]).render("static");
+    const overridden = await createSlide(
+      { css: ".hinote-card{background:rgb(255, 0, 0)}" },
+      [
+        createSlide(() => (
+          <Grid>
+            <Card>
+              <h3>A</h3>
+              <p>one</p>
+            </Card>
+          </Grid>
+        )),
+      ],
+    ).render("static");
+
+    const dir = await mkdtemp(join(tmpdir(), "hinote-card-css-"));
+    try {
+      const plainFile = join(dir, "plain.html");
+      const overriddenFile = join(dir, "overridden.html");
+      await writeFile(plainFile, plain);
+      await writeFile(overriddenFile, overridden);
+      const colors = await withBrowser(
+        browser!,
+        { width: 1920, height: 1080 },
+        async (page) => {
+          await page.goto(pathToFileURL(plainFile).href);
+          const before = await page.evaluate(
+            `getComputedStyle(document.querySelector(".hinote-card")).backgroundColor`,
+          );
+          await page.goto(pathToFileURL(overriddenFile).href);
+          const after = await page.evaluate(
+            `getComputedStyle(document.querySelector(".hinote-card")).backgroundColor`,
+          );
+          return { before, after };
+        },
+      );
+      expect(colors.before).not.toBe("rgb(255, 0, 0)");
+      expect(colors.after).toBe("rgb(255, 0, 0)");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

@@ -31,6 +31,7 @@ Deck options: `title`, `theme`, `transition`, `css`, and, on the top-level deck 
 - `<Step as="li" at={2} class="x">` reveals on a key press. Without `at`, steps count 1, 2, 3 in document order. Hidden steps keep their space.
 - `<Code lang="ts">{`...`}</Code>` or `<Code lang="ts" code={source} theme={githubLight} />` highlights on the server; the JSX indentation is removed. Size from `typography.code`.
 - `<Center>`, `<Row>`, `<Column>` take `gap` (a number is multiples of `spacing.unit`, or a CSS length), `align`, and `justify`. Props become `--hinote-gap` / `--hinote-align` / `--hinote-justify`; the flex rules sit on `.hinote-row` / `.hinote-column` / `.hinote-center` in `@layer hinote`, so deck or slide CSS can override them without `!important`.
+- `<Grid columns={2} gap={3}>` sets the column track count (`--hinote-grid-columns`) and gap. `<Card span={2}>` is one cell: each child is a row (`.hinote-card-cell`). Cards use `grid-template-rows: subgrid` so a band of cards shares heading/body row heights. Chrome for `.hinote-grid` / `.hinote-card` lives in `@layer hinote` (surface, border, radius, cell padding from spacing tokens); deck CSS can restyle without `!important`.
 - `<Script src={new URL("./x.client.tsx", import.meta.url)} />` bundles a file for the browser (see `--ref client`).
 
 ## Theme

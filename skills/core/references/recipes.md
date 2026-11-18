@@ -51,6 +51,27 @@ createSlide(
 </Row>
 ```
 
+## Aligned cards
+
+When headings wrap to different heights, put the cards in a `Grid` so subgrid lines up the rows:
+
+```tsx
+<Grid columns={2} gap={3}>
+  <Card>
+    <h3>Short title</h3>
+    <p>Finding A</p>
+  </Card>
+  <Card>
+    <h3>A longer title that wraps to two lines</h3>
+    <p>Finding B</p>
+  </Card>
+  <Card span={2}>
+    <h3>Full-width note</h3>
+    <p>Spans both columns</p>
+  </Card>
+</Grid>
+```
+
 ## Data from a file
 
 ```tsx

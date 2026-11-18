@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import {
+  Card,
   Center,
   Column,
+  Grid,
   Row,
   Script,
   Step,
@@ -362,6 +364,41 @@ describe("layout", () => {
   test("rejects a layout value that would break out of the style attribute", async () => {
     const slide = createSlide(() => <Row align="center}" />);
     await expect(deckOf(slide).render()).rejects.toThrow(HinoteError);
+  });
+
+  test("Grid and Card expose columns, gap, span, and one cell per child", async () => {
+    const slide = createSlide(() => (
+      <Grid columns={3} gap={2}>
+        <Card span={2}>
+          <h3>Title</h3>
+          <p>Body</p>
+        </Card>
+        <Card>
+          <h3>Other</h3>
+        </Card>
+      </Grid>
+    ));
+    const html = await deckOf(slide).render();
+    expect(html).toContain('class="hinote-grid"');
+    expect(html).toContain('class="hinote-card"');
+    expect(html).toContain("--hinote-grid-columns:3");
+    expect(html).toContain("--hinote-gap:calc(var(--hinote-space-unit) * 2)");
+    expect(html).toContain("--hinote-card-span:2");
+    expect(html).toContain("--hinote-card-rows:2");
+    expect(html).toContain("--hinote-card-rows:1");
+    expect(html.match(/class="hinote-card-cell"/g)?.length).toBe(3);
+    expect(html).toContain(
+      ".hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span var(--hinote-card-rows,1);grid-column:span var(--hinote-card-span,1);",
+    );
+  });
+
+  test("rejects a non-positive Grid columns or Card span", async () => {
+    await expect(
+      deckOf(createSlide(() => <Grid columns={0} />)).render(),
+    ).rejects.toThrow(HinoteError);
+    await expect(
+      deckOf(createSlide(() => <Card span={0} />)).render(),
+    ).rejects.toThrow(HinoteError);
   });
 });
 
