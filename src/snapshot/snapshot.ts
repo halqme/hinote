@@ -93,9 +93,15 @@ async function photograph(
         hint: "The slide did not become the size of the canvas. Try another browser with --browser.",
       }),
   );
-  // Every step must be visible: the picture and the layout report both use
-  // the finished slide, not the empty first frame.
-  await page.evaluate(revealAllExpression(index));
+  // Every step must be visible with no fade: the picture and the layout report
+  // both use the finished slide, not the empty first frame.
+  await poll(
+    () => page.evaluate<boolean>(revealAllExpression(index)),
+    () =>
+      new HinoteError(`Slide ${index + 1} did not reveal every step.`, {
+        code: "browser",
+      }),
+  );
   const layout = await measureSlide(page, index);
   await page.screenshot(file, STAGE);
   const size = pngSize(await readFile(file));

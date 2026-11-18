@@ -1,5 +1,6 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { inflateSync } from "node:zlib";
 import { expect, test } from "bun:test";
 import {
   findChrome,
@@ -209,21 +210,27 @@ export default createSlide({ pageNumber: true }, [
       const { problems, warnings, files } = body.data;
       expect(files).toHaveLength(6);
 
-      const overflow = problems.filter((p: { code: string }) => p.code === "overflow");
-      expect(overflow.some((p: { slides: number[] }) => p.slides.includes(1))).toBe(
-        true,
-      );
-      expect(overflow.some((p: { slides: number[] }) => p.slides.includes(6))).toBe(
-        true,
+      const overflow = problems.filter(
+        (p: { code: string }) => p.code === "overflow",
       );
       expect(
-        overflow.every((p: { slides: number[]; hint: string }) => p.hint && p.slides),
+        overflow.some((p: { slides: number[] }) => p.slides.includes(1)),
+      ).toBe(true);
+      expect(
+        overflow.some((p: { slides: number[] }) => p.slides.includes(6)),
+      ).toBe(true);
+      expect(
+        overflow.every(
+          (p: { slides: number[]; hint: string }) => p.hint && p.slides,
+        ),
       ).toBe(true);
 
-      const clipped = problems.filter((p: { code: string }) => p.code === "clipped");
-      expect(clipped.some((p: { slides: number[] }) => p.slides.includes(2))).toBe(
-        true,
+      const clipped = problems.filter(
+        (p: { code: string }) => p.code === "clipped",
       );
+      expect(
+        clipped.some((p: { slides: number[] }) => p.slides.includes(2)),
+      ).toBe(true);
 
       // Bleed skips overflow; page numbers are never reported.
       expect(
@@ -233,8 +240,8 @@ export default createSlide({ pageNumber: true }, [
         ),
       ).toBe(false);
       expect(
-        [...problems, ...warnings].some(
-          (p: { selector?: string }) => p.selector?.includes("hinote-page"),
+        [...problems, ...warnings].some((p: { selector?: string }) =>
+          p.selector?.includes("hinote-page"),
         ),
       ).toBe(false);
 
@@ -292,6 +299,128 @@ export default createSlide([
         slides: [1],
         hint: expect.stringContaining("spacing.safe"),
       });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  60_000,
+);
+
+// A solid #ff00aa block only paints when its <Step> is revealed (and fully
+// opaque). Counting near-magenta pixels proves the PNG shows every step.
+function nearMagentaCount(png: Buffer): number {
+  const rgb = decodePngRgb(png);
+  let hits = 0;
+  for (let i = 0; i + 2 < rgb.length; i += 3) {
+    const r = rgb[i]!;
+    const g = rgb[i + 1]!;
+    const b = rgb[i + 2]!;
+    if (r > 200 && g < 40 && b > 140) hits++;
+  }
+  return hits;
+}
+
+// Chrome's canvas screenshots are 8-bit RGB (color type 2), one filter byte per row.
+function decodePngRgb(png: Buffer): Uint8Array {
+  if (png.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a")
+    throw new Error("not a png");
+  const width = png.readUInt32BE(16);
+  const height = png.readUInt32BE(20);
+  const color = png[25];
+  if (png[24] !== 8 || (color !== 2 && color !== 6))
+    throw new Error(`unsupported png ${png[24]}/${color}`);
+  const channels = color === 6 ? 4 : 3;
+  const idats: Buffer[] = [];
+  let offset = 8;
+  while (offset + 8 <= png.length) {
+    const length = png.readUInt32BE(offset);
+    const type = png.subarray(offset + 4, offset + 8).toString("ascii");
+    const data = png.subarray(offset + 8, offset + 8 + length);
+    if (type === "IDAT") idats.push(Buffer.from(data));
+    offset += 12 + length;
+  }
+  const inflated = inflateSync(Buffer.concat(idats));
+  const stride = width * channels;
+  const out = new Uint8Array(width * height * 3);
+  let src = 0;
+  let dst = 0;
+  let prev = new Uint8Array(stride);
+  for (let y = 0; y < height; y++) {
+    const filter = inflated[src++]!;
+    const row = inflated.subarray(src, src + stride);
+    src += stride;
+    const recon = new Uint8Array(stride);
+    for (let i = 0; i < stride; i++) {
+      const x = row[i]!;
+      const a = i >= channels ? recon[i - channels]! : 0;
+      const b = prev[i]!;
+      const c = i >= channels ? prev[i - channels]! : 0;
+      let value = x;
+      if (filter === 1) value = (x + a) & 255;
+      else if (filter === 2) value = (x + b) & 255;
+      else if (filter === 3) value = (x + Math.floor((a + b) / 2)) & 255;
+      else if (filter === 4) {
+        const p = a + b - c;
+        const pa = Math.abs(p - a);
+        const pb = Math.abs(p - b);
+        const pc = Math.abs(p - c);
+        const pr = pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+        value = (x + pr) & 255;
+      }
+      recon[i] = value;
+    }
+    for (let i = 0; i < width; i++) {
+      const o = i * channels;
+      out[dst++] = recon[o]!;
+      out[dst++] = recon[o + 1]!;
+      out[dst++] = recon[o + 2]!;
+    }
+    prev = recon;
+  }
+  return out;
+}
+
+test.skipIf(!browser)(
+  "PNG shows every Step fully opaque, not mid-fade",
+  async () => {
+    const dir = await tempDir();
+    try {
+      await writeFile(
+        join(dir, "deck.tsx"),
+        `import { createSlide, Step } from ${JSON.stringify(api)}
+export default createSlide([
+  createSlide(() => (
+    <div>
+      <p>always visible</p>
+      <Step>
+        <div
+          style={{
+            width: "200px",
+            height: "200px",
+            background: "#ff00aa",
+          }}
+        >
+          step marker
+        </div>
+      </Step>
+    </div>
+  )),
+  createSlide(() => <p>no steps here</p>),
+]);
+`,
+      );
+      const shot = await run(
+        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
+        dir,
+      );
+      expect(shot.stderr).toBe("");
+      expect(shot.code).toBe(0);
+      const withStep = await readFile(join(dir, "shots/1.png"));
+      const without = await readFile(join(dir, "shots/2.png"));
+      // A 200×200 solid marker yields tens of thousands of magenta pixels when
+      // fully opaque; mid-fade or hidden would leave far fewer / none.
+      expect(nearMagentaCount(withStep)).toBeGreaterThan(10_000);
+      expect(nearMagentaCount(without)).toBe(0);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

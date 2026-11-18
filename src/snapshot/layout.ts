@@ -21,13 +21,25 @@ export type LayoutReport = {
 
 const SLOP = 1;
 
-// Shows every step on the active slide so measurement matches a finished look.
+// Shows every step on the active slide with no fade, so the PNG and the layout
+// report both see the finished slide (same idea as print).
 export function revealAllExpression(index: number): string {
   return `(() => {
     const slide = document.querySelectorAll("#deck .slide")[${index}];
     if (!slide) return false;
-    for (const el of slide.querySelectorAll("[data-hinote-step]"))
+    const steps = slide.querySelectorAll("[data-hinote-step]");
+    for (const el of steps) {
+      // Kill the 0.2s opacity transition before unhiding, or the shot can land
+      // mid-fade with steps half-transparent.
+      el.style.transition = "none";
       el.classList.remove("is-hidden");
+    }
+    void slide.offsetHeight;
+    for (const el of steps) {
+      const style = getComputedStyle(el);
+      if (style.visibility === "hidden" || Number(style.opacity) < 1)
+        return false;
+    }
     return true;
   })()`;
 }

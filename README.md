@@ -140,8 +140,13 @@ import { render, useState } from "hono/jsx/dom";
 hinote.on("chart:mode", (mode) => highlight(mode as string));
 
 if (hinote.role === "presenter") {
-  for (const slot of document.querySelectorAll<HTMLElement>("#deck .chart-slot"))
-    render(<Controls onPick={(mode) => hinote.send("chart:mode", mode)} />, slot);
+  for (const slot of document.querySelectorAll<HTMLElement>(
+    "#deck .chart-slot",
+  ))
+    render(
+      <Controls onPick={(mode) => hinote.send("chart:mode", mode)} />,
+      slot,
+    );
 }
 ```
 
@@ -191,7 +196,7 @@ The presenter sends the pointer to the audience. Either window can move, and the
 
 To make a PDF, print any page and choose "Save as PDF". Each slide becomes one page at canvas size with every step revealed.
 
-`snapshot` writes one PNG per slide, at that same canvas size, into `shots/` (or `-o`), with every step revealed, then stops. The same pass reports layout issues in `--json` as `problems` (canvas overflow, clipped content; exit 1) and `warnings` (safe-area crossings; exit 0 alone). Mark intentional bleed with `data-hinote-bleed`. It does not leave a server running, and it does not write the presenter view. `--browser` is `auto` (the default), `agent-browser`, `puppeteer`, `chrome`, or `chrome-for-testing`. `auto` uses the first of those that can launch. `puppeteer` is that package in the project. `chrome` is Google Chrome, Chromium, or Edge, unless `HINOTE_CHROME` names the binary. `chrome-for-testing` is Chrome for Testing, unless `HINOTE_CHROME_FOR_TESTING` names it.
+`snapshot` writes one PNG per slide, at that same canvas size, into `shots/` (or `-o`), then stops. Every `<Step>` is shown with no fade, so each picture is the finished slide (as print is). The same pass reports layout issues in `--json` as `problems` (canvas overflow, clipped content; exit 1) and `warnings` (safe-area crossings; exit 0 alone). Mark intentional bleed with `data-hinote-bleed`. It does not leave a server running, and it does not write the presenter view. `--browser` is `auto` (the default), `agent-browser`, `puppeteer`, `chrome`, or `chrome-for-testing`. `auto` uses the first of those that can launch. `puppeteer` is that package in the project. `chrome` is Google Chrome, Chromium, or Edge, unless `HINOTE_CHROME` names the binary. `chrome-for-testing` is Chrome for Testing, unless `HINOTE_CHROME_FOR_TESTING` names it.
 
 `build` writes the audience view only: no presenter view, no pointer, and no sync. The position is in the hash (`#3`). Images and other files the slides refer to by relative path (`src`, `href`, `srcset`, and `url()` in CSS) are copied next to the HTML file, keeping their paths. Files outside the deck directory, absolute paths, and other sites are left as they are.
 
