@@ -49,5 +49,5 @@ for (const slot of document.querySelectorAll<HTMLElement>("#deck .poll"))
 | `hinote.toCanvas(event)`         | Pointer position in canvas pixels of the current slide                                     |
 
 - Under `hinote dev` with the presenter on, events reach every page through the server. Prerendered pages reach other windows of the same browser. The built single file reaches only itself.
-- A page opened later has not seen earlier events, and a reload starts with no step revealed. Keep state that others need to follow in one page (the presenter, say) and have it answer a request event, as `examples/components/life.client.tsx` does.
+- A page opened later has not seen earlier events, and a reload starts with no step revealed. Keep state that others need to follow in one page (the presenter, say) and have it answer a request event: the leader sends the board with `hinote.send`, and a page that opens or reloads asks for it so it never starts behind.
 - The slide is a scaled canvas: use `hinote.toCanvas(event)` instead of `clientX`.
