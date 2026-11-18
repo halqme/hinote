@@ -1,7 +1,7 @@
 // Builds dist/: the library as JavaScript with type declarations. The package
 // ships only dist/, so Bun and Node load the same files.
 //   bun run build:lib
-import { rm } from "node:fs/promises";
+import { copyFile, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -41,4 +41,20 @@ const tsc = Bun.spawnSync(
   },
 );
 if (tsc.exitCode !== 0) process.exit(tsc.exitCode ?? 1);
+
+// tsc does not emit a .d.ts input, and keeps index.d.ts pointing at the one
+// in src/, which the package does not ship. Without it, a deck's
+// `import style from "./style.css"` fails to typecheck.
+await copyFile(`${root}src/css-module.d.ts`, `${dist}/css-module.d.ts`);
+const index = `${dist}/index.d.ts`;
+const types = await readFile(index, "utf8");
+const fixed = types.replace(
+  /(<reference path=")[^"]*css-module\.d\.ts"/,
+  '$1./css-module.d.ts"',
+);
+if (fixed === types) {
+  console.error(`${index} does not reference css-module.d.ts.`);
+  process.exit(1);
+}
+await writeFile(index, fixed);
 console.log(dist);
