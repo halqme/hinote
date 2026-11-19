@@ -14,18 +14,23 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       # target_commitish stays on the default branch once the tag exists,
       # so check that the tagged commit is actually contained in main.
       - name: Require the tagged commit on main
         run: |
-          status=$(gh api "repos/${GITHUB_REPOSITORY}/compare/main...${GITHUB_SHA}" --jq .status)
-          case "$status" in
-            behind|identical) ;;
-            *)
-              echo "Release commit ${GITHUB_SHA} is not on main (${status})"
-              exit 1
-              ;;
-          esac
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "Release commit ${GITHUB_SHA} is not on main"
+            exit 1
+          fi
+      - name: Require the tag to match package.json
+        run: |
+          version=$(jq -r .version package.json)
+          if [ "$GITHUB_REF_NAME" != "v${version}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package.json version v${version}"
+            exit 1
+          fi
       - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-node@v7
         with:
