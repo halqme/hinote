@@ -142,7 +142,7 @@ describe("createSlide", () => {
     );
     const inner = createSlide({ lang: "en" }, [textSlide("x")]);
     expect(() => createSlide([inner])).toThrow(HinoteError);
-    expect(() => createSlide({ lang: "ja" }, () => <p>x</p>)).toThrow(
+    expect(() => createSlide({ lang: "ja" } as never, () => <p>x</p>)).toThrow(
       HinoteError,
     );
   });
