@@ -266,6 +266,7 @@ export async function renderDeck(input: {
   slides: readonly Slide[];
   theme?: Theme;
   title?: string;
+  lang?: string;
   canvas?: { width: number; height: number };
   transition?: Transition;
   css?: readonly CssSource[];
@@ -349,6 +350,7 @@ ${FRAME_CSS}`;
   const document = jsx(
     "html",
     {
+      lang: input.lang,
       "data-page": page,
       "data-sync": page !== "static" ? input.sync : undefined,
       "data-paths": input.directories ? "directories" : undefined,

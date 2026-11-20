@@ -14,6 +14,9 @@ export type Aspect = "16:9" | "4:3" | `${number}:${number}`;
 export type DeckOptions = {
   // Document title. Defaults to the first slide title.
   title?: string;
+  // Document language, such as "ja" or "ja-JP". Only the top-level deck may
+  // set it. `<html>` has no `lang` when this is omitted.
+  lang?: string;
   // A name for this deck's part of the talk. Each slide's render function
   // receives it in `sections`.
   section?: string;
@@ -45,6 +48,8 @@ const PING_MS = 5000;
 const MAX_MESSAGE_BYTES = 4096;
 
 const ASPECT = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/;
+// A short language tag: "ja", "en", "ja-JP", "zh-Hans". Not free text.
+const LANGUAGE = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/;
 
 function isAspect(value: string): value is Aspect {
   return ASPECT.test(value);
@@ -66,6 +71,7 @@ export function parseAspect(aspect: string): Canvas {
 
 const OPTION_KEYS = new Set([
   "title",
+  "lang",
   "section",
   "theme",
   "aspect",
@@ -91,6 +97,15 @@ export function parseDeckOptions(
     if (typeof value.title !== "string")
       throw new HinoteError('Deck option "title" must be a string.');
     options.title = value.title;
+  }
+  if (value.lang !== undefined) {
+    if (typeof value.lang !== "string")
+      throw new HinoteError('Deck option "lang" must be a string.');
+    if (!LANGUAGE.test(value.lang))
+      throw new HinoteError(
+        'Deck option "lang" must be a language tag like "ja" or "ja-JP".',
+      );
+    options.lang = value.lang;
   }
   if (value.section !== undefined) {
     if (typeof value.section !== "string")
@@ -274,6 +289,7 @@ export class Deck extends Hono {
       slides,
       theme: this.config.theme,
       title: this.config.title,
+      lang: this.config.lang,
       canvas: this.canvas,
       transition: this.config.transition,
       css: this.config.css,

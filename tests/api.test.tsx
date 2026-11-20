@@ -112,6 +112,41 @@ describe("createSlide", () => {
     expect(() => createSlide({ section: 1 } as never, [])).toThrow(HinoteError);
   });
 
+  test("a top-level lang is on every page, and a deck without one has no lang", async () => {
+    const deck = createSlide({ lang: "ja" }, [textSlide("x")]);
+    for (const page of ["view", "presenter", "static"] as const)
+      expect(await deck.render(page)).toMatch(/<html\b[^>]*\blang="ja"/);
+    expect(
+      await createSlide({ lang: "ja-JP" }, [textSlide("x")]).render(),
+    ).toMatch(/<html\b[^>]*\blang="ja-JP"/);
+    expect(
+      await createSlide({ lang: "zh-Hans" }, [textSlide("x")]).render(),
+    ).toMatch(/<html\b[^>]*\blang="zh-Hans"/);
+    expect(await deckOf(textSlide("こんにちは")).render()).not.toMatch(
+      /<html\b[^>]*\slang=/,
+    );
+  });
+
+  test("lang must be a language tag, on the top-level deck only", () => {
+    expect(() => createSlide({ lang: "" }, [textSlide("x")])).toThrow(
+      HinoteError,
+    );
+    expect(() => createSlide({ lang: "ja_JP" }, [textSlide("x")])).toThrow(
+      HinoteError,
+    );
+    expect(() =>
+      createSlide({ lang: 'ja"><script>' }, [textSlide("x")]),
+    ).toThrow(HinoteError);
+    expect(() => createSlide({ lang: 1 } as never, [textSlide("x")])).toThrow(
+      HinoteError,
+    );
+    const inner = createSlide({ lang: "en" }, [textSlide("x")]);
+    expect(() => createSlide([inner])).toThrow(HinoteError);
+    expect(() => createSlide({ lang: "ja" } as never, () => <p>x</p>)).toThrow(
+      HinoteError,
+    );
+  });
+
   test("only the top-level deck may set title, aspect, presenter, or pageNumber", () => {
     const inner = createSlide({ aspect: "4:3" }, [textSlide("x")]);
     expect(() => createSlide([inner])).toThrow(HinoteError);
