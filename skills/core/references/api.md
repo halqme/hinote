@@ -38,7 +38,7 @@ const results = createSlide({ title: "結果" }, (slide) => (
 export default createSlide({ section: "実験1-1" }, [results]);
 ```
 
-Deck options: `title`, `section` (a name its slides receive in `sections`), `theme`, `transition`, `css`, and, on the top-level deck only, `lang` (a language tag such as `"ja"` or `"ja-JP"`; `<html>` has no `lang` when it is omitted), `aspect` (`"16:9"` default, `"4:3"`, or any `"W:H"`), `presenter` (`true` serves the presenter view and sync outside `hinote dev`), and `pageNumber` (`true` paints `n / total` from the flattened order). An unknown option is an error.
+Deck options: `title`, `section` (a name its slides receive in `sections`), `theme`, `transition`, `css`, and, on the top-level deck only, `lang` (a language tag such as `"ja"` or `"ja-JP"`; `<html>` has no `lang` when it is omitted; when its primary subtag is `ja`, slide text breaks between phrases with `word-break: auto-phrase`, while `pre` and `code` keep normal breaking), `aspect` (`"16:9"` default, `"4:3"`, or any `"W:H"`), `presenter` (`true` serves the presenter view and sync outside `hinote dev`), and `pageNumber` (`true` paints `n / total` from the flattened order). An unknown option is an error.
 
 ## Components
 
