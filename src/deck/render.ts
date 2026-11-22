@@ -37,6 +37,7 @@ import {
 // Grid lays out Cards; each Card uses subgrid so cards in a band share row heights.
 // Every Card spans the band's largest row count, so a footer in the last track lines up.
 // Flow puts an arrow between boxes; the arrow is ::before content deck CSS can replace.
+// Table widths are a --hinote-column-width variable per <col>; the width rule is here.
 const SLIDE_CSS = `
 *{box-sizing:border-box}
 .slide{display:flex;flex-direction:column;padding:var(--hinote-space-safe);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
@@ -53,6 +54,13 @@ const SLIDE_CSS = `
 .hinote-flow-box.is-emphasis{border-color:var(--hinote-color-accent);box-shadow:inset 0 0 0 2px var(--hinote-color-accent)}
 .hinote-flow-arrow{flex:none;align-self:center;color:var(--hinote-color-muted);font-size:var(--hinote-text-h2);line-height:1}
 .hinote-flow-arrow::before{content:"→"}
+.hinote-table{width:100%;border-collapse:collapse;font-size:var(--hinote-text-body);line-height:1.4}
+.hinote-table[data-hinote-widths]{table-layout:fixed}
+.hinote-table col{width:var(--hinote-column-width,auto)}
+.hinote-table :is(th,td){padding:var(--hinote-space-unit) calc(var(--hinote-space-unit) * 2);text-align:left;vertical-align:top;border-bottom:1px solid var(--hinote-color-border)}
+.hinote-table thead th{font-weight:700;border-bottom-width:2px}
+.hinote-table tr.is-emphasis{background:var(--hinote-color-surface);font-weight:700}
+.hinote-table tr.is-emphasis>:first-child{box-shadow:inset 4px 0 0 var(--hinote-color-accent)}
 :where(.slide) :is(h1,h2,h3,p){margin:0}
 :where(.slide) h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
 :where(.slide) h2{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}

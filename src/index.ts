@@ -13,6 +13,8 @@ export type {
   GridProps,
   LayoutProps,
 } from "./components/layout.tsx";
+export { Table } from "./components/table.tsx";
+export type { TableProps } from "./components/table.tsx";
 export { createSlide } from "./deck/create.ts";
 export type { SlideInput } from "./deck/create.ts";
 export type {
