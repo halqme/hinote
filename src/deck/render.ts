@@ -35,6 +35,9 @@ import {
 // Row / Column / Center put flex props on these classes (not on style=) so deck CSS in a
 // later layer can override them. Props only set --hinote-gap / --hinote-align / --hinote-justify.
 // Grid lays out Cards; each Card uses subgrid so cards in a band share row heights.
+// Every Card spans the band's largest row count, so a footer in the last track lines up.
+// Flow puts an arrow between boxes; the arrow is ::before content deck CSS can replace.
+// Table widths are a --hinote-column-width variable per <col>; the width rule is here.
 const SLIDE_CSS = `
 *{box-sizing:border-box}
 .slide{display:flex;flex-direction:column;padding:var(--hinote-space-safe);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
@@ -43,8 +46,21 @@ const SLIDE_CSS = `
 .hinote-column{flex-direction:column;align-items:var(--hinote-align,stretch);justify-content:var(--hinote-justify,start)}
 .hinote-center{flex:1;flex-direction:column;align-items:var(--hinote-align,center);justify-content:var(--hinote-justify,center)}
 .hinote-grid{display:grid;width:100%;grid-template-columns:repeat(var(--hinote-grid-columns,2),minmax(0,1fr));gap:var(--hinote-gap,calc(var(--hinote-space-unit) * 3))}
-.hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span var(--hinote-card-rows,1);grid-column:span var(--hinote-card-span,1);min-width:0;background:var(--hinote-color-surface);color:var(--hinote-color-fg);border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius)}
+.hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span max(var(--hinote-card-rows,1),var(--hinote-grid-rows,1));grid-column:span var(--hinote-card-span,1);min-width:0;background:var(--hinote-color-surface);color:var(--hinote-color-fg);border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius)}
 .hinote-card-cell{min-width:0;min-height:0;padding:calc(var(--hinote-space-unit) * 2)}
+.hinote-card-footer{grid-row:-2/-1;align-self:end}
+.hinote-flow{display:flex;align-items:stretch;width:100%;gap:var(--hinote-gap,calc(var(--hinote-space-unit) * 2))}
+.hinote-flow-box{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--hinote-space-unit) * 3);background:var(--hinote-color-surface);color:var(--hinote-color-fg);border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius)}
+.hinote-flow-box.is-emphasis{border-color:var(--hinote-color-accent);box-shadow:inset 0 0 0 2px var(--hinote-color-accent)}
+.hinote-flow-arrow{flex:none;align-self:center;color:var(--hinote-color-muted);font-size:var(--hinote-text-h2);line-height:1}
+.hinote-flow-arrow::before{content:"→"}
+.hinote-table{width:100%;border-collapse:collapse;font-size:var(--hinote-text-body);line-height:1.4}
+.hinote-table[data-hinote-widths]{table-layout:fixed}
+.hinote-table col{width:var(--hinote-column-width,auto)}
+.hinote-table :is(th,td){padding:var(--hinote-space-unit) calc(var(--hinote-space-unit) * 2);text-align:left;vertical-align:top;border-bottom:1px solid var(--hinote-color-border)}
+.hinote-table thead th{font-weight:700;border-bottom-width:2px}
+.hinote-table tr.is-emphasis{background:var(--hinote-color-surface);font-weight:700}
+.hinote-table tr.is-emphasis>:first-child{box-shadow:inset 4px 0 0 var(--hinote-color-accent)}
 :where(.slide) :is(h1,h2,h3,p){margin:0}
 :where(.slide) h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
 :where(.slide) h2{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}
@@ -54,6 +70,8 @@ const SLIDE_CSS = `
 :where(.slide) li+li{margin-top:0.25em}
 :where(.slide) small{font-size:var(--hinote-text-small);color:var(--hinote-color-muted)}
 :where(.slide) :is(code,pre){font-family:var(--hinote-font-mono)}
+:where(.slide:lang(ja)){word-break:auto-phrase}
+:where(.slide:lang(ja)) :is(code,pre){word-break:normal}
 :where(.slide) pre.highlights{margin:0;padding:1em 1.25em;border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius);background:var(--hinote-color-surface);font-size:var(--hinote-text-code);line-height:1.5;text-align:left;white-space:pre;overflow:hidden}
 :where(.slide) a{color:var(--hinote-color-accent)}
 :where(.slide) .hinote-page{position:absolute;right:calc(var(--hinote-space-unit) * 4);bottom:calc(var(--hinote-space-unit) * 3);margin:0;color:var(--hinote-color-muted);font-size:var(--hinote-text-small);font-variant-numeric:tabular-nums}

@@ -419,6 +419,55 @@ export default createSlide([
 );
 
 test.skipIf(!browser)(
+  "one character alone on a line is a lone-character warning, a short word is not",
+  async () => {
+    const dir = await tempDir();
+    try {
+      // Monospace letters are 1ch each, so a 5ch box holds five per line on
+      // any machine; Japanese glyph widths depend on the fonts installed.
+      await writeFile(
+        join(dir, "deck.tsx"),
+        `import { createSlide } from ${JSON.stringify(api)}
+const box = { width: "5ch", fontFamily: "monospace", wordBreak: "break-all" } as const;
+export default createSlide([
+  createSlide(() => <p style={box}>abcdef</p>),
+  createSlide(() => (
+    <div>
+      <p style={box}>abcdefg</p>
+      <p style={{ width: "6em" }}>wonderful day to go</p>
+      <p>A</p>
+      <pre style={{ ...box, whiteSpace: "pre-wrap" }}>abcdef</pre>
+    </div>
+  )),
+]);
+`,
+      );
+      const shot = await run(
+        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
+        dir,
+      );
+      expect(shot.stderr).toBe("");
+      expect(shot.code).toBe(0);
+      const { warnings } = JSON.parse(shot.stdout).data;
+      expect(
+        warnings.filter((w: { code: string }) => w.code === "lone-character"),
+      ).toEqual([
+        expect.objectContaining({
+          slides: [1],
+          selector: "p",
+          text: "abcdef",
+        }),
+      ]);
+      const help = await run(["help", "snapshot"], dir);
+      expect(help.stdout).toContain("lone-character");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  60_000,
+);
+
+test.skipIf(!browser)(
   "safe-area warnings alone keep exit 0",
   async () => {
     const dir = await tempDir();
@@ -457,14 +506,21 @@ export default createSlide([
 );
 
 test.skipIf(!browser)(
-  "default Grid and Card slides report no snapshot problems",
+  "default Flow, Grid, and Card slides report no snapshot problems",
   async () => {
     const dir = await tempDir();
     try {
       await writeFile(
         join(dir, "deck.tsx"),
-        `import { Card, Grid, createSlide } from ${JSON.stringify(api)}
+        `import { Card, Flow, Grid, createSlide } from ${JSON.stringify(api)}
 export default createSlide([
+  createSlide(() => (
+    <Flow emphasis={3}>
+      <p>Can a general model do it?</p>
+      <p>Its internals are hard to read</p>
+      <p>Make it answer on the board</p>
+    </Flow>
+  )),
   createSlide(() => (
     <Grid columns={2} gap={3}>
       <Card>

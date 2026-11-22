@@ -19,6 +19,17 @@ export type GridProps = {
 export type CardProps = {
   // How many grid columns this card spans. Defaults to 1.
   span?: number;
+  // Pinned to the card's last row. Cards in a Grid end on the same row, so
+  // footers such as a source line up across columns.
+  footer?: Child;
+  class?: string;
+  children?: Child;
+};
+
+export type FlowProps = {
+  // Which box to emphasize, counted from 1 in reading order.
+  emphasis?: number;
+  gap?: string | number;
   class?: string;
   children?: Child;
 };
@@ -109,7 +120,14 @@ export function Center(props: LayoutProps) {
 // with `grid-template-rows: subgrid`, so cards in the same band share row
 // heights: a taller heading stretches every card's heading track.
 export function Grid(props: GridProps) {
-  const style: Record<string, string> = {};
+  // Every Card spans the most rows any Card here has, so the cards in a band
+  // end on the same line and each footer sits in the same last track. Set even
+  // when no Card is visible here, so a nested Grid never inherits the outer one.
+  const style: Record<string, string> = {
+    "--hinote-grid-rows": String(
+      Math.max(1, ...childList(props.children).map(cardRows)),
+    ),
+  };
   if (props.columns !== undefined)
     style["--hinote-grid-columns"] = String(
       positiveInt(props.columns, "columns"),
@@ -126,11 +144,29 @@ export function Grid(props: GridProps) {
   );
 }
 
-// One cell of a Grid. Direct children are the card's rows (heading, body, …).
+// The rows a Card child of Grid takes: one per child, plus its footer.
+// Anything else, including a component that wraps a Card, counts as none; that
+// Card still spans its own rows.
+function cardRows(child: Child): number {
+  if (typeof child !== "object" || child === null || !("tag" in child))
+    return 0;
+  if (child.tag !== Card) return 0;
+  const props = child.props as CardProps;
+  return (
+    Math.max(childList(props.children).length, 1) +
+    (childList(props.footer).length > 0 ? 1 : 0)
+  );
+}
+
+// One cell of a Grid. Direct children are the card's rows (heading, body, …);
+// `footer` is one more row, always the card's last.
 export function Card(props: CardProps) {
   const rows = childList(props.children);
+  const footer = childList(props.footer);
   const style: Record<string, string> = {
-    "--hinote-card-rows": String(Math.max(rows.length, 1)),
+    "--hinote-card-rows": String(
+      Math.max(rows.length, 1) + (footer.length > 0 ? 1 : 0),
+    ),
   };
   if (props.span !== undefined)
     style["--hinote-card-span"] = String(positiveInt(props.span, "span"));
@@ -139,6 +175,45 @@ export function Card(props: CardProps) {
       {rows.map((child) => (
         <div class="hinote-card-cell">{child}</div>
       ))}
+      {footer.length > 0 && (
+        <div class="hinote-card-cell hinote-card-footer">{props.footer}</div>
+      )}
+    </div>
+  );
+}
+
+// Boxes in reading order with an arrow between each pair. Each child is one
+// box, so two boxes and three boxes are the same component. The arrow is a
+// CSS ::before on `.hinote-flow-arrow`, so deck CSS can redraw it.
+export function Flow(props: FlowProps) {
+  const boxes = childList(props.children);
+  if (
+    props.emphasis !== undefined &&
+    positiveInt(props.emphasis, "emphasis") > boxes.length
+  )
+    throw new HinoteError(
+      `emphasis is ${props.emphasis}, but this Flow has ${boxes.length} box${boxes.length === 1 ? "" : "es"}.`,
+    );
+  const gap = gapValue(props.gap);
+  return (
+    <div
+      class={classNames("hinote-flow", props.class)}
+      style={gap === undefined ? undefined : { "--hinote-gap": gap }}
+    >
+      {boxes.flatMap((child, index) => [
+        ...(index > 0
+          ? [<span class="hinote-flow-arrow" aria-hidden="true" />]
+          : []),
+        <div
+          class={
+            index + 1 === props.emphasis
+              ? "hinote-flow-box is-emphasis"
+              : "hinote-flow-box"
+          }
+        >
+          {child}
+        </div>,
+      ])}
     </div>
   );
 }

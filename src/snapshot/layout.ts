@@ -1,10 +1,11 @@
 // Measures one open slide in the browser: canvas overflow, clipped content,
-// safe-area crossings, and a title that wraps. Runs as a page expression through CapturePage.evaluate
+// safe-area crossings, a title that wraps, and a character alone on its line. Runs as a page expression through CapturePage.evaluate
 // so every browser backend can return the same plain JSON.
 import { isPlainObject } from "../guards.ts";
 import type { CapturePage } from "./browser.ts";
 
-export type LayoutCode = "overflow" | "clipped" | "safe-area" | "title-wrap";
+export type LayoutCode =
+  "overflow" | "clipped" | "safe-area" | "title-wrap" | "lone-character";
 
 export type LayoutIssue = {
   code: LayoutCode;
@@ -149,7 +150,59 @@ function measureExpression(index: number): string {
       }
     }
 
+    for (const block of loneCharacterBlocks()) {
+      const id = identify(block);
+      warnings.push({
+        code: "lone-character",
+        message: \`\${id.selector} leaves one character alone on a line.\`,
+        slides: [number],
+        hint: 'Rephrase or widen the text so the last line is more than one character. For Japanese, set the deck\\'s lang to "ja" so phrases stay together.',
+        ...id,
+      });
+    }
+
     return { problems, warnings };
+
+    // Blocks whose text wraps and leaves a line holding a single grapheme, such
+    // as the か of どうか. A one-line block is not reported, and neither is a
+    // short line that is still a word. Code keeps its own line breaks.
+    function loneCharacterBlocks() {
+      const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+      const lines = new Map();
+      const walker = document.createTreeWalker(slide, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const parent = node.parentElement;
+        if (!parent || skipChrome(parent) || !hasBox(parent)) continue;
+        if (parent.closest("pre, code")) continue;
+        const block = blockOf(parent);
+        let blockLines = lines.get(block);
+        if (!blockLines) lines.set(block, (blockLines = []));
+        for (const { segment, index } of segmenter.segment(node.data)) {
+          if (!segment.trim()) continue;
+          const range = document.createRange();
+          range.setStart(node, index);
+          range.setEnd(node, index + segment.length);
+          const rect = range.getBoundingClientRect();
+          if (rect.width === 0 && rect.height === 0) continue;
+          const last = blockLines[blockLines.length - 1];
+          if (last && rect.top < last.bottom - Math.min(rect.height, last.bottom - last.top) / 2) {
+            last.count++;
+            last.bottom = Math.max(last.bottom, rect.bottom);
+          } else blockLines.push({ count: 1, top: rect.top, bottom: rect.bottom });
+        }
+      }
+      return [...lines]
+        .filter(([, blockLines]) => blockLines.length > 1 && blockLines.some((line) => line.count === 1))
+        .map(([block]) => block);
+    }
+
+    function blockOf(el) {
+      for (let p = el; p && p !== slide; p = p.parentElement) {
+        const display = getComputedStyle(p).display;
+        if (!display.startsWith("inline") && display !== "contents") return p;
+      }
+      return slide;
+    }
 
     // Line boxes of an element's text. Fragments that overlap vertically by
     // more than half are on one line, so mixed font sizes do not count twice.

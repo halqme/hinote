@@ -4,10 +4,12 @@ import {
   Card,
   Center,
   Column,
+  Flow,
   Grid,
   Row,
   Script,
   Step,
+  Table,
   createSlide,
   themes,
 } from "../src/index.ts";
@@ -441,10 +443,129 @@ describe("layout", () => {
     expect(html).toContain("--hinote-card-span:2");
     expect(html).toContain("--hinote-card-rows:2");
     expect(html).toContain("--hinote-card-rows:1");
+    expect(html).toContain("--hinote-grid-rows:2");
     expect(html.match(/class="hinote-card-cell"/g)?.length).toBe(3);
     expect(html).toContain(
-      ".hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span var(--hinote-card-rows,1);grid-column:span var(--hinote-card-span,1);",
+      ".hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span max(var(--hinote-card-rows,1),var(--hinote-grid-rows,1));grid-column:span var(--hinote-card-span,1);",
     );
+  });
+
+  test("a Card footer is one more row, and Grid spans the most rows any Card takes", async () => {
+    const html = await deckOf(
+      createSlide(() => (
+        <Grid>
+          <Card footer={<small>Source A</small>}>
+            <h3>A</h3>
+            <p>one</p>
+            <p>two</p>
+          </Card>
+          <Card footer={<small>Source B</small>}>
+            <h3>B</h3>
+          </Card>
+          <Card>
+            <h3>C</h3>
+          </Card>
+        </Grid>
+      )),
+    ).render();
+    expect(html).toContain("--hinote-grid-rows:4");
+    expect(html.match(/--hinote-card-rows:(\d)/g)).toEqual([
+      "--hinote-card-rows:4",
+      "--hinote-card-rows:2",
+      "--hinote-card-rows:1",
+    ]);
+    expect(
+      html.match(/<div class="hinote-card-cell hinote-card-footer">/g),
+    ).toHaveLength(2);
+    expect(html).toContain(
+      '<div class="hinote-card-cell hinote-card-footer"><small>Source B</small></div></div>',
+    );
+  });
+
+  test("Flow puts an arrow between each pair of boxes and emphasizes one", async () => {
+    const flow = async (count: number, emphasis?: number) => {
+      const html = await deckOf(
+        createSlide(() => (
+          <Flow emphasis={emphasis} gap={4}>
+            {["one", "two", "three"].slice(0, count).map((word) => (
+              <p>{word}</p>
+            ))}
+          </Flow>
+        )),
+      ).render();
+      const flowHtml =
+        /<div class="hinote-flow"[\s\S]*?<\/section>/.exec(html)?.[0] ?? "";
+      return {
+        html,
+        order: [
+          ...flowHtml.matchAll(/class="hinote-flow-(box|arrow)[^"]*"/g),
+        ].map((m) => m[1]),
+        emphasized: [
+          ...flowHtml.matchAll(/class="hinote-flow-box is-emphasis"><p>(\w+)/g),
+        ].map((m) => m[1]),
+      };
+    };
+    const two = await flow(2);
+    expect(two.order).toEqual(["box", "arrow", "box"]);
+    expect(two.emphasized).toEqual([]);
+    const three = await flow(3, 2);
+    expect(three.order).toEqual(["box", "arrow", "box", "arrow", "box"]);
+    expect(three.emphasized).toEqual(["two"]);
+    expect(three.html).toContain(
+      "--hinote-gap:calc(var(--hinote-space-unit) * 4)",
+    );
+    expect(three.html).toContain('.hinote-flow-arrow::before{content:"→"}');
+
+    for (const emphasis of [0, 4, 1.5])
+      await expect(flow(3, emphasis)).rejects.toThrow(HinoteError);
+  });
+
+  test("Table turns widths into columns and marks emphasized body rows", async () => {
+    const table = (props: { widths?: number[]; emphasis?: number[] }) =>
+      deckOf(
+        createSlide(() => (
+          <Table {...props}>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>A</td>
+                <td>1</td>
+              </tr>
+              <tr class="mine">
+                <td>B</td>
+                <td>2</td>
+              </tr>
+            </tbody>
+          </Table>
+        )),
+      ).render();
+
+    const plain = await table({});
+    expect(plain).toContain('<table class="hinote-table"><thead>');
+    expect(plain).not.toContain("<colgroup>");
+    expect(plain).toContain('<tr class="mine"><td>B</td>');
+
+    const html = await table({ widths: [3, 1], emphasis: [2] });
+    expect(html).toContain(
+      '<table class="hinote-table" data-hinote-widths=""><colgroup><col style="--hinote-column-width:75%"/><col style="--hinote-column-width:25%"/></colgroup>',
+    );
+    expect(html).toContain('<tr class="mine is-emphasis"><td>B</td>');
+    expect(html.match(/<tr class="[^"]*is-emphasis"/g)).toHaveLength(1);
+    expect(html).toContain(
+      ".hinote-table col{width:var(--hinote-column-width,auto)}",
+    );
+
+    for (const bad of [
+      { emphasis: [3] },
+      { emphasis: [0] },
+      { widths: [1, 0] },
+    ])
+      await expect(table(bad)).rejects.toThrow(HinoteError);
   });
 
   test("rejects a non-positive Grid columns or Card span", async () => {
