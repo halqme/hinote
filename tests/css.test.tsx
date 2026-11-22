@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { expect, test } from "bun:test";
 import { scopeCss } from "../src/deck/css.ts";
 import { HinoteError } from "../src/errors.ts";
-import { Card, Grid, Row, createSlide } from "../src/index.ts";
+import { Card, Flow, Grid, Row, createSlide } from "../src/index.ts";
 import {
   findChrome,
   findChromeForTesting,
@@ -325,6 +325,57 @@ test.skipIf(!browser)(
         "normal,normal",
         "normal,normal",
       ]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);
+
+test.skipIf(!browser)(
+  "deck CSS redraws Flow arrows and emphasis without !important",
+  async () => {
+    const page = (css?: string) =>
+      createSlide(css ? { css } : {}, [
+        createSlide(() => (
+          <Flow emphasis={2}>
+            <p>ask</p>
+            <p>answer</p>
+          </Flow>
+        )),
+      ]).render("static");
+    const dir = await mkdtemp(join(tmpdir(), "hinote-flow-"));
+    try {
+      const plainFile = join(dir, "plain.html");
+      const styledFile = join(dir, "styled.html");
+      await writeFile(plainFile, await page());
+      await writeFile(
+        styledFile,
+        await page(
+          '.hinote-flow-arrow::before{content:"⇒"} .hinote-flow-box.is-emphasis{border-color:rgb(255, 0, 0)}',
+        ),
+      );
+      const read = `[
+        getComputedStyle(document.querySelector(".hinote-flow-arrow"), "::before").content,
+        getComputedStyle(document.querySelector(".hinote-flow-box.is-emphasis")).borderTopColor,
+        getComputedStyle(document.querySelector(".hinote-flow-box:not(.is-emphasis)")).borderTopColor,
+      ].join("|")`;
+      const seen = await withBrowser(
+        browser!,
+        { width: 1920, height: 1080 },
+        async (tab) => {
+          await tab.goto(pathToFileURL(plainFile).href);
+          const plain = await tab.evaluate(read);
+          await tab.goto(pathToFileURL(styledFile).href);
+          return { plain, styled: await tab.evaluate(read) };
+        },
+      );
+      const [arrow, emphasized, other] = String(seen.plain).split("|");
+      expect(arrow).toBe('"→"');
+      expect(emphasized).not.toBe(other);
+      const [newArrow, newEmphasis] = String(seen.styled).split("|");
+      expect(newArrow).toBe('"⇒"');
+      expect(newEmphasis).toBe("rgb(255, 0, 0)");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
