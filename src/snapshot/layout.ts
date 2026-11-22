@@ -1,10 +1,10 @@
 // Measures one open slide in the browser: canvas overflow, clipped content,
-// and safe-area crossings. Runs as a page expression through CapturePage.evaluate
+// safe-area crossings, and a title that wraps. Runs as a page expression through CapturePage.evaluate
 // so every browser backend can return the same plain JSON.
 import { isPlainObject } from "../guards.ts";
 import type { CapturePage } from "./browser.ts";
 
-export type LayoutCode = "overflow" | "clipped" | "safe-area";
+export type LayoutCode = "overflow" | "clipped" | "safe-area" | "title-wrap";
 
 export type LayoutIssue = {
   code: LayoutCode;
@@ -132,7 +132,45 @@ function measureExpression(index: number): string {
       }
     }
 
+    // The title is the slide's first heading, as in inspect. The title option
+    // is never painted, so it cannot wrap.
+    const title = slide.querySelector("h1, h2, h3, h4, h5, h6");
+    if (title && !skipChrome(title) && hasBox(title)) {
+      const lines = lineCount(title);
+      if (lines > 1) {
+        const id = identify(title);
+        warnings.push({
+          code: "title-wrap",
+          message: \`\${id.selector} takes \${lines} lines.\`,
+          slides: [number],
+          hint: "Shorten the title or give it more width. A title meant to take two lines can stay; this is a warning.",
+          ...id,
+        });
+      }
+    }
+
     return { problems, warnings };
+
+    // Line boxes of an element's text. Fragments that overlap vertically by
+    // more than half are on one line, so mixed font sizes do not count twice.
+    function lineCount(el) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const rects = [...range.getClientRects()]
+        .filter((rect) => rect.width > 0 && rect.height > 0)
+        .sort((a, b) => a.top - b.top);
+      const lines = [];
+      for (const rect of rects) {
+        const last = lines[lines.length - 1];
+        const overlap = last
+          ? Math.min(last.bottom, rect.bottom) - Math.max(last.top, rect.top)
+          : 0;
+        if (last && overlap > Math.min(rect.height, last.bottom - last.top) / 2)
+          last.bottom = Math.max(last.bottom, rect.bottom);
+        else lines.push({ top: rect.top, bottom: rect.bottom });
+      }
+      return lines.length;
+    }
 
     function resolveSafe(root) {
       const probe = document.createElement("div");
