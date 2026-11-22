@@ -7,6 +7,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 - A top-level deck can set `lang` to a language tag such as `"ja"`. It is written on `<html lang>` of the audience page, the presenter page, and the built file. (G-46, #10)
 - `hinote snapshot --slides 2,5,8` photographs and reports only those slides. Pictures keep their slide number. (G-53)
 - `hinote snapshot` warns with `title-wrap` when a slide's first heading takes more than one line. (G-51)
+- A deck whose `lang` is `ja` or `ja-*` breaks slide text between phrases (`word-break: auto-phrase`), and `hinote snapshot` warns with `lone-character` when wrapped text leaves one character alone on a line. (G-52)
 
 ## 0.5.1
 
