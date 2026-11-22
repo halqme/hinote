@@ -107,6 +107,10 @@ html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45
 #hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;padding:1.25rem;overflow:hidden;background:#181b22;border-left:1px solid #2c313c}
 #hinote-next{flex:none}
 #hinote-notes{white-space:pre-wrap;flex:1;min-height:0;overflow:auto}
+#hinote-notes>*{margin:0 0 1.6em}
+#hinote-notes :is(h1,h2,h3,h4,h5,h6){margin-bottom:.4em;font-size:1.05em;color:#fff}
+#hinote-notes :is(ul,ol){padding-left:1.4em;white-space:normal}
+#hinote-notes code{font-family:ui-monospace,monospace;font-size:.92em;padding:0 .25em;border-radius:3px;background:#262b36}
 .hinote-label{margin:0;color:#a1a1aa;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 #hinote-next[data-end]::after{content:"End";position:absolute;inset:0;display:grid;place-items:center;color:#71717a;background:#0b0d12}
 #hinote-meta{display:flex;align-items:baseline;justify-content:space-between;gap:1rem}

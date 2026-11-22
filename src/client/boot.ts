@@ -17,6 +17,7 @@ import {
   type Role,
   type SyncMessage,
 } from "./player.ts";
+import { renderNotes } from "./notes.ts";
 
 type Port = {
   post(message: SyncMessage): void;
@@ -359,7 +360,9 @@ export function boot(): void {
             (total > 0 ? ` · step ${position.step} / ${total}` : "");
     }
     if (notesEl)
-      notesEl.textContent = slides[position.slide]?.dataset.notes ?? "";
+      notesEl.replaceChildren(
+        ...renderNotes(document, slides[position.slide]?.dataset.notes ?? ""),
+      );
     writeUrl(position);
   };
 
