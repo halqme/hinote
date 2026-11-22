@@ -274,7 +274,25 @@ export class Deck extends Hono {
     return results;
   }
 
-  #renderSlides(
+  // Where each slide id is in the whole deck. Two slides with one id would
+  // make a link ambiguous, so that is an error instead of the first match.
+  #targets(): Map<string, number> {
+    const targets = new Map<string, number>();
+    for (const [index, slide] of this.slides.entries()) {
+      const id = slide.options.id;
+      if (id === undefined) continue;
+      const first = targets.get(id);
+      if (first !== undefined)
+        throw new HinoteError(
+          `Slides ${first + 1} and ${index + 1} both have the id "${id}".`,
+          { hint: "Give each slide its own id." },
+        );
+      targets.set(id, index);
+    }
+    return targets;
+  }
+
+  async #renderSlides(
     slides: readonly Slide[],
     page: Page,
     options: { base?: string; sync?: Sync; directories?: boolean },
@@ -287,6 +305,7 @@ export class Deck extends Hono {
     return renderDeck({
       ...options,
       slides,
+      targets: this.#targets(),
       theme: this.config.theme,
       title: this.config.title,
       lang: this.config.lang,

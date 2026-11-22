@@ -12,6 +12,7 @@ export type Page = "view" | "presenter" | "static";
 export type Sync = "server" | "broadcast" | "reload";
 import type { Slide } from "./slide.ts";
 import { numberSteps } from "../components/step.tsx";
+import { servedPath, slideHash } from "../client/location.ts";
 import type { Transition } from "./transition.ts";
 import {
   defaultTheme,
@@ -280,6 +281,16 @@ async function authorCss(
   };
 }
 
+// Gives each <Link> an href for this page. Link writes data-hinote-to first
+// and checks the id against SLIDE_ID, so the attribute is matched as written.
+function linkSlides(html: string, href: (target: string) => string): string {
+  return html.replace(
+    /<a data-hinote-to="([\w-]+)"/g,
+    (_, target: string) =>
+      `<a href="${href(target)}" data-hinote-to="${target}"`,
+  );
+}
+
 export async function renderDeck(input: {
   slides: readonly Slide[];
   theme?: Theme;
@@ -299,6 +310,9 @@ export async function renderDeck(input: {
   // Present only when the deck asked for page numbers. Same length as `slides`.
   pageNumbers?: readonly number[];
   pageCount?: number;
+  // Slide ids of the whole deck and their flattened index, for <Link to>.
+  // Rendering one slide alone still resolves links to the others.
+  targets?: ReadonlyMap<string, number>;
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
@@ -328,13 +342,31 @@ ${FRAME_CSS}`;
     ]
       .filter(Boolean)
       .join(" ");
-    const html = numberSteps(
-      await elementHtml(
-        await slide.render({
-          title: slide.options.title,
-          sections: slide.sections ?? [],
-        }),
+    const html = linkSlides(
+      numberSteps(
+        await elementHtml(
+          await slide.render({
+            title: slide.options.title,
+            sections: slide.sections ?? [],
+          }),
+        ),
       ),
+      (target) => {
+        const to = input.targets?.get(target);
+        if (to === undefined)
+          throw new HinoteError(
+            `Slide ${index + 1} links to "${target}", but no slide has that id.`,
+            { hint: `Give the slide createSlide({ id: "${target}" }, ...).` },
+          );
+        return page === "static"
+          ? slideHash(to)
+          : servedPath(
+              input.base ?? "",
+              page === "presenter" ? "presenter" : "view",
+              to,
+              input.directories,
+            );
+      },
     );
     const pageNumber = input.pageNumbers?.[index];
     const pageHtml =
@@ -344,6 +376,7 @@ ${FRAME_CSS}`;
     slides.push(
       jsx("section", {
         class: className,
+        "data-hinote-id": slide.options.id,
         // Notes are for the presenter; other pages never carry them.
         "data-notes":
           page === "presenter" ? (slide.options.notes ?? "") : undefined,
