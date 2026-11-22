@@ -17,7 +17,7 @@ Slide options:
 | ------------ | --------------------------------- | ------------------------------------------------------------------------------ |
 | `id`         | string                            | A name `<Link to>` points at: letters, digits, `_`, `-`; unique in the deck    |
 | `title`      | string                            | Its title; the first slide title becomes the page title when the deck has none |
-| `notes`      | string                            | Speaker notes, shown only in the presenter view                                |
+| `notes`      | string                            | Speaker notes, shown only in the presenter view; a Markdown subset, see below  |
 | `background` | string                            | CSS background of the slide                                                    |
 | `class`      | string                            | Class on the slide's `<section>`                                               |
 | `theme`      | Theme                             | Tokens for this slide only                                                     |
@@ -38,6 +38,8 @@ const results = createSlide({ title: "結果" }, (slide) => (
 ));
 export default createSlide({ section: "実験1-1" }, [results]);
 ```
+
+Notes are plain text with a small part of Markdown: `#` headings, `-` / `*` / `+` and `1.` lists, blank lines between paragraphs, and `**strong**`, `*em*`, and `` `code` `` inside a line. Notes without any of that look as before, line breaks included. HTML in a note is shown as text and never runs. `inspect --json` returns the note string as written.
 
 Deck options: `title`, `section` (a name its slides receive in `sections`), `theme`, `transition`, `css`, and, on the top-level deck only, `lang` (a language tag such as `"ja"` or `"ja-JP"`; `<html>` has no `lang` when it is omitted; when its primary subtag is `ja`, slide text breaks between phrases with `word-break: auto-phrase`, while `pre` and `code` keep normal breaking), `aspect` (`"16:9"` default, `"4:3"`, or any `"W:H"`), `presenter` (`true` serves the presenter view and sync outside `hinote dev`), and `pageNumber` (`true` paints `n / total` from the flattened order). An unknown option is an error.
 

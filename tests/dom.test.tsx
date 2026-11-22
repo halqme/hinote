@@ -214,6 +214,41 @@ describe("window.hinote", () => {
 });
 
 describe("the presenter view", () => {
+  test("notes show their structure, plain notes read as before, and HTML stays text", async () => {
+    const noted = createSlide({ presenter: true }, [
+      createSlide(
+        {
+          notes:
+            '## Bridge\nNext comes **the method**.\n- one\n- two\n\n<img src=x onerror="alert(1)">',
+        },
+        () => <p>a</p>,
+      ),
+      createSlide({ notes: "line one\nline two" }, () => <p>b</p>),
+    ]);
+    await open(
+      "presenter",
+      "http://localhost/presenter/1",
+      undefined,
+      false,
+      noted,
+    );
+    const notes = document.getElementById("hinote-notes")!;
+    expect([...notes.children].map((el) => el.tagName)).toEqual([
+      "H2",
+      "P",
+      "UL",
+      "P",
+    ]);
+    expect(notes.querySelector("strong")?.textContent).toBe("the method");
+    expect(notes.querySelectorAll("li")).toHaveLength(2);
+    expect(notes.querySelector("img")).toBeNull();
+    expect(notes.lastElementChild?.textContent).toBe(
+      '<img src=x onerror="alert(1)">',
+    );
+    press("ArrowRight");
+    expect(notes.innerHTML).toBe("<p>line one\nline two</p>");
+  });
+
   test("announces its position, and its toolbar moves and opens the overview", async () => {
     const channel = await open(
       "presenter",
