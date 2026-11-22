@@ -5,6 +5,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 ## Unreleased
 
 - A top-level deck can set `lang` to a language tag such as `"ja"`. It is written on `<html lang>` of the audience page, the presenter page, and the built file. (G-46, #10)
+- `hinote snapshot --slides 2,5,8` photographs and reports only those slides. Pictures keep their slide number. (G-53)
 
 ## 0.5.1
 

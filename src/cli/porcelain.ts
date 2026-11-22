@@ -363,6 +363,17 @@ export const assets: Command = {
   },
 };
 
+// "2,5,8" → [2, 5, 8]: whole numbers from 1, in ascending order, each once.
+function slideNumbers(list: string): number[] {
+  const parts = list.split(",").map((part) => part.trim());
+  if (parts.some((part) => !/^[1-9]\d*$/.test(part)))
+    throw new UsageError(
+      `--slides ${JSON.stringify(list)} is not a list of slide numbers.`,
+      "Give numbers from 1, separated by commas: --slides 2,5,8",
+    );
+  return [...new Set(parts.map(Number))].sort((a, b) => a - b);
+}
+
 export const snapshot: Command = {
   name: "snapshot",
   group: "porcelain",
@@ -370,6 +381,8 @@ export const snapshot: Command = {
   args: DECK_ARG,
   maxArgs: 1,
   description: `Serves the deck on this machine, opens each slide in a browser, reveals every \`<Step>\` (with no fade), and writes shots/1.png, shots/2.png, and so on. Each picture is the canvas (1920×1080 at 16:9), not the window, and shows the finished slide the way print does. The same pass reports layout issues: elements that leave the canvas (\`overflow\`) or whose content is clipped inside a box (\`clipped\`) are problems; elements that cross the safe area (\`safe-area\`, the theme's \`spacing.safe\` inset) are warnings. Problems exit 1; warnings alone exit 0. Mark intentional bleed with \`data-hinote-bleed\`. The server stops when the pictures are written. Presenter pages are not included. Default \`hinote check\` still does not open a browser.
+
+--slides 2,5,8 photographs and measures only those slides. Pictures keep the slide's number (shots/5.png), and the report covers only those slides. A number the deck does not have is a usage error.
 
 --browser chooses who takes them: agent-browser, puppeteer, chrome, or chrome-for-testing. auto, the default, uses the first of those that is installed. puppeteer means the puppeteer package in this project, which downloads its own browser. chrome is Google Chrome, Chromium, or Edge (or HINOTE_CHROME). chrome-for-testing is Chrome for Testing (or HINOTE_CHROME_FOR_TESTING). As root, chrome and puppeteer add --no-sandbox. Extra Chromium flags go in HINOTE_CHROME_FLAGS; a start failure puts Chrome's stderr tail in the error hint.`,
   flags: {
@@ -381,9 +394,17 @@ export const snapshot: Command = {
       description:
         "Which browser takes the pictures: auto, agent-browser, puppeteer, chrome, or chrome-for-testing. auto uses the first one installed, in that order.",
     },
+    slides: {
+      type: "string",
+      value: "n,n,...",
+      default: "every slide",
+      description:
+        "Only these slide numbers, comma-separated, counted as in /<n>.",
+    },
   },
   examples: [
     "hinote snapshot",
+    "hinote snapshot --slides 2,5,8",
     "hinote snapshot --browser chrome -o shots",
     "hinote snapshot --json",
   ],
@@ -395,9 +416,11 @@ export const snapshot: Command = {
         `--browser ${requested} is not a browser hinote knows.`,
         "Use auto, agent-browser, puppeteer, chrome, or chrome-for-testing.",
       );
+    const slides = stringFlag(args, "slides");
+    const only = slides === undefined ? undefined : slideNumbers(slides);
     const deckFile = deckPath(args.positionals[0]);
     const outDir = resolve(stringFlag(args, "output") ?? "shots");
-    const shot = await takeSnapshots(deckFile, outDir, requested);
+    const shot = await takeSnapshots(deckFile, outDir, requested, only);
     const ok = shot.problems.length === 0;
     const lines = [
       ...shot.files,

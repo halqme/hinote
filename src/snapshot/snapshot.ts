@@ -16,7 +16,7 @@ import {
   type LayoutReport,
 } from "./layout.ts";
 import type { Canvas } from "../deck/deck.ts";
-import { HinoteError } from "../errors.ts";
+import { HinoteError, UsageError } from "../errors.ts";
 import { loadDeckFile } from "../build/load.ts";
 import { serve } from "../build/runtime.ts";
 import { createDevApp } from "../build/server.ts";
@@ -32,14 +32,24 @@ export type Snapshot = {
   warnings: LayoutIssue[];
 };
 
+// `only` lists flattened slide numbers, counted from 1. Each picture is named
+// after its number, so a partial run never renames slide 2 to 1.png.
 export async function takeSnapshots(
   entry: string,
   outDir: string,
   browser: BrowserName | "auto",
+  only?: readonly number[],
 ): Promise<Snapshot> {
   const deck = await loadDeckFile(entry);
   if (deck.slides.length === 0)
     throw new HinoteError("This deck has no slides.", { code: "deck-export" });
+  const missing = only?.filter((n) => n > deck.slides.length) ?? [];
+  if (missing.length > 0)
+    throw new UsageError(
+      `This deck has ${deck.slides.length} slide${deck.slides.length === 1 ? "" : "s"}, so there is no slide ${missing.join(", ")}.`,
+      `Pick numbers from 1 to ${deck.slides.length}.`,
+    );
+  const numbers = only ?? deck.slides.map((_, index) => index + 1);
   const directory = resolve(outDir);
   await mkdir(directory, { recursive: true });
   const canvas = deck.canvas;
@@ -54,8 +64,9 @@ export async function takeSnapshots(
     const problems: LayoutIssue[] = [];
     const warnings: LayoutIssue[] = [];
     const used = await withBrowser(browser, canvas, async (page, name) => {
-      for (let index = 0; index < deck.slides.length; index++) {
-        const file = resolve(directory, `${index + 1}.png`);
+      for (const number of numbers) {
+        const index = number - 1;
+        const file = resolve(directory, `${number}.png`);
         const layout = await photograph(page, server.port, index, canvas, file);
         files.push(shown(file));
         problems.push(...layout.problems);
