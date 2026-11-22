@@ -6,6 +6,7 @@ import {
   Column,
   Flow,
   Grid,
+  Link,
   Row,
   Script,
   Step,
@@ -147,6 +148,57 @@ describe("createSlide", () => {
     expect(() => createSlide({ lang: "ja" } as never, () => <p>x</p>)).toThrow(
       HinoteError,
     );
+  });
+
+  test("Link points at a slide id and gets the URL of the page it is on", async () => {
+    const deck = createSlide([
+      createSlide(() => (
+        <p>
+          <Link to="method" class="next">
+            Method
+          </Link>
+        </p>
+      )),
+      createSlide({ section: "Experiment" }, [
+        createSlide(() => <p>setup</p>),
+        createSlide({ id: "method" }, () => <h2>Method</h2>),
+      ]),
+    ]);
+    const href = (html: string) =>
+      /<a href="([^"]*)" data-hinote-to="method" class="next">Method<\/a>/.exec(
+        html,
+      )?.[1];
+
+    const view = await deck.render();
+    expect(view).toContain('data-hinote-id="method"');
+    expect(href(view)).toBe("/3");
+    expect(href(await deck.render("presenter"))).toBe("/presenter/3");
+    expect(href(await deck.render("view", { base: "/talk" }))).toBe("/talk/3");
+    expect(
+      href(await deck.render("view", { base: "/talk", directories: true })),
+    ).toBe("/talk/3/");
+    expect(href(await deck.render("static"))).toBe("#3");
+    // One slide rendered alone, as check and inspect do, still resolves.
+    const [first] = await deck.renderEach();
+    expect(first && "html" in first && href(first.html)).toBe("/3");
+  });
+
+  test("a duplicate slide id, an unknown target, or a malformed id is an error", async () => {
+    const twice = createSlide([
+      createSlide({ id: "a" }, () => <p>1</p>),
+      createSlide([createSlide({ id: "a" }, () => <p>2</p>)]),
+    ]);
+    await expect(twice.render()).rejects.toThrow('both have the id "a"');
+    const unknown = createSlide([
+      createSlide(() => <Link to="nowhere">?</Link>),
+    ]);
+    await expect(unknown.render()).rejects.toThrow('"nowhere"');
+    expect(() => createSlide({ id: "two words" }, () => <p />)).toThrow(
+      HinoteError,
+    );
+    await expect(
+      deckOf(createSlide(() => <Link to="a b">x</Link>)).render(),
+    ).rejects.toThrow(HinoteError);
   });
 
   test("only the top-level deck may set title, aspect, presenter, or pageNumber", () => {

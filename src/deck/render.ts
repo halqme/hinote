@@ -12,6 +12,7 @@ export type Page = "view" | "presenter" | "static";
 export type Sync = "server" | "broadcast" | "reload";
 import type { Slide } from "./slide.ts";
 import { numberSteps } from "../components/step.tsx";
+import { servedPath, slideHash } from "../client/location.ts";
 import type { Transition } from "./transition.ts";
 import {
   defaultTheme,
@@ -106,6 +107,10 @@ html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45
 #hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;padding:1.25rem;overflow:hidden;background:#181b22;border-left:1px solid #2c313c}
 #hinote-next{flex:none}
 #hinote-notes{white-space:pre-wrap;flex:1;min-height:0;overflow:auto}
+#hinote-notes>*{margin:0 0 1.6em}
+#hinote-notes :is(h1,h2,h3,h4,h5,h6){margin-bottom:.4em;font-size:1.05em;color:#fff}
+#hinote-notes :is(ul,ol){padding-left:1.4em;white-space:normal}
+#hinote-notes code{font-family:ui-monospace,monospace;font-size:.92em;padding:0 .25em;border-radius:3px;background:#262b36}
 .hinote-label{margin:0;color:#a1a1aa;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 #hinote-next[data-end]::after{content:"End";position:absolute;inset:0;display:grid;place-items:center;color:#71717a;background:#0b0d12}
 #hinote-meta{display:flex;align-items:baseline;justify-content:space-between;gap:1rem}
@@ -280,6 +285,16 @@ async function authorCss(
   };
 }
 
+// Gives each <Link> an href for this page. Link writes data-hinote-to first
+// and checks the id against SLIDE_ID, so the attribute is matched as written.
+function linkSlides(html: string, href: (target: string) => string): string {
+  return html.replace(
+    /<a data-hinote-to="([\w-]+)"/g,
+    (_, target: string) =>
+      `<a href="${href(target)}" data-hinote-to="${target}"`,
+  );
+}
+
 export async function renderDeck(input: {
   slides: readonly Slide[];
   theme?: Theme;
@@ -299,6 +314,9 @@ export async function renderDeck(input: {
   // Present only when the deck asked for page numbers. Same length as `slides`.
   pageNumbers?: readonly number[];
   pageCount?: number;
+  // Slide ids of the whole deck and their flattened index, for <Link to>.
+  // Rendering one slide alone still resolves links to the others.
+  targets?: ReadonlyMap<string, number>;
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
@@ -328,13 +346,31 @@ ${FRAME_CSS}`;
     ]
       .filter(Boolean)
       .join(" ");
-    const html = numberSteps(
-      await elementHtml(
-        await slide.render({
-          title: slide.options.title,
-          sections: slide.sections ?? [],
-        }),
+    const html = linkSlides(
+      numberSteps(
+        await elementHtml(
+          await slide.render({
+            title: slide.options.title,
+            sections: slide.sections ?? [],
+          }),
+        ),
       ),
+      (target) => {
+        const to = input.targets?.get(target);
+        if (to === undefined)
+          throw new HinoteError(
+            `Slide ${index + 1} links to "${target}", but no slide has that id.`,
+            { hint: `Give the slide createSlide({ id: "${target}" }, ...).` },
+          );
+        return page === "static"
+          ? slideHash(to)
+          : servedPath(
+              input.base ?? "",
+              page === "presenter" ? "presenter" : "view",
+              to,
+              input.directories,
+            );
+      },
     );
     const pageNumber = input.pageNumbers?.[index];
     const pageHtml =
@@ -344,6 +380,7 @@ ${FRAME_CSS}`;
     slides.push(
       jsx("section", {
         class: className,
+        "data-hinote-id": slide.options.id,
         // Notes are for the presenter; other pages never carry them.
         "data-notes":
           page === "presenter" ? (slide.options.notes ?? "") : undefined,

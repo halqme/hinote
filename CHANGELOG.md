@@ -11,6 +11,8 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 - `<Flow>` lays out boxes with an arrow between each pair and can emphasize one of them. (G-48)
 - `<Card footer={...}>` pins a footer, such as a source, to the card's last row. Cards in a Grid now all span the band's largest row count, so footers line up across columns. (G-49)
 - `<Table widths={[2, 1]} emphasis={[1]}>` styles a table from the theme, sets the column ratio, and emphasizes body rows. (G-50)
+- A slide can take an `id` option, and `<Link to="id">` links to it with the right URL for dev, a mounted base, prerender, and the built file. A click moves there without reloading. (G-56)
+- Speaker notes take a small part of Markdown (headings, lists, paragraphs, strong, emphasis, code), shown with that structure in the presenter view. Plain notes read as before, and HTML in a note stays text. (G-55)
 
 ## 0.5.1
 

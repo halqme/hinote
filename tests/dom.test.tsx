@@ -5,7 +5,7 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { boot } from "../src/client/boot.ts";
 import type { HinoteClient } from "../src/client/api.ts";
-import { Step, createSlide } from "../src/index.ts";
+import { Link, Step, createSlide } from "../src/index.ts";
 import type { Page, Sync } from "../src/deck/render.ts";
 
 // The page defines this. Importing hinote/client would type it for every file
@@ -41,8 +41,14 @@ const deck = createSlide({ presenter: true }, [
   createSlide(() => <p>three</p>),
 ]);
 
-async function open(page: Page, url: string, sync?: Sync, directories = false) {
-  const html = await deck.render(page, {
+async function open(
+  page: Page,
+  url: string,
+  sync?: Sync,
+  directories = false,
+  from = deck,
+) {
+  const html = await from.render(page, {
     base: page === "static" ? undefined : "",
     sync,
     directories,
@@ -102,6 +108,48 @@ describe("navigating a page", () => {
     press("End");
     expect(active()).toBe(2);
   });
+
+  test.each([
+    ["view", "http://localhost/1", "/3"],
+    ["static", "http://localhost/index.html", "#3"],
+  ] as const)(
+    "on a %s page, a Link moves to its slide without leaving the page; a modified click is the browser's",
+    async (page, url, expected) => {
+      const linked = createSlide([
+        createSlide(() => (
+          <p>
+            <Link to="end">to the end</Link>
+          </p>
+        )),
+        createSlide(() => <p>middle</p>),
+        createSlide([createSlide({ id: "end" }, () => <p>end</p>)]),
+      ]);
+      await open(page, url, undefined, false, linked);
+      const link =
+        document.querySelector<HTMLAnchorElement>("a[data-hinote-to]")!;
+      expect(link.getAttribute("href")).toBe(expected);
+
+      const modified = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        metaKey: true,
+      });
+      link.dispatchEvent(modified);
+      expect(modified.defaultPrevented).toBe(false);
+      expect(active()).toBe(0);
+
+      const plain = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+      });
+      link.dispatchEvent(plain);
+      expect(plain.defaultPrevented).toBe(true);
+      expect(active()).toBe(2);
+      expect(page === "static" ? location.hash : location.pathname).toBe(
+        expected,
+      );
+    },
+  );
 
   test("keys with a modifier are left to the browser", async () => {
     await open("static", "http://localhost/index.html");
@@ -166,6 +214,41 @@ describe("window.hinote", () => {
 });
 
 describe("the presenter view", () => {
+  test("notes show their structure, plain notes read as before, and HTML stays text", async () => {
+    const noted = createSlide({ presenter: true }, [
+      createSlide(
+        {
+          notes:
+            '## Bridge\nNext comes **the method**.\n- one\n- two\n\n<img src=x onerror="alert(1)">',
+        },
+        () => <p>a</p>,
+      ),
+      createSlide({ notes: "line one\nline two" }, () => <p>b</p>),
+    ]);
+    await open(
+      "presenter",
+      "http://localhost/presenter/1",
+      undefined,
+      false,
+      noted,
+    );
+    const notes = document.getElementById("hinote-notes")!;
+    expect([...notes.children].map((el) => el.tagName)).toEqual([
+      "H2",
+      "P",
+      "UL",
+      "P",
+    ]);
+    expect(notes.querySelector("strong")?.textContent).toBe("the method");
+    expect(notes.querySelectorAll("li")).toHaveLength(2);
+    expect(notes.querySelector("img")).toBeNull();
+    expect(notes.lastElementChild?.textContent).toBe(
+      '<img src=x onerror="alert(1)">',
+    );
+    press("ArrowRight");
+    expect(notes.innerHTML).toBe("<p>line one\nline two</p>");
+  });
+
   test("announces its position, and its toolbar moves and opens the overview", async () => {
     const channel = await open(
       "presenter",
