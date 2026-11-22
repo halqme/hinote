@@ -506,14 +506,21 @@ export default createSlide([
 );
 
 test.skipIf(!browser)(
-  "default Grid and Card slides report no snapshot problems",
+  "default Flow, Grid, and Card slides report no snapshot problems",
   async () => {
     const dir = await tempDir();
     try {
       await writeFile(
         join(dir, "deck.tsx"),
-        `import { Card, Grid, createSlide } from ${JSON.stringify(api)}
+        `import { Card, Flow, Grid, createSlide } from ${JSON.stringify(api)}
 export default createSlide([
+  createSlide(() => (
+    <Flow emphasis={3}>
+      <p>Can a general model do it?</p>
+      <p>Its internals are hard to read</p>
+      <p>Make it answer on the board</p>
+    </Flow>
+  )),
   createSlide(() => (
     <Grid columns={2} gap={3}>
       <Card>

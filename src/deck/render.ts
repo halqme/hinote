@@ -35,6 +35,7 @@ import {
 // Row / Column / Center put flex props on these classes (not on style=) so deck CSS in a
 // later layer can override them. Props only set --hinote-gap / --hinote-align / --hinote-justify.
 // Grid lays out Cards; each Card uses subgrid so cards in a band share row heights.
+// Flow puts an arrow between boxes; the arrow is ::before content deck CSS can replace.
 const SLIDE_CSS = `
 *{box-sizing:border-box}
 .slide{display:flex;flex-direction:column;padding:var(--hinote-space-safe);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
@@ -45,6 +46,11 @@ const SLIDE_CSS = `
 .hinote-grid{display:grid;width:100%;grid-template-columns:repeat(var(--hinote-grid-columns,2),minmax(0,1fr));gap:var(--hinote-gap,calc(var(--hinote-space-unit) * 3))}
 .hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span var(--hinote-card-rows,1);grid-column:span var(--hinote-card-span,1);min-width:0;background:var(--hinote-color-surface);color:var(--hinote-color-fg);border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius)}
 .hinote-card-cell{min-width:0;min-height:0;padding:calc(var(--hinote-space-unit) * 2)}
+.hinote-flow{display:flex;align-items:stretch;width:100%;gap:var(--hinote-gap,calc(var(--hinote-space-unit) * 2))}
+.hinote-flow-box{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--hinote-space-unit) * 3);background:var(--hinote-color-surface);color:var(--hinote-color-fg);border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius)}
+.hinote-flow-box.is-emphasis{border-color:var(--hinote-color-accent);box-shadow:inset 0 0 0 2px var(--hinote-color-accent)}
+.hinote-flow-arrow{flex:none;align-self:center;color:var(--hinote-color-muted);font-size:var(--hinote-text-h2);line-height:1}
+.hinote-flow-arrow::before{content:"→"}
 :where(.slide) :is(h1,h2,h3,p){margin:0}
 :where(.slide) h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
 :where(.slide) h2{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}

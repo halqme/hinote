@@ -8,6 +8,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 - `hinote snapshot --slides 2,5,8` photographs and reports only those slides. Pictures keep their slide number. (G-53)
 - `hinote snapshot` warns with `title-wrap` when a slide's first heading takes more than one line. (G-51)
 - A deck whose `lang` is `ja` or `ja-*` breaks slide text between phrases (`word-break: auto-phrase`), and `hinote snapshot` warns with `lone-character` when wrapped text leaves one character alone on a line. (G-52)
+- `<Flow>` lays out boxes with an arrow between each pair and can emphasize one of them. (G-48)
 
 ## 0.5.1
 

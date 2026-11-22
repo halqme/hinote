@@ -23,6 +23,14 @@ export type CardProps = {
   children?: Child;
 };
 
+export type FlowProps = {
+  // Which box to emphasize, counted from 1 in reading order.
+  emphasis?: number;
+  gap?: string | number;
+  class?: string;
+  children?: Child;
+};
+
 function cssToken(value: string, label: string): string {
   // Control characters are what this rejects.
   // oxlint-disable-next-line no-control-regex
@@ -139,6 +147,42 @@ export function Card(props: CardProps) {
       {rows.map((child) => (
         <div class="hinote-card-cell">{child}</div>
       ))}
+    </div>
+  );
+}
+
+// Boxes in reading order with an arrow between each pair. Each child is one
+// box, so two boxes and three boxes are the same component. The arrow is a
+// CSS ::before on `.hinote-flow-arrow`, so deck CSS can redraw it.
+export function Flow(props: FlowProps) {
+  const boxes = childList(props.children);
+  if (
+    props.emphasis !== undefined &&
+    positiveInt(props.emphasis, "emphasis") > boxes.length
+  )
+    throw new HinoteError(
+      `emphasis is ${props.emphasis}, but this Flow has ${boxes.length} box${boxes.length === 1 ? "" : "es"}.`,
+    );
+  const gap = gapValue(props.gap);
+  return (
+    <div
+      class={classNames("hinote-flow", props.class)}
+      style={gap === undefined ? undefined : { "--hinote-gap": gap }}
+    >
+      {boxes.flatMap((child, index) => [
+        ...(index > 0
+          ? [<span class="hinote-flow-arrow" aria-hidden="true" />]
+          : []),
+        <div
+          class={
+            index + 1 === props.emphasis
+              ? "hinote-flow-box is-emphasis"
+              : "hinote-flow-box"
+          }
+        >
+          {child}
+        </div>,
+      ])}
     </div>
   );
 }

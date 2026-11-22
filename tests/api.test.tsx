@@ -4,6 +4,7 @@ import {
   Card,
   Center,
   Column,
+  Flow,
   Grid,
   Row,
   Script,
@@ -445,6 +446,44 @@ describe("layout", () => {
     expect(html).toContain(
       ".hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span var(--hinote-card-rows,1);grid-column:span var(--hinote-card-span,1);",
     );
+  });
+
+  test("Flow puts an arrow between each pair of boxes and emphasizes one", async () => {
+    const flow = async (count: number, emphasis?: number) => {
+      const html = await deckOf(
+        createSlide(() => (
+          <Flow emphasis={emphasis} gap={4}>
+            {["one", "two", "three"].slice(0, count).map((word) => (
+              <p>{word}</p>
+            ))}
+          </Flow>
+        )),
+      ).render();
+      const flowHtml =
+        /<div class="hinote-flow"[\s\S]*?<\/section>/.exec(html)?.[0] ?? "";
+      return {
+        html,
+        order: [
+          ...flowHtml.matchAll(/class="hinote-flow-(box|arrow)[^"]*"/g),
+        ].map((m) => m[1]),
+        emphasized: [
+          ...flowHtml.matchAll(/class="hinote-flow-box is-emphasis"><p>(\w+)/g),
+        ].map((m) => m[1]),
+      };
+    };
+    const two = await flow(2);
+    expect(two.order).toEqual(["box", "arrow", "box"]);
+    expect(two.emphasized).toEqual([]);
+    const three = await flow(3, 2);
+    expect(three.order).toEqual(["box", "arrow", "box", "arrow", "box"]);
+    expect(three.emphasized).toEqual(["two"]);
+    expect(three.html).toContain(
+      "--hinote-gap:calc(var(--hinote-space-unit) * 4)",
+    );
+    expect(three.html).toContain('.hinote-flow-arrow::before{content:"→"}');
+
+    for (const emphasis of [0, 4, 1.5])
+      await expect(flow(3, emphasis)).rejects.toThrow(HinoteError);
   });
 
   test("rejects a non-positive Grid columns or Card span", async () => {
