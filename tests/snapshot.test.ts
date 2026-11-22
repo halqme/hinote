@@ -62,6 +62,20 @@ test("an unknown browser is a usage error", async () => {
   }
 });
 
+test("--slides that are not slide numbers, or not in the deck, are usage errors", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(join(dir, "deck.tsx"), deck);
+    for (const slides of ["", "0", "2,x", "1-2", "3", "1,3"]) {
+      const bad = await run(["snapshot", "--slides", slides, "--json"], dir);
+      expect(bad.code).toBe(2);
+      expect(JSON.parse(bad.stdout).error.code).toBe("usage");
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("a browser that is not installed names itself", async () => {
   const installed = installedBrowsers();
   if (installed.includes("puppeteer")) return;
@@ -306,6 +320,52 @@ export default createSlide({ pageNumber: true }, [
     }
   },
   120_000,
+);
+
+test.skipIf(!browser)(
+  "--slides photographs and reports only those slides, named by their number",
+  async () => {
+    const dir = await tempDir();
+    try {
+      const edge = (label: string) =>
+        `createSlide(() => <p style={{ position: "absolute", left: "1900px", margin: 0 }}>${label}</p>)`;
+      await writeFile(
+        join(dir, "deck.tsx"),
+        `import { createSlide } from ${JSON.stringify(api)}
+export default createSlide([
+  ${edge("one")},
+  createSlide(() => <p>two</p>),
+  ${edge("three")},
+]);
+`,
+      );
+      const shot = await run(
+        [
+          "snapshot",
+          "--browser",
+          browser!,
+          "--json",
+          "-o",
+          "shots",
+          "--slides",
+          "3,2",
+        ],
+        dir,
+      );
+      expect(shot.stderr).toBe("");
+      expect(shot.code).toBe(1);
+      const { files, problems } = JSON.parse(shot.stdout).data;
+      expect(files).toEqual(["shots/2.png", "shots/3.png"]);
+      expect(await Bun.file(join(dir, "shots/1.png")).exists()).toBe(false);
+      expect(problems.length).toBeGreaterThan(0);
+      expect(
+        problems.every((p: { slides: number[] }) => p.slides.join() === "3"),
+      ).toBe(true);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  60_000,
 );
 
 test.skipIf(!browser)(
