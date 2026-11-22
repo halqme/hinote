@@ -9,6 +9,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 - `hinote snapshot` warns with `title-wrap` when a slide's first heading takes more than one line. (G-51)
 - A deck whose `lang` is `ja` or `ja-*` breaks slide text between phrases (`word-break: auto-phrase`), and `hinote snapshot` warns with `lone-character` when wrapped text leaves one character alone on a line. (G-52)
 - `<Flow>` lays out boxes with an arrow between each pair and can emphasize one of them. (G-48)
+- `<Card footer={...}>` pins a footer, such as a source, to the card's last row. Cards in a Grid now all span the band's largest row count, so footers line up across columns. (G-49)
 
 ## 0.5.1
 

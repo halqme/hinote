@@ -442,9 +442,42 @@ describe("layout", () => {
     expect(html).toContain("--hinote-card-span:2");
     expect(html).toContain("--hinote-card-rows:2");
     expect(html).toContain("--hinote-card-rows:1");
+    expect(html).toContain("--hinote-grid-rows:2");
     expect(html.match(/class="hinote-card-cell"/g)?.length).toBe(3);
     expect(html).toContain(
-      ".hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span var(--hinote-card-rows,1);grid-column:span var(--hinote-card-span,1);",
+      ".hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span max(var(--hinote-card-rows,1),var(--hinote-grid-rows,1));grid-column:span var(--hinote-card-span,1);",
+    );
+  });
+
+  test("a Card footer is one more row, and Grid spans the most rows any Card takes", async () => {
+    const html = await deckOf(
+      createSlide(() => (
+        <Grid>
+          <Card footer={<small>Source A</small>}>
+            <h3>A</h3>
+            <p>one</p>
+            <p>two</p>
+          </Card>
+          <Card footer={<small>Source B</small>}>
+            <h3>B</h3>
+          </Card>
+          <Card>
+            <h3>C</h3>
+          </Card>
+        </Grid>
+      )),
+    ).render();
+    expect(html).toContain("--hinote-grid-rows:4");
+    expect(html.match(/--hinote-card-rows:(\d)/g)).toEqual([
+      "--hinote-card-rows:4",
+      "--hinote-card-rows:2",
+      "--hinote-card-rows:1",
+    ]);
+    expect(
+      html.match(/<div class="hinote-card-cell hinote-card-footer">/g),
+    ).toHaveLength(2);
+    expect(html).toContain(
+      '<div class="hinote-card-cell hinote-card-footer"><small>Source B</small></div></div>',
     );
   });
 

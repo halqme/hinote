@@ -225,6 +225,62 @@ test.skipIf(!browser)(
 );
 
 test.skipIf(!browser)(
+  "Card footers line up across columns whatever the body above them",
+  async () => {
+    const html = await createSlide([
+      createSlide(() => (
+        <Grid columns={3} gap={3}>
+          <Card footer={<small>Source: Bender et al.</small>}>
+            <h3>Long</h3>
+            <p>
+              A body long enough to wrap over several lines of the card, far
+              more than the other cards have.
+            </p>
+            <p>And a second paragraph.</p>
+          </Card>
+          <Card footer={<small>Source: short</small>}>
+            <h3>Short</h3>
+            <p>One line.</p>
+          </Card>
+          <Card>
+            <h3>No footer</h3>
+            <p>Plain body.</p>
+          </Card>
+        </Grid>
+      )),
+    ]).render("static");
+    const dir = await mkdtemp(join(tmpdir(), "hinote-card-footer-"));
+    try {
+      const file = join(dir, "cards.html");
+      await writeFile(file, html);
+      const measured = (await withBrowser(
+        browser!,
+        { width: 1920, height: 1080 },
+        async (page) => {
+          await page.goto(pathToFileURL(file).href);
+          return page.evaluate(`(() => {
+            const cards = [...document.querySelectorAll(".hinote-card")];
+            const top = (el) => el ? Math.round(el.getBoundingClientRect().top) : null;
+            return {
+              footers: cards.map((c) => top(c.querySelector(".hinote-card-footer small"))),
+              bodies: cards.map((c) => top(c.querySelectorAll(".hinote-card-cell")[1])),
+              bottoms: cards.map((c) => Math.round(c.getBoundingClientRect().bottom)),
+            };
+          })()`);
+        },
+      )) as { footers: (number | null)[]; bodies: number[]; bottoms: number[] };
+      expect(measured.footers[2]).toBeNull();
+      expect(measured.footers[0]).toBe(measured.footers[1]);
+      expect(new Set(measured.bodies).size).toBe(1);
+      expect(new Set(measured.bottoms).size).toBe(1);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);
+
+test.skipIf(!browser)(
   "deck CSS overrides Card surface without !important",
   async () => {
     const plain = await createSlide([

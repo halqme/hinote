@@ -35,6 +35,7 @@ import {
 // Row / Column / Center put flex props on these classes (not on style=) so deck CSS in a
 // later layer can override them. Props only set --hinote-gap / --hinote-align / --hinote-justify.
 // Grid lays out Cards; each Card uses subgrid so cards in a band share row heights.
+// Every Card spans the band's largest row count, so a footer in the last track lines up.
 // Flow puts an arrow between boxes; the arrow is ::before content deck CSS can replace.
 const SLIDE_CSS = `
 *{box-sizing:border-box}
@@ -44,8 +45,9 @@ const SLIDE_CSS = `
 .hinote-column{flex-direction:column;align-items:var(--hinote-align,stretch);justify-content:var(--hinote-justify,start)}
 .hinote-center{flex:1;flex-direction:column;align-items:var(--hinote-align,center);justify-content:var(--hinote-justify,center)}
 .hinote-grid{display:grid;width:100%;grid-template-columns:repeat(var(--hinote-grid-columns,2),minmax(0,1fr));gap:var(--hinote-gap,calc(var(--hinote-space-unit) * 3))}
-.hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span var(--hinote-card-rows,1);grid-column:span var(--hinote-card-span,1);min-width:0;background:var(--hinote-color-surface);color:var(--hinote-color-fg);border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius)}
+.hinote-card{display:grid;grid-template-rows:subgrid;grid-row:span max(var(--hinote-card-rows,1),var(--hinote-grid-rows,1));grid-column:span var(--hinote-card-span,1);min-width:0;background:var(--hinote-color-surface);color:var(--hinote-color-fg);border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius)}
 .hinote-card-cell{min-width:0;min-height:0;padding:calc(var(--hinote-space-unit) * 2)}
+.hinote-card-footer{grid-row:-2/-1;align-self:end}
 .hinote-flow{display:flex;align-items:stretch;width:100%;gap:var(--hinote-gap,calc(var(--hinote-space-unit) * 2))}
 .hinote-flow-box{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--hinote-space-unit) * 3);background:var(--hinote-color-surface);color:var(--hinote-color-fg);border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius)}
 .hinote-flow-box.is-emphasis{border-color:var(--hinote-color-accent);box-shadow:inset 0 0 0 2px var(--hinote-color-accent)}
