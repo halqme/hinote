@@ -7,6 +7,7 @@ import {
   type CssSource,
   type StyleLayer,
 } from "./css.ts";
+import { SLIDE_ID } from "../components/link.tsx";
 import { HinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
 import { parseTransition, type Transition } from "./transition.ts";
@@ -24,6 +25,8 @@ export type SlideContext = {
 export type SlideRender = (slide: SlideContext) => Child | Promise<Child>;
 
 export type SlideOptions = {
+  // A name that <Link to> points at. Unique in the deck.
+  id?: string;
   notes?: string;
   title?: string;
   background?: string;
@@ -51,6 +54,7 @@ export type Slide = {
 };
 
 const OPTION_KEYS = new Set([
+  "id",
   "notes",
   "title",
   "background",
@@ -81,6 +85,13 @@ export function parseSlideOptions(
       throw new HinoteError(`Unknown slide option "${key}".`);
   }
   const options: Slide["options"] = {};
+  if (value.id !== undefined) {
+    if (typeof value.id !== "string" || !SLIDE_ID.test(value.id))
+      throw new HinoteError(
+        'Slide option "id" must be letters, digits, "_", or "-", such as "method".',
+      );
+    options.id = value.id;
+  }
   for (const key of ["notes", "title", "background"] as const) {
     const entry = value[key];
     if (entry === undefined) continue;

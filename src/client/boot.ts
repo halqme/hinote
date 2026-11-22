@@ -497,6 +497,23 @@ export function boot(): void {
       event.preventDefault();
   });
 
+  // A <Link> on a slide moves there through the player, with no reload. Its
+  // href is the real URL, so a modified or middle click opens a new tab that
+  // starts on that slide.
+  document.addEventListener("click", (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey) return;
+    if (event.shiftKey || event.altKey) return;
+    if (!(event.target instanceof Element)) return;
+    const link = event.target.closest<HTMLElement>("a[data-hinote-to]");
+    if (!link || !link.closest(".hinote-stage")) return;
+    const target = slides.findIndex(
+      (slide) => slide.dataset.hinoteId === link.dataset.hinoteTo,
+    );
+    if (target < 0) return;
+    event.preventDefault();
+    player.go({ slide: target, step: 0 }, "local");
+  });
+
   if (role === "presenter" && deck) {
     deck.addEventListener("pointermove", (event) => {
       const active = activeSlide();

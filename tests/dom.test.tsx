@@ -5,7 +5,7 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { boot } from "../src/client/boot.ts";
 import type { HinoteClient } from "../src/client/api.ts";
-import { Step, createSlide } from "../src/index.ts";
+import { Link, Step, createSlide } from "../src/index.ts";
 import type { Page, Sync } from "../src/deck/render.ts";
 
 // The page defines this. Importing hinote/client would type it for every file
@@ -41,8 +41,14 @@ const deck = createSlide({ presenter: true }, [
   createSlide(() => <p>three</p>),
 ]);
 
-async function open(page: Page, url: string, sync?: Sync, directories = false) {
-  const html = await deck.render(page, {
+async function open(
+  page: Page,
+  url: string,
+  sync?: Sync,
+  directories = false,
+  from = deck,
+) {
+  const html = await from.render(page, {
     base: page === "static" ? undefined : "",
     sync,
     directories,
@@ -102,6 +108,48 @@ describe("navigating a page", () => {
     press("End");
     expect(active()).toBe(2);
   });
+
+  test.each([
+    ["view", "http://localhost/1", "/3"],
+    ["static", "http://localhost/index.html", "#3"],
+  ] as const)(
+    "on a %s page, a Link moves to its slide without leaving the page; a modified click is the browser's",
+    async (page, url, expected) => {
+      const linked = createSlide([
+        createSlide(() => (
+          <p>
+            <Link to="end">to the end</Link>
+          </p>
+        )),
+        createSlide(() => <p>middle</p>),
+        createSlide([createSlide({ id: "end" }, () => <p>end</p>)]),
+      ]);
+      await open(page, url, undefined, false, linked);
+      const link =
+        document.querySelector<HTMLAnchorElement>("a[data-hinote-to]")!;
+      expect(link.getAttribute("href")).toBe(expected);
+
+      const modified = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        metaKey: true,
+      });
+      link.dispatchEvent(modified);
+      expect(modified.defaultPrevented).toBe(false);
+      expect(active()).toBe(0);
+
+      const plain = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+      });
+      link.dispatchEvent(plain);
+      expect(plain.defaultPrevented).toBe(true);
+      expect(active()).toBe(2);
+      expect(page === "static" ? location.hash : location.pathname).toBe(
+        expected,
+      );
+    },
+  );
 
   test("keys with a modifier are left to the browser", async () => {
     await open("static", "http://localhost/index.html");
