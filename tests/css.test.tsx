@@ -280,3 +280,54 @@ test.skipIf(!browser)(
   },
   30_000,
 );
+
+test.skipIf(!browser)(
+  "Japanese decks break slide text at phrases, other decks and code do not",
+  async () => {
+    const page = (lang?: string) =>
+      createSlide(lang ? { lang } : {}, [
+        createSlide(() => (
+          <div>
+            <p>どうかよろしくお願いします</p>
+            <pre>const どうか = 1;</pre>
+          </div>
+        )),
+      ]).render("static");
+    const dir = await mkdtemp(join(tmpdir(), "hinote-lang-"));
+    try {
+      const langs = ["ja", "ja-JP", "en", undefined];
+      const files = await Promise.all(
+        langs.map(async (lang, i) => {
+          const file = join(dir, `${i}.html`);
+          await writeFile(file, await page(lang));
+          return file;
+        }),
+      );
+      const breaks = await withBrowser(
+        browser!,
+        { width: 1920, height: 1080 },
+        async (tab) => {
+          const seen: unknown[] = [];
+          for (const file of files) {
+            await tab.goto(pathToFileURL(file).href);
+            seen.push(
+              await tab.evaluate(
+                `["p", "pre"].map((s) => getComputedStyle(document.querySelector(".slide " + s)).wordBreak).join()`,
+              ),
+            );
+          }
+          return seen;
+        },
+      );
+      expect(breaks).toEqual([
+        "auto-phrase,normal",
+        "auto-phrase,normal",
+        "normal,normal",
+        "normal,normal",
+      ]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);

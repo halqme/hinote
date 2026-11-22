@@ -54,6 +54,8 @@ const SLIDE_CSS = `
 :where(.slide) li+li{margin-top:0.25em}
 :where(.slide) small{font-size:var(--hinote-text-small);color:var(--hinote-color-muted)}
 :where(.slide) :is(code,pre){font-family:var(--hinote-font-mono)}
+:where(.slide:lang(ja)){word-break:auto-phrase}
+:where(.slide:lang(ja)) :is(code,pre){word-break:normal}
 :where(.slide) pre.highlights{margin:0;padding:1em 1.25em;border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius);background:var(--hinote-color-surface);font-size:var(--hinote-text-code);line-height:1.5;text-align:left;white-space:pre;overflow:hidden}
 :where(.slide) a{color:var(--hinote-color-accent)}
 :where(.slide) .hinote-page{position:absolute;right:calc(var(--hinote-space-unit) * 4);bottom:calc(var(--hinote-space-unit) * 3);margin:0;color:var(--hinote-color-muted);font-size:var(--hinote-text-small);font-variant-numeric:tabular-nums}
