@@ -369,6 +369,56 @@ export default createSlide([
 );
 
 test.skipIf(!browser)(
+  "a title on two lines is a title-wrap warning, and one line is not",
+  async () => {
+    const dir = await tempDir();
+    try {
+      await writeFile(
+        join(dir, "deck.tsx"),
+        `import { createSlide } from ${JSON.stringify(api)}
+export default createSlide([
+  createSlide(() => <h1>Short title</h1>),
+  createSlide(() => (
+    <h1 style={{ width: "600px" }}>
+      A title far too long for the six hundred pixels it is given
+    </h1>
+  )),
+  createSlide({ title: "Option only" }, () => (
+    <div>
+      <h2>Fits</h2>
+      <h3 style={{ width: "200px" }}>A later heading that wraps is not the title</h3>
+    </div>
+  )),
+]);
+`,
+      );
+      const shot = await run(
+        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
+        dir,
+      );
+      expect(shot.stderr).toBe("");
+      expect(shot.code).toBe(0);
+      const { problems, warnings } = JSON.parse(shot.stdout).data;
+      expect(problems).toEqual([]);
+      expect(
+        warnings.filter((w: { code: string }) => w.code === "title-wrap"),
+      ).toEqual([
+        expect.objectContaining({
+          code: "title-wrap",
+          slides: [2],
+          selector: "h1",
+        }),
+      ]);
+      const help = await run(["help", "snapshot"], dir);
+      expect(help.stdout).toContain("title-wrap");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  60_000,
+);
+
+test.skipIf(!browser)(
   "safe-area warnings alone keep exit 0",
   async () => {
     const dir = await tempDir();
