@@ -21,7 +21,8 @@
   },
   "files": [
     "dist",
-    "skills"
+    "skills",
+    "CHANGELOG.md"
   ],
   "type": "module",
   "exports": {
