@@ -9,6 +9,7 @@ import {
   Row,
   Script,
   Step,
+  Table,
   createSlide,
   themes,
 } from "../src/index.ts";
@@ -517,6 +518,54 @@ describe("layout", () => {
 
     for (const emphasis of [0, 4, 1.5])
       await expect(flow(3, emphasis)).rejects.toThrow(HinoteError);
+  });
+
+  test("Table turns widths into columns and marks emphasized body rows", async () => {
+    const table = (props: { widths?: number[]; emphasis?: number[] }) =>
+      deckOf(
+        createSlide(() => (
+          <Table {...props}>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>A</td>
+                <td>1</td>
+              </tr>
+              <tr class="mine">
+                <td>B</td>
+                <td>2</td>
+              </tr>
+            </tbody>
+          </Table>
+        )),
+      ).render();
+
+    const plain = await table({});
+    expect(plain).toContain('<table class="hinote-table"><thead>');
+    expect(plain).not.toContain("<colgroup>");
+    expect(plain).toContain('<tr class="mine"><td>B</td>');
+
+    const html = await table({ widths: [3, 1], emphasis: [2] });
+    expect(html).toContain(
+      '<table class="hinote-table" data-hinote-widths=""><colgroup><col style="--hinote-column-width:75%"/><col style="--hinote-column-width:25%"/></colgroup>',
+    );
+    expect(html).toContain('<tr class="mine is-emphasis"><td>B</td>');
+    expect(html.match(/<tr class="[^"]*is-emphasis"/g)).toHaveLength(1);
+    expect(html).toContain(
+      ".hinote-table col{width:var(--hinote-column-width,auto)}",
+    );
+
+    for (const bad of [
+      { emphasis: [3] },
+      { emphasis: [0] },
+      { widths: [1, 0] },
+    ])
+      await expect(table(bad)).rejects.toThrow(HinoteError);
   });
 
   test("rejects a non-positive Grid columns or Card span", async () => {

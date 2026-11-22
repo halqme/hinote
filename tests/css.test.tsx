@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { expect, test } from "bun:test";
 import { scopeCss } from "../src/deck/css.ts";
 import { HinoteError } from "../src/errors.ts";
-import { Card, Flow, Grid, Row, createSlide } from "../src/index.ts";
+import { Card, Flow, Grid, Row, Table, createSlide } from "../src/index.ts";
 import {
   findChrome,
   findChromeForTesting,
@@ -432,6 +432,54 @@ test.skipIf(!browser)(
       const [newArrow, newEmphasis] = String(seen.styled).split("|");
       expect(newArrow).toBe('"⇒"');
       expect(newEmphasis).toBe("rgb(255, 0, 0)");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);
+
+test.skipIf(!browser)(
+  "Table widths set the column ratio, and deck CSS overrides it without !important",
+  async () => {
+    const page = (css?: string) =>
+      createSlide(css ? { css } : {}, [
+        createSlide(() => (
+          <Table widths={[3, 1]} emphasis={[1]}>
+            <tbody>
+              <tr>
+                <td>wide</td>
+                <td>narrow</td>
+              </tr>
+            </tbody>
+          </Table>
+        )),
+      ]).render("static");
+    const dir = await mkdtemp(join(tmpdir(), "hinote-table-"));
+    try {
+      const plainFile = join(dir, "plain.html");
+      const styledFile = join(dir, "styled.html");
+      await writeFile(plainFile, await page());
+      await writeFile(
+        styledFile,
+        await page(".hinote-table col:first-child{width:50%}"),
+      );
+      const ratio = `(() => {
+        const [a, b] = document.querySelectorAll(".hinote-table td");
+        return Math.round((a.getBoundingClientRect().width / b.getBoundingClientRect().width) * 10) / 10;
+      })()`;
+      const seen = await withBrowser(
+        browser!,
+        { width: 1920, height: 1080 },
+        async (tab) => {
+          await tab.goto(pathToFileURL(plainFile).href);
+          const plain = await tab.evaluate(ratio);
+          await tab.goto(pathToFileURL(styledFile).href);
+          return { plain, styled: await tab.evaluate(ratio) };
+        },
+      );
+      // 50% against the untouched 25%.
+      expect(seen).toEqual({ plain: 3, styled: 2 });
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
