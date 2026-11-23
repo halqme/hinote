@@ -1,6 +1,6 @@
 {
   "name": "hinote",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": false,
   "description": "Local slide tool using Hono and Hono/JSX",
   "keywords": [
