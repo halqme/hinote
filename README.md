@@ -1,8 +1,12 @@
 # hinote
 
-Write slides with Hono and Hono/JSX. A deck is a Hono app: any way of running Hono serves it. `build` writes the audience view as one HTML file.
+Write slides with Hono and Hono/JSX.
 
-New to hinote? Run `hinote init`, then `hinote skills get core` for the loop and references. For how hinote compares with Slidev, Marp, and hono-decks in install size and speed, see [the comparison](https://github.com/halqme/hinote/blob/main/bench/README.md).
+- **Slides are code.** Each slide is a component, so it can read a file or fetch data while it renders. Lay it out with `Row`, `Column`, `Grid`, and `Card`, and start from `themes.ink`, `themes.paper`, or `themes.slate`.
+- **A deck is a Hono app.** `hinote dev` presents it, `build` writes the audience view as one HTML file, and `app.route()` mounts the same deck in a server of your own.
+- **The install stays small.** In the [comparison](https://github.com/halqme/hinote/blob/main/bench/README.md) with Slidev, Marp, and hono-decks, hinote on Bun installs 5 packages and 10.2 MB of `node_modules`. `build` writes 2 files, 32 KB (9 KB gzipped). The dev server responds in 0.10 s, and the build takes 0.06 s.
+
+New to hinote? Run `hinote init`, then `hinote skills get core` for the loop and references.
 
 ## Getting started
 
