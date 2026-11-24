@@ -6,9 +6,12 @@ export type { Aspect, Deck, DeckOptions } from "./deck/deck.ts";
 export type { CssInput, CssSource } from "./deck/css.ts";
 export { Card, Center, Column, Flow, Grid, Row } from "./components/layout.tsx";
 export type {
+  Align,
   CardProps,
   FlowProps,
+  Gap,
   GridProps,
+  Justify,
   LayoutProps,
 } from "./components/layout.tsx";
 export { Link } from "./components/link.tsx";
@@ -22,6 +25,6 @@ export type { Slide, SlideOptions, SlideRender } from "./deck/slide.ts";
 export { Script } from "./components/script.tsx";
 export type { ScriptProps } from "./components/script.tsx";
 export { Step, Steps } from "./components/step.tsx";
-export type { StepProps, StepsProps } from "./components/step.tsx";
+export type { StepProps, StepsProps, Tag } from "./components/step.tsx";
 export { themes } from "./deck/theme.ts";
 export type { Transition } from "./deck/transition.ts";

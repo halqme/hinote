@@ -1,17 +1,57 @@
 import type { Child } from "hono/jsx";
 import { HinoteError } from "../errors.ts";
 
+// Where items sit across the row or column (align-items).
+export type Align =
+  | "start"
+  | "center"
+  | "end"
+  | "stretch"
+  | "baseline"
+  | "flex-start"
+  | "flex-end";
+// How the row or column spreads its items (justify-content).
+export type Justify =
+  | "start"
+  | "center"
+  | "end"
+  | "space-between"
+  | "space-around"
+  | "space-evenly"
+  | "flex-start"
+  | "flex-end";
+type Unit =
+  | "px"
+  | "rem"
+  | "em"
+  | "%"
+  | "ch"
+  | "lh"
+  | "vw"
+  | "vh"
+  | "vmin"
+  | "vmax"
+  | "cqw"
+  | "cqh";
+// A number counts the theme's spacing unit; a string is a CSS length with
+// its unit, or a function such as var() or calc(). A bare "2" is not a
+// length, and CSS would drop it.
+export type Gap =
+  | number
+  | `${number}${Unit}`
+  | `${"var" | "calc" | "min" | "max" | "clamp"}(${string})`;
+
 export type LayoutProps = {
-  gap?: string | number;
-  align?: string;
-  justify?: string;
+  gap?: Gap;
+  align?: Align;
+  justify?: Justify;
   children?: Child;
 };
 
 export type GridProps = {
   // Number of columns. Defaults to 2 in CSS when omitted.
   columns?: number;
-  gap?: string | number;
+  gap?: Gap;
   class?: string;
   children?: Child;
 };
@@ -29,7 +69,7 @@ export type CardProps = {
 export type FlowProps = {
   // Which box to emphasize, counted from 1 in reading order.
   emphasis?: number;
-  gap?: string | number;
+  gap?: Gap;
   class?: string;
   children?: Child;
 };
@@ -52,6 +92,12 @@ function gapValue(gap: string | number | undefined): string | undefined {
       throw new HinoteError("gap must be a finite number or a CSS length.");
     return `calc(var(--hinote-space-unit) * ${gap})`;
   }
+  // CSS drops a length without a unit, and the items touch.
+  if (/^\s*-?[\d.]+\s*$/.test(gap))
+    throw new HinoteError(`gap="${gap}" has no unit.`, {
+      code: "gap",
+      hint: `Write gap={${gap.trim()}} for steps of the spacing unit, or a length such as gap="${gap.trim()}rem".`,
+    });
   return cssToken(gap, "gap");
 }
 

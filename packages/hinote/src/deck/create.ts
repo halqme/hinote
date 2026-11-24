@@ -16,6 +16,15 @@ import { mergeTheme } from "./theme.ts";
 
 export type SlideInput = Slide | Deck;
 
+// Deck options only the deck that deck.tsx exports can set.
+const TOP_LEVEL = [
+  "title",
+  "lang",
+  "aspect",
+  "presenter",
+  "pageNumber",
+] as const;
+
 // Duck-typed because `hinote dev` loads the deck with its own bundled copy of hinote.
 export function isDeck(value: unknown): value is Deck {
   return (
@@ -28,15 +37,17 @@ export function isDeck(value: unknown): value is Deck {
 
 // A nested deck lends its theme, transition, and CSS to its slides; a slide's own still wins.
 function nestedSlides(deck: Deck): Slide[] {
-  if (
-    deck.config.title !== undefined ||
-    deck.config.lang !== undefined ||
-    deck.config.aspect !== undefined ||
-    deck.config.presenter !== undefined ||
-    deck.config.pageNumber !== undefined
-  )
+  if (TOP_LEVEL.some((key) => deck.config[key] !== undefined))
     throw new HinoteError(
-      'Deck options "title", "lang", "aspect", "presenter", and "pageNumber" can only be set on the top-level deck.',
+      `A nested deck sets ${TOP_LEVEL.filter(
+        (key) => deck.config[key] !== undefined,
+      )
+        .map((key) => `"${key}"`)
+        .join(", ")}, which only the top-level deck can set.`,
+      {
+        code: "deck-option",
+        hint: `Move it to the outermost createSlide, the one deck.tsx exports. A nested deck takes "section", "theme", "transition", and "css".`,
+      },
     );
   const { theme, transition, css } = deck.config;
   if (!theme && !transition && !css) return [...deck.slides];

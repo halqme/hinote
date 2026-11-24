@@ -211,6 +211,14 @@ describe("createSlide", () => {
     expect(() => createSlide([presenting])).toThrow(HinoteError);
     const numbered = createSlide({ pageNumber: true }, [textSlide("x")]);
     expect(() => createSlide([numbered])).toThrow(HinoteError);
+    // The error names what was set and where it belongs.
+    expect(() => createSlide([inner])).toThrow(
+      expect.objectContaining({
+        code: "deck-option",
+        message: expect.stringContaining('"aspect"'),
+        hint: expect.stringContaining("outermost createSlide"),
+      }),
+    );
   });
 
   test("page numbers are the flattened position, and one slide can hide its own", async () => {
@@ -354,7 +362,7 @@ describe("Step", () => {
   test("rejects bad props", async () => {
     const bad = createSlide(() => <Step at={0}>x</Step>);
     await expect(deckOf(bad).render()).rejects.toThrow(HinoteError);
-    const tag = createSlide(() => <Step as="li onclick">x</Step>);
+    const tag = createSlide(() => <Step as={"li onclick" as never}>x</Step>);
     await expect(deckOf(tag).render()).rejects.toThrow(HinoteError);
   });
 
@@ -510,8 +518,17 @@ describe("layout", () => {
   });
 
   test("rejects a layout value that would break out of the style attribute", async () => {
-    const slide = createSlide(() => <Row align="center}" />);
+    const slide = createSlide(() => <Row align={"center}" as never} />);
     await expect(deckOf(slide).render()).rejects.toThrow(HinoteError);
+  });
+
+  // CSS drops a length without a unit, so the items would touch.
+  test("rejects a gap string without a unit, and says how to write it", async () => {
+    const slide = createSlide(() => <Column gap={"2" as never} />);
+    await expect(deckOf(slide).render()).rejects.toMatchObject({
+      code: "gap",
+      hint: expect.stringContaining("gap={2}"),
+    });
   });
 
   test("Grid and Card expose columns, gap, span, and one cell per child", async () => {

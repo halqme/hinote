@@ -1,11 +1,14 @@
-import { jsx, type Child } from "hono/jsx";
+import { jsx, type Child, type JSX } from "hono/jsx";
 import { HinoteError } from "../errors.ts";
+
+// An HTML element's name.
+export type Tag = Extract<keyof JSX.IntrinsicElements, string>;
 
 export type StepProps = {
   // 1-based step that reveals this element. Without it, steps count up in document order.
   at?: number;
   // Element to render, such as "li" inside a list. Defaults to "div".
-  as?: string;
+  as?: Tag;
   class?: string;
   children?: Child;
 };
@@ -68,7 +71,7 @@ export type StepsProps = {
   // in document order. Its script reads its own step with hinote.observe.
   count: number;
   // Element to render. Defaults to "div".
-  as?: string;
+  as?: Tag;
   class?: string;
   children?: Child;
 };
