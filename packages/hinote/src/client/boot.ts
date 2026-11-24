@@ -572,8 +572,62 @@ export function boot(): void {
     presenter.show(player.position);
   }
 
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen()?.catch(() => {});
+      return;
+    }
+    void document.documentElement.requestFullscreen()?.catch(() => {});
+  };
+  const fullscreenButton = document.getElementById("hinote-fullscreen");
+  fullscreenButton?.addEventListener("click", toggleFullscreen);
+  const slideNav = document.getElementById("hinote-nav");
+  if (fullscreenButton || slideNav) {
+    const chrome = [fullscreenButton, slideNav].filter(
+      (el): el is HTMLElement => el instanceof HTMLElement,
+    );
+    let hideChrome = 0;
+    const revealChrome = () => {
+      for (const el of chrome) el.classList.add("is-shown");
+      window.clearTimeout(hideChrome);
+      hideChrome = window.setTimeout(() => {
+        for (const el of chrome) el.classList.remove("is-shown");
+      }, 1600);
+    };
+    document.addEventListener("pointermove", revealChrome);
+  }
+  document.addEventListener("fullscreenchange", () => {
+    const on = document.fullscreenElement != null;
+    fullscreenButton?.setAttribute("aria-pressed", String(on));
+    fullscreenButton?.setAttribute(
+      "aria-label",
+      on ? "Exit full screen" : "Full screen",
+    );
+    fullscreenButton?.setAttribute(
+      "title",
+      on ? "Exit full screen (F)" : "Full screen (F)",
+    );
+  });
+  if (page === "static") {
+    const move: Record<string, () => void> = {
+      prev: () => player.prev(),
+      next: () => player.next(),
+    };
+    for (const button of document.querySelectorAll<HTMLElement>(
+      "#hinote-nav [data-action]",
+    )) {
+      const action = move[button.dataset.action ?? ""];
+      if (action) button.addEventListener("click", action);
+    }
+  }
+
   document.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (page === "view" && (event.key === "f" || event.key === "F")) {
+      event.preventDefault();
+      toggleFullscreen();
+      return;
+    }
     if (presenter?.key(event.key) || player.key(event.key))
       event.preventDefault();
   });

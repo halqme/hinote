@@ -130,6 +130,17 @@ html[data-page="presenter"] #hinote-toolbar{grid-column:1;grid-row:2;padding:0 1
 #hinote-toolbar button:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
 #hinote-toolbar button[aria-pressed="true"]{border-color:#ff2d2d;color:#ff8a8a}
 #hinote-toolbar u{text-decoration:underline;text-underline-offset:2px}
+#hinote-nav button,#hinote-fullscreen{all:unset;cursor:pointer;display:grid;place-items:center;width:2.25rem;height:2.25rem;border:1px solid #3a4150;border-radius:6px;color:#e4e4e7;background:rgb(17 19 24 / .85)}
+#hinote-nav{position:fixed;left:50%;bottom:1rem;z-index:5;transform:translateX(-50%);display:flex;gap:.4rem}
+#hinote-fullscreen{position:fixed;right:1rem;bottom:1rem;z-index:5}
+#hinote-nav,#hinote-fullscreen{opacity:0;pointer-events:none}
+#hinote-nav.is-shown,#hinote-fullscreen.is-shown,#hinote-nav:hover,#hinote-fullscreen:hover,#hinote-nav:focus-within,#hinote-fullscreen:focus-within{opacity:1;pointer-events:auto}
+#hinote-nav button:hover,#hinote-fullscreen:hover{background:#262b36}
+#hinote-nav button:focus-visible,#hinote-fullscreen:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+#hinote-nav svg,#hinote-fullscreen svg{width:1.25rem;height:1.25rem}
+#hinote-fullscreen svg[data-icon="exit"]{display:none}
+#hinote-fullscreen[aria-pressed="true"] svg[data-icon="enter"]{display:none}
+#hinote-fullscreen[aria-pressed="true"] svg[data-icon="exit"]{display:block}
 #hinote-timer{all:unset;cursor:pointer;font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
 #hinote-clock{margin:0;color:#a1a1aa;font-size:13px;font-variant-numeric:tabular-nums}
 
@@ -145,7 +156,7 @@ html[data-page] body{display:block}
 .hinote-stage{width:auto;height:auto;overflow:visible;box-shadow:none}
 .hinote-stage>.slide{display:revert-layer;position:relative;transform:none;break-after:page}
 [data-hinote-step].is-hidden{opacity:1;visibility:visible}
-#hinote-panel,#hinote-notes,#hinote-toolbar,#hinote-overview,#hinote-pointer{display:none}
+#hinote-panel,#hinote-notes,#hinote-toolbar,#hinote-nav,#hinote-fullscreen,#hinote-overview,#hinote-pointer{display:none}
 }
 `.trim();
 
@@ -258,6 +269,46 @@ function presenterPanel(slideCount: number, notes: string) {
     ),
     jsx("div", { id: "hinote-overview" }),
   ];
+}
+
+// IconOven's fullscreen and exit-fullscreen (MIT), inlined so the page does not
+// fetch them. https://iconoven.com/icons
+const FULLSCREEN_ENTER = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" data-icon="enter" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 8.75v-3a2 2 0 0 1 2-2h3m11.5 11.5v3a2 2 0 0 1-2 2h-3m0-16.5h3a2 2 0 0 1 2 2v3m-11.5 11.5h-3a2 2 0 0 1-2-2v-3"/></svg>`;
+const FULLSCREEN_EXIT = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" data-icon="exit" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.75 3.75v3a2 2 0 0 1-2 2h-3m11.5 11.5v-3a2 2 0 0 1 2-2h3m0-6.5h-3a2 2 0 0 1-2-2v-3m-11.5 11.5h3a2 2 0 0 1 2 2v3"/></svg>`;
+const CHEVRON_LEFT = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 5.25L8.25 12L15 18.75"/></svg>`;
+const CHEVRON_RIGHT = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5.25L15.75 12L9 18.75"/></svg>`;
+
+// The built file has no presenter, so previous and next float over the slide.
+// The audience page can fill the screen. The icon switches while it has.
+// Both stay hidden until the pointer moves.
+function audienceChrome(page: Page) {
+  if (page === "static")
+    return jsx(
+      "div",
+      { id: "hinote-nav", role: "toolbar", "aria-label": "Slides" },
+      jsx("button", {
+        type: "button",
+        "data-action": "prev",
+        "aria-label": "Previous",
+        dangerouslySetInnerHTML: { __html: CHEVRON_LEFT },
+      }),
+      jsx("button", {
+        type: "button",
+        "data-action": "next",
+        "aria-label": "Next",
+        dangerouslySetInnerHTML: { __html: CHEVRON_RIGHT },
+      }),
+    );
+  return jsx("button", {
+    id: "hinote-fullscreen",
+    type: "button",
+    "aria-pressed": "false",
+    "aria-label": "Full screen",
+    title: "Full screen (F)",
+    dangerouslySetInnerHTML: {
+      __html: FULLSCREEN_ENTER + FULLSCREEN_EXIT,
+    },
+  });
 }
 
 // Layers, weakest first: hinote's SLIDE_CSS, then the top-level deck (hinote-0),
@@ -451,6 +502,7 @@ ${FRAME_CSS}`;
       "body",
       {},
       deck,
+      page === "static" || page === "view" ? audienceChrome(page) : null,
       page === "presenter" ? presenterPanel(slides.length, firstNotes) : null,
       page !== "static" &&
         (input.sync === "server" || input.sync === "broadcast")

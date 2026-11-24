@@ -453,6 +453,8 @@ describe("the presenter view", () => {
 
   test("the laser starts off, and a choice stays across a reload", async () => {
     await open("presenter", "http://localhost/presenter/1", "broadcast");
+    expect(document.getElementById("hinote-fullscreen")).toBeNull();
+    expect(document.getElementById("hinote-nav")).toBeNull();
     const laser = () =>
       document
         .querySelector('[data-action="laser"]')
@@ -467,6 +469,66 @@ describe("the presenter view", () => {
     expect(laser()).toBe("false");
     await open("presenter", "http://localhost/presenter/1", "broadcast");
     expect(laser()).toBe("false");
+  });
+});
+
+describe("the built page", () => {
+  test("has previous and next icons over the slide, and no full screen button", async () => {
+    await open("static", "http://localhost/index.html");
+    expect(document.getElementById("hinote-fullscreen")).toBeNull();
+    expect(document.getElementById("hinote-panel")).toBeNull();
+    const nav = document.getElementById("hinote-nav");
+    expect(nav?.textContent).toBe("");
+    expect(nav?.querySelectorAll("svg")).toHaveLength(2);
+    expect(getComputedStyle(nav!).opacity).toBe("0");
+    document.dispatchEvent(new Event("pointermove"));
+    expect(getComputedStyle(nav!).opacity).toBe("1");
+    const pressNav = (action: string) =>
+      nav?.querySelector<HTMLElement>(`[data-action="${action}"]`)?.click();
+    pressNav("next");
+    expect(active()).toBe(1);
+    expect(hidden()).toEqual([true, true]);
+    pressNav("next");
+    expect(hidden()).toEqual([false, true]);
+    pressNav("prev");
+    expect(hidden()).toEqual([true, true]);
+    pressNav("prev");
+    expect(active()).toBe(0);
+  });
+});
+
+describe("the audience page", () => {
+  test("enters full screen from the icon and from F, and the icon switches while it is full screen", async () => {
+    await open("view", "http://localhost/1");
+    const button = document.getElementById("hinote-fullscreen");
+    const shown = (icon: string) =>
+      getComputedStyle(button!.querySelector(`[data-icon="${icon}"]`)!).display;
+    expect(button?.getAttribute("aria-label")).toBe("Full screen");
+    expect(getComputedStyle(button!).opacity).toBe("0");
+    document.dispatchEvent(new Event("pointermove"));
+    expect(getComputedStyle(button!).opacity).toBe("1");
+    expect(shown("enter")).not.toBe("none");
+    expect(shown("exit")).toBe("none");
+    expect(document.getElementById("hinote-nav")).toBeNull();
+    let entered = 0;
+    document.documentElement.requestFullscreen = () => {
+      entered += 1;
+      return Promise.resolve();
+    };
+    press("f");
+    press("F");
+    button?.click();
+    expect(entered).toBe(3);
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => document.documentElement,
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+    expect(button?.hidden).toBe(false);
+    expect(button?.getAttribute("aria-pressed")).toBe("true");
+    expect(button?.getAttribute("aria-label")).toBe("Exit full screen");
+    expect(shown("enter")).toBe("none");
+    expect(shown("exit")).not.toBe("none");
   });
 });
 
