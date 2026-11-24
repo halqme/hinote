@@ -3,6 +3,7 @@ import {
   copyFile,
   mkdtemp,
   mkdir,
+  readdir,
   readFile,
   rm,
   symlink,
@@ -983,8 +984,18 @@ test("skills has a guide for each package, and says when the deck has another ve
   try {
     const list = JSON.parse((await run(["skills", "--json"], dir)).stdout);
     const names = list.data.map((s: { name: string }) => s.name);
-    for (const name of ["code", "katex", "d2", "chart"])
-      expect(names).toContain(name);
+    // Every @hinote/* component package has its guide here.
+    const packages = (await readdir(resolve(repo, ".."))).filter(
+      (name) => !["hinote", "types"].includes(name),
+    );
+    expect(packages.length).toBeGreaterThan(0);
+    for (const name of packages) expect(names).toContain(name);
+    // Help lists what the skill directories declare, not a list of its own.
+    const help = (await run(["skills", "--help"], dir)).stdout;
+    for (const skill of list.data as { name: string; description: string }[]) {
+      expect(help).toContain(skill.description);
+      expect(help).toContain(`hinote skills get ${skill.name}`);
+    }
 
     const absent = await run(["skills", "get", "chart"], dir);
     expect(absent.code).toBe(0);

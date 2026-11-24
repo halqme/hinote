@@ -1,5 +1,5 @@
-import { existsSync } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HinoteError, UsageError } from "../errors.ts";
@@ -25,7 +25,10 @@ function skillsDir(): string {
 }
 
 type Skill = {
+  // The directory, which `get` takes.
   name: string;
+  // What the skill calls itself, the directory an agent installs it as.
+  id: string;
   description: string;
   path: string;
   references: string[];
@@ -36,19 +39,23 @@ function frontmatter(text: string, key: string): string {
   return new RegExp(`^${key}:\\s*(.*)$`, "m").exec(head)?.[1]?.trim() ?? "";
 }
 
-async function listSkills(): Promise<Skill[]> {
+// Every directory with a SKILL.md, described by its own frontmatter. Read
+// synchronously so help can list them too.
+function listSkills(): Skill[] {
   const root = skillsDir();
   const skills: Skill[] = [];
-  for (const name of (await readdir(root)).sort()) {
+  for (const name of readdirSync(root).sort()) {
     const file = join(root, name, "SKILL.md");
     if (!existsSync(file)) continue;
     const refs = join(root, name, "references");
+    const text = readFileSync(file, "utf8");
     skills.push({
       name,
-      description: frontmatter(await readFile(file, "utf8"), "description"),
+      id: frontmatter(text, "name") || name,
+      description: frontmatter(text, "description"),
       path: join(root, name),
       references: existsSync(refs)
-        ? (await readdir(refs))
+        ? readdirSync(refs)
             .filter((f) => f.endsWith(".md"))
             .map((f) => f.slice(0, -3))
             .sort()
@@ -58,8 +65,18 @@ async function listSkills(): Promise<Skill[]> {
   return skills;
 }
 
-async function findSkill(name: string | undefined): Promise<Skill> {
-  const skills = await listSkills();
+function skillLines(all: readonly Skill[]): string[] {
+  return all.map(
+    (s) =>
+      `  ${s.name.padEnd(12)}${s.description}` +
+      (s.references.length > 0
+        ? `\n  ${"".padEnd(12)}references: ${s.references.join(", ")}`
+        : ""),
+  );
+}
+
+function findSkill(name: string | undefined): Skill {
+  const skills = listSkills();
   const skill = skills.find((s) => s.name === (name ?? "core"));
   if (!skill)
     throw new HinoteError(`There is no skill "${name}".`, {
@@ -97,10 +114,9 @@ export const skills: Command = {
   summary: "Guides for agents writing decks, matched to this version",
   args: "[list|get|path] [name]",
   maxArgs: 2,
-  description: `Prints the guides that ship with this hinote, so an agent learns the version it is driving instead of guessing from flags. Start with core: the deck model, the edit-and-check loop, and what tends to go wrong. Its references hold the details; --ref loads one, --full appends all of them. The @hinote/* packages have a guide each, named after the package (chart for @hinote/chart), readable before the package is installed.
+  description: `Prints the guides that ship with this hinote, so an agent learns the version it is driving instead of guessing from flags. Each guide is a skill directory: its SKILL.md says what it is for, and its references hold the details; --ref loads one, --full appends all of them.
 
-To install a skill for an agent that reads skill directories, copy the directory skills path prints, e.g.
-  cp -R "$(hinote skills path core)" .claude/skills/hinote`,
+To install a skill for an agent that reads skill directories, copy the directory skills path prints.`,
   flags: {
     full: {
       type: "boolean",
@@ -112,13 +128,26 @@ To install a skill for an agent that reads skill directories, copy the directory
       description: "With get: print one reference instead of the guide.",
     },
   },
-  examples: [
-    "hinote skills",
-    "hinote skills get core",
-    "hinote skills get core --ref api",
-    "hinote skills get core --full",
-    "hinote skills get chart",
-  ],
+  examples: ["hinote skills"],
+  // The guides and their examples come from the skill directories, so help
+  // lists what this install has.
+  dynamicHelp() {
+    const all = listSkills();
+    const first = all.find((s) => s.references.length > 0) ?? all[0];
+    return {
+      sections: [{ title: "Skills", lines: skillLines(all) }],
+      examples: first
+        ? [
+            ...all.map((s) => `hinote skills get ${s.name}`),
+            ...(first.references[0]
+              ? [`hinote skills get ${first.name} --ref ${first.references[0]}`]
+              : []),
+            `hinote skills get ${first.name} --full`,
+            `cp -R "$(hinote skills path ${first.name})" .claude/skills/${first.id}`,
+          ]
+        : [],
+    };
+  },
   async run(args, out) {
     const [action = "list", name] = args.positionals;
     if (action === "list") {
@@ -127,25 +156,19 @@ To install a skill for an agent that reads skill directories, copy the directory
           "skills list takes no name.",
           "hinote skills get <name>",
         );
-      const all = await listSkills();
+      const all = listSkills();
       out.result(
         all.map((s) => ({
           name: s.name,
           description: s.description,
           references: s.references,
         })),
-        all.map(
-          (s) =>
-            `  ${s.name.padEnd(12)}${s.description}` +
-            (s.references.length > 0
-              ? `\n  ${"".padEnd(12)}references: ${s.references.join(", ")}`
-              : ""),
-        ),
+        skillLines(all),
       );
       return;
     }
     if (action === "path") {
-      const skill = await findSkill(name);
+      const skill = findSkill(name);
       out.result({ name: skill.name, path: skill.path }, skill.path);
       return;
     }
@@ -154,7 +177,7 @@ To install a skill for an agent that reads skill directories, copy the directory
         `skills has no action "${action}".`,
         "hinote skills [list | get <name> | path [name]]",
       );
-    const skill = await findSkill(name);
+    const skill = findSkill(name);
     const ref = stringFlag(args, "ref");
     if (ref !== undefined) {
       if (!skill.references.includes(ref))

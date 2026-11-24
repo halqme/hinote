@@ -5,6 +5,8 @@ import type { Output } from "./output.ts";
 // commands, which do one step each and can be run on their own.
 export type Group = "porcelain" | "plumbing" | "agent";
 
+export type HelpSection = { title: string; lines: string[] };
+
 export type Command = {
   name: string;
   group: Group;
@@ -18,6 +20,9 @@ export type Command = {
   description: string;
   flags: Record<string, FlagSpec>;
   examples: string[];
+  // Help that depends on what is installed, read when help is shown: more
+  // sections after the description, and examples after the fixed ones.
+  dynamicHelp?: () => { sections: HelpSection[]; examples: string[] };
   // Bundles TSX, which on Node needs esbuild (see handOffToBun in cli.ts).
   bundles?: boolean;
   // Returns the exit code; nothing means 0.

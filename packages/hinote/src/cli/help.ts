@@ -66,16 +66,21 @@ function flagLines(flags: Record<string, FlagSpec>): string[] {
 // What `hinote help <command>` and `hinote <command> --help` print.
 export function commandHelp(command: Command): string {
   const flags = flagLines({ ...command.flags, ...GLOBAL_FLAGS });
+  const dynamic = command.dynamicHelp?.() ?? { sections: [], examples: [] };
+  const sections = dynamic.sections
+    .map((section) => `\n${section.title}:\n${section.lines.join("\n")}\n`)
+    .join("");
+  const examples = [...command.examples, ...dynamic.examples];
   return `hinote ${command.name} - ${command.summary}
 
 Usage: hinote ${command.name} ${command.args}${Object.keys(command.flags).length > 0 ? " [options]" : ""}
 
 ${command.description}
-
+${sections}
 Options:
 ${flags.join("\n")}
 
 Examples:
-${command.examples.map((e) => `  ${e}`).join("\n")}
+${examples.map((e) => `  ${e}`).join("\n")}
 `;
 }
