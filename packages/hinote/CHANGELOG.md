@@ -4,6 +4,8 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 ## Unreleased
 
+- `hinote check` reports more mistakes that otherwise pass in silence, each with how to fix it: an `on*` handler on a slide (`server-handler`), a state or effect hook in a slide file (`server-hook`), `<Script src>` given a source file as a string (`script-src`), and a `<Step>` in a list without `as="li"` (warning `step-in-list`). `createSlide(<Title />)` is reported as `slide-shape` with the fix, a relative `new URL()` without a base gets a hint, and an error a component throws keeps its own code and hint.
+- A deck or `<Script>` that does not bundle is reported with the bundler's reason, such as the import that does not exist, instead of "Bundle failed".
 - Breaking: `<Code>` moved to the new package `@hinote/code`, and its themes to `@hinote/code/themes`. `hinote` no longer exports `Code`, `CodeProps`, or `hinote/code-themes`, and no longer installs `@pierre/highlights`. Add `@hinote/code` and change the import.
 - `hinote` and every `@hinote/*` package share one version and are released together.
 - New package `@hinote/katex`: `<Math tex="...">` renders LaTeX as MathML while the slide renders, as a block or `inline`.

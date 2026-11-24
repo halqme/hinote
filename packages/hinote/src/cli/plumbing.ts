@@ -84,9 +84,76 @@ export type SlideInfo = {
   transition?: string;
   // Relative paths the slide loads, as written.
   files: string[];
-  // Why the slide did not render.
+  // Why the slide did not render, and the code and hint of an error that
+  // carries them, such as one a component threw.
   error?: string;
+  errorCode?: string;
+  errorHint?: string;
+  // What renders but is likely not what was meant.
+  warnings?: MarkupWarning[];
 };
+
+export type MarkupWarning = { code: string; message: string; hint: string };
+
+const VOID = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "source",
+  "track",
+  "wbr",
+]);
+
+// A <Step> left as a <div> directly inside a list makes the list invalid
+// HTML: a list holds only <li>.
+export function markupWarnings(html: string): MarkupWarning[] {
+  const stack: string[] = [];
+  let found = false;
+  for (const [tag, close, name = "", attributes = "", self] of html.matchAll(
+    /<(\/?)([a-z][a-z0-9-]*)\b([^>]*?)(\/?)>/g,
+  )) {
+    void tag;
+    if (close) {
+      const at = stack.lastIndexOf(name);
+      if (at >= 0) stack.length = at;
+      continue;
+    }
+    const parent = stack.at(-1);
+    if (
+      (parent === "ul" || parent === "ol") &&
+      name !== "li" &&
+      /\sdata-hinote-step=/.test(attributes)
+    )
+      found = true;
+    if (!self && !VOID.has(name)) stack.push(name);
+  }
+  return found
+    ? [
+        {
+          code: "step-in-list",
+          message:
+            "A <Step> inside a list renders as a <div>, which a list cannot hold.",
+          hint: 'Write <Step as="li"> for a list item.',
+        },
+      ]
+    : [];
+}
+
+// Errors any code can throw, read back with what to do about them.
+function renderHint(message: string): string | undefined {
+  if (message.includes("hinote is not defined"))
+    return "hinote exists only in the browser. Use it from a *.client.tsx file. See: hinote skills get core --ref client";
+  if (/Invalid URL/.test(message))
+    return 'new URL() with a relative path needs a base: new URL("./widget.client.tsx", import.meta.url).';
+  return undefined;
+}
 
 // Renders each slide by itself and reads back what a person would see.
 export async function describeSlides(deck: Deck): Promise<SlideInfo[]> {
@@ -105,11 +172,17 @@ export async function describeSlides(deck: Deck): Promise<SlideInfo[]> {
     if ("error" in result) {
       const error = result.error;
       info.error = error instanceof Error ? error.message : String(error);
+      if (isHinoteError(error)) {
+        if (error.code !== "error") info.errorCode = error.code;
+        if (error.hint) info.errorHint = error.hint;
+      }
       return info;
     }
     const body = result.html.slice(result.html.indexOf('<div id="deck"'));
     info.title ??= firstHeading(body);
     info.steps = stepsIn(body).size;
+    const warnings = markupWarnings(body);
+    if (warnings.length > 0) info.warnings = warnings;
     info.files = referencedPaths(result.html);
     return info;
   });
@@ -286,19 +359,26 @@ export const check: Command = {
   summary: "Render every slide and report what is broken",
   args: DECK_ARG,
   maxArgs: 1,
-  description: `Loads the deck, renders each slide by itself, looks for the files the slides refer to, bundles every <Script>, and reads the source for two rules a render cannot see. Each problem names its slides when it can, and has a code:
+  description: `Loads the deck, renders each slide by itself, looks for the files the slides refer to, bundles every <Script>, and reads the source for mistakes a render cannot see. Each problem names its slides when it can, and has a code and a hint:
 
   deck-not-found, deck-load, deck-export   The deck file could not be loaded
+  slide-shape                              createSlide got something other than a render function or slides
   render                                   A slide threw while rendering
+  script-src                               <Script src> is a source file as a string
   missing-file                             A slide loads a file that is not there
   script                                   A <Script> file did not bundle
   flattened-deck                           A deck was mapped or flattened into slides
   browser-global                           hinote was used outside a *.client.tsx file
+  server-handler                           An on* handler on a slide, where it never runs
+  server-hook                              A state or effect hook in a slide file
 
-Theme colors are also checked: fg, muted, and accent against bg and surface must
-reach 7:1 when the values are #rgb, #rrggbb, or rgb(). Shortfalls are warnings
-(code contrast), not problems — warnings alone keep exit 0. var() and color-mix()
-are skipped.
+A component's own error keeps its code, such as math from @hinote/katex.
+
+Warnings keep exit 0:
+
+  contrast       fg, muted, or accent reach less than 7:1 against bg or surface
+                 (#rgb, #rrggbb, and rgb() values; var() and color-mix() are skipped)
+  step-in-list   A <Step> inside a list without as="li"
 
 Exits 1 when there is a problem, so it can gate a build: hinote check && hinote build`,
   flags: {},
@@ -311,21 +391,33 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
   async run(args, out) {
     const file = deckPath(args.positionals[0]);
     const problems: Problem[] = [];
-    const warnings: ContrastWarning[] = [];
+    const warnings: (
+      ContrastWarning | (MarkupWarning & { slides: number[] })
+    )[] = [];
     let count = 0;
     try {
       const deck = await loadDeckFile(file);
       const slides = await describeSlides(deck);
       count = slides.length;
+      const markup = new Map<
+        string,
+        { warning: MarkupWarning; slides: number[] }
+      >();
+      for (const slide of slides)
+        for (const warning of slide.warnings ?? []) {
+          const seen = markup.get(warning.code) ?? { warning, slides: [] };
+          seen.slides.push(slide.number);
+          markup.set(warning.code, seen);
+        }
+      for (const { warning, slides: numbers } of markup.values())
+        warnings.push({ ...warning, slides: numbers });
       for (const slide of slides)
         if (slide.error)
           problems.push({
-            code: "render",
+            code: slide.errorCode ?? "render",
             message: slide.error,
             slides: [slide.number],
-            hint: slide.error.includes("hinote is not defined")
-              ? "hinote exists only in the browser. Use it from a *.client.tsx file. See: hinote skills get core --ref client"
-              : undefined,
+            hint: slide.errorHint ?? renderHint(slide.error),
           });
       const users = new Map<string, number[]>();
       for (const slide of slides)

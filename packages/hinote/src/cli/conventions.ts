@@ -1,4 +1,4 @@
-// Source checks for the rules in skills/core that a render cannot see.
+// Source checks for mistakes a render cannot see.
 // Only reports a pattern that is not also how a slide draws data: a `.map`
 // inside a render function stays silent, and so does a `.map` that calls
 // `createSlide` to build new slides from data.
@@ -11,12 +11,21 @@ export type SourceProblem = {
   hint: string;
 };
 
+const HANDLER_HINT =
+  'A slide is HTML drawn on the server, so a handler on it never runs. Put the behavior in a *.client.tsx file and add it with <Script src={new URL("./x.client.tsx", import.meta.url)} />.';
+const HOOK_HINT =
+  "A slide renders once on the server, so state never changes and effects never run. Keep state in a *.client.tsx file added with <Script>.";
+// Hooks whose point is to change the page after it renders.
+const HOOKS = ["useState", "useReducer", "useEffect", "useLayoutEffect"];
+
 const FLAT_HINT =
   "Pass a nested deck in the array as it is. createSlide flattens nested decks in order.";
 const BROWSER_HINT =
   'hinote is a browser global. Use it in a *.client.tsx file that starts with /// <reference types="hinote/client" />, and put that file on the slide with <Script>. Do not import "hinote/client" from a slide: that types hinote for the whole program.';
 
 type Tok = { k: "id" | "punct" | "jsx"; v: string; line: number };
+// An attribute written on a JSX element, kept apart from the tokens.
+type Attr = { tag: string; name: string; line: number };
 
 function isClientFile(file: string): boolean {
   return /\.client\.tsx?$/.test(file);
@@ -25,7 +34,7 @@ function isClientFile(file: string): boolean {
 // Comments and strings are not code. JSX text is not either: a slide may
 // mention hinote.send as words. `<` after an identifier is a comparison or a
 // generic, not a tag (`a < b`, `Box<T>`).
-function tokenize(source: string): Tok[] {
+function tokenize(source: string, attrs: Attr[] = []): Tok[] {
   const out: Tok[] = [];
   let i = 0;
   let line = 1;
@@ -91,6 +100,16 @@ function tokenize(source: string): Tok[] {
       }
       if (source[i] === '"' || source[i] === "'") {
         skipString(source[i] ?? '"');
+        continue;
+      }
+      if (/[A-Za-z_]/.test(source[i] ?? "")) {
+        const at = line;
+        let attr = "";
+        while (i < source.length && /[\w:-]/.test(source[i] ?? "")) {
+          attr += source[i];
+          bump(1);
+        }
+        attrs.push({ tag: name, name: attr, line: at });
         continue;
       }
       bump(1);
@@ -480,14 +499,56 @@ function flattenProblems(tokens: Tok[], file: string): SourceProblem[] {
   return problems;
 }
 
+// Behavior written on a slide: an event handler on an HTML element, or a
+// hook that would change the page. Both are silently inert on the server.
+function serverOnlyProblems(
+  source: string,
+  attrs: Attr[],
+  file: string,
+): SourceProblem[] {
+  if (isClientFile(file)) return [];
+  const problems: SourceProblem[] = [];
+  for (const attr of attrs)
+    if (/^[a-z]/.test(attr.tag) && /^on[A-Z]/.test(attr.name))
+      problems.push({
+        code: "server-handler",
+        message: `${file}:${attr.line}: <${attr.tag} ${attr.name}> is on a slide, where it never runs.`,
+        hint: HANDLER_HINT,
+      });
+  for (const match of source.matchAll(
+    /import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*["'](hono\/jsx(?:\/dom)?|react)["']/g,
+  )) {
+    if (/^import\s*type\b/.test(match[0])) continue;
+    const names = (match[1] ?? "")
+      .split(",")
+      .map((part) =>
+        part
+          .trim()
+          .split(/\s+as\s+/)[0]
+          ?.replace(/^type\s+/, ""),
+      )
+      .filter((name): name is string => !!name && HOOKS.includes(name));
+    if (names.length === 0) continue;
+    const line = source.slice(0, match.index).split("\n").length;
+    problems.push({
+      code: "server-hook",
+      message: `${file}:${line}: a slide file imports ${names.join(", ")} from "${match[2]}", which never update a slide.`,
+      hint: HOOK_HINT,
+    });
+  }
+  return problems;
+}
+
 export function problemsInSource(
   source: string,
   file: string,
 ): SourceProblem[] {
-  const tokens = tokenize(source);
+  const attrs: Attr[] = [];
+  const tokens = tokenize(source, attrs);
   return [
     ...flattenProblems(tokens, file),
     ...browserProblems(source, tokens, file),
+    ...serverOnlyProblems(source, attrs, file),
   ];
 }
 

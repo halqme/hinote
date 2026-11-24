@@ -98,6 +98,44 @@ export default createSlide(() => <p>hinote.send</p>);`),
   expect(client).toEqual([]);
 });
 
+// Both are inert on a slide, which renders once on the server; a client file
+// is where they belong, and a component's own on* prop is its business.
+test("an event handler or a state hook on a slide is reported, and not in a client file", () => {
+  const slide = problemsInSource(
+    source(`import { useState } from "hono/jsx";
+const Counter = (props: { onPick: () => void }) => <b />;
+export default createSlide(() => {
+  const [n] = useState(0);
+  return <div><button onClick={() => alert(n)}>+</button><Counter onPick={() => {}} /></div>;
+});`),
+    "slides/counter.tsx",
+  );
+  expect(slide.map((problem) => problem.code)).toEqual([
+    "server-handler",
+    "server-hook",
+  ]);
+  expect(slide[0]?.message).toContain("<button onClick>");
+  expect(slide[0]?.hint).toContain("*.client.tsx");
+  expect(slide[1]?.message).toContain("useState");
+
+  const client = problemsInSource(
+    `import { useState } from "hono/jsx/dom";
+const [n] = useState(0);
+export const B = () => <button onClick={() => n}>+</button>;`,
+    "counter.client.tsx",
+  );
+  expect(client).toEqual([]);
+
+  // A type import and hooks that do not change the page are fine.
+  const quiet = problemsInSource(
+    source(`import { useContext, type FC } from "hono/jsx";
+import type { useState } from "hono/jsx";
+export default createSlide(() => <p onclick="x">a</p>);`),
+    "deck.tsx",
+  );
+  expect(quiet).toEqual([]);
+});
+
 test("check exits 1 with the code and the hint, and follows a local import", async () => {
   const dir = await tempDir();
   try {

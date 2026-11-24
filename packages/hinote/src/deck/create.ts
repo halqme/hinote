@@ -110,5 +110,9 @@ export function createSlide(first?: unknown, second?: unknown): Slide | Deck {
   }
   throw new HinoteError(
     "createSlide() expects a render function or an array of slides, optionally after an options object.",
+    {
+      code: "slide-shape",
+      hint: "Wrap JSX in a function: createSlide(() => <Title />), not createSlide(<Title />).",
+    },
   );
 }

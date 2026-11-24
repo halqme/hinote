@@ -415,6 +415,57 @@ export default createSlide([createSlide(() => <Nope />)])`),
   }
 });
 
+// Mistakes that render, or fail with a bare message, reported with what to do.
+test("check says how to fix a relative URL without a base, JSX passed as a slide, and a step in a list", async () => {
+  const dir = await tempDir();
+  try {
+    const check = async (body: string) => {
+      await writeFile(join(dir, "deck.tsx"), deckSource(body));
+      return JSON.parse(
+        (await run(["check", "deck.tsx", "--json"], dir)).stdout,
+      );
+    };
+    const url = await check(`export default createSlide([
+  createSlide(() => <p>{new URL("./widget.client.tsx").href}</p>),
+])`);
+    expect(url.data.problems[0]).toMatchObject({
+      code: "render",
+      slides: [1],
+      hint: expect.stringContaining("import.meta.url"),
+    });
+
+    // Through the real bundler, which rewrites import.meta.url in hinote too.
+    const script = await check(`import { Script } from ${JSON.stringify(api)}
+export default createSlide([createSlide(() => <Script src="./w.client.tsx" />)])`);
+    expect(script.data.problems[0]).toMatchObject({
+      code: "script-src",
+      hint: expect.stringContaining(
+        'new URL("./w.client.tsx", import.meta.url)',
+      ),
+    });
+
+    const shape = await check(
+      `export default createSlide([createSlide(<p>x</p> as never)])`,
+    );
+    expect(shape.data.problems[0]).toMatchObject({
+      code: "slide-shape",
+      hint: expect.stringContaining("createSlide(() =>"),
+    });
+
+    const list = await check(`import { Step } from ${JSON.stringify(api)}
+export default createSlide([
+  createSlide(() => <ul><Step>a</Step><Step as="li">b</Step></ul>),
+  createSlide(() => <ul><Step as="li">c</Step></ul>),
+])`);
+    expect(list.ok).toBe(true);
+    expect(list.data.warnings).toEqual([
+      expect.objectContaining({ code: "step-in-list", slides: [1] }),
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 // So a package can name its client by its built name, from src/ and dist/.
 test("a <Script> .js that does not exist is its .ts or .tsx source", async () => {
   const dir = await tempDir();

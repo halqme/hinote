@@ -451,6 +451,17 @@ describe("Script", () => {
     );
   });
 
+  // The browser would request the source as it is and fail.
+  test("rejects a string src that names a source file, and says to pass a URL", async () => {
+    for (const src of ["./widget.client.tsx", "./w.ts", "./w.jsx"]) {
+      const slide = createSlide(() => <Script src={src} />);
+      await expect(deckOf(slide).render()).rejects.toMatchObject({
+        code: "script-src",
+        hint: expect.stringContaining("import.meta.url"),
+      });
+    }
+  });
+
   test("rejects a URL that is not a file and an empty src", async () => {
     for (const src of [new URL("https://example.com/x.js"), ""]) {
       const slide = createSlide(() => <Script src={src} />);
