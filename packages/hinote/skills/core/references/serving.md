@@ -1,12 +1,12 @@
 # Showing and shipping a deck
 
-| Goal                              | Command                         | Result                                                                    |
-| --------------------------------- | ------------------------------- | ------------------------------------------------------------------------- |
-| Present from this machine         | `hinote dev`                    | `/` for the audience, `/presenter` with notes, timer, next preview, laser |
-| Present to devices on the network | `hinote dev --host 0.0.0.0`     | Presenter off unless the deck sets `presenter: true`                      |
-| Hand out one file                 | `hinote build`                  | `dist/index.html` plus the files slides load                              |
-| Host on a static site             | `hinote prerender --base /repo` | `/`, `/3/`, and with `presenter: true`, `/presenter/`                     |
-| Mount in a server                 | `hinote assets`                 | `public/` with only the files slides load                                 |
+| Goal                              | Command                         | Result                                                                      |
+| --------------------------------- | ------------------------------- | --------------------------------------------------------------------------- |
+| Present from this machine         | `hinote dev`                    | `/` for the audience, `/presenter` with notes, timer, next preview, laser   |
+| Present to devices on the network | `hinote dev --host 0.0.0.0`     | Presenter off unless the deck sets `presenter: true`                        |
+| Hand out one file                 | `hinote build`                  | `dist/index.html` plus the files slides load; with `--embed`, only the HTML |
+| Host on a static site             | `hinote prerender --base /repo` | `/`, `/3/`, and with `presenter: true`, `/presenter/`                       |
+| Mount in a server                 | `hinote assets`                 | `public/` with only the files slides load                                   |
 
 The pipeline, step by step (each runs alone):
 

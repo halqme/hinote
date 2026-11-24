@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { text as readText } from "node:stream/consumers";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { decode, referencedPaths } from "../build/assets.ts";
+import { decode, referencedPaths, remoteUrls } from "../build/assets.ts";
 import {
   contrastWarningsForTheme,
   type ContrastWarning,
@@ -88,6 +88,8 @@ export type SlideInfo = {
   transition?: string;
   // Relative paths the slide loads, as written.
   files: string[];
+  // Files it loads from the network, which a built page shows only online.
+  remote?: string[];
   // Why the slide did not render, and the code and hint of an error that
   // carries them, such as one a component threw.
   error?: string;
@@ -190,6 +192,8 @@ export async function describeSlides(deck: Deck): Promise<SlideInfo[]> {
     const warnings = markupWarnings(body);
     if (warnings.length > 0) info.warnings = warnings;
     info.files = referencedPaths(result.html);
+    const remote = remoteUrls(result.html);
+    if (remote.length > 0) info.remote = remote;
     return info;
   });
 }
@@ -401,6 +405,7 @@ Warnings keep exit 0:
   contrast       fg, muted, or accent reach less than 7:1 against bg or surface
                  (#rgb, #rrggbb, and rgb() values; var() and color-mix() are skipped)
   step-in-list   A <Step> inside a list without as="li"
+  remote-file    A slide loads a file from the network, which a built page shows only online
 
 Exits 1 when there is a problem, so it can gate a build: hinote check && hinote build`,
   flags: {},
@@ -433,6 +438,17 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
         }
       for (const { warning, slides: numbers } of markup.values())
         warnings.push({ ...warning, slides: numbers });
+      const remote = new Map<string, number[]>();
+      for (const slide of slides)
+        for (const url of slide.remote ?? [])
+          remote.set(url, [...(remote.get(url) ?? []), slide.number]);
+      for (const [url, numbers] of remote)
+        warnings.push({
+          code: "remote-file",
+          message: `"${url}" is loaded from the network, so the built page shows it only while online.`,
+          slides: numbers,
+          hint: "Save the file next to the deck and load it by a relative path; hinote build copies it, and build --embed puts it in the HTML.",
+        });
       for (const slide of slides)
         if (slide.error)
           problems.push({

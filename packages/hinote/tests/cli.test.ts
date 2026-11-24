@@ -466,6 +466,68 @@ export default createSlide([
   }
 });
 
+// One file to attach or send: what the slides load goes into the HTML.
+test("build --embed puts the files the slides load into the HTML, and copies none", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(join(dir, "a.png"), "png-a");
+    await writeFile(join(dir, "b.svg"), "<svg/>");
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`export default createSlide([
+  createSlide(() => <div style={'background: url("./b.svg")'}><img src="./a.png" srcset="./a.png 1x, ./b.svg 2x" /><img src="./gone.png" /></div>),
+])`),
+    );
+    const built = await run(
+      ["build", "--embed", "-o", "out/talk.html", "--json"],
+      dir,
+    );
+    expect(built.code).toBe(0);
+    expect(JSON.parse(built.stdout).data.embedded.sort()).toEqual([
+      "./a.png",
+      "./b.svg",
+    ]);
+    const html = await readFile(join(dir, "out/talk.html"), "utf8");
+    const png = `data:image/png;base64,${Buffer.from("png-a").toString("base64")}`;
+    const svg = `data:image/svg+xml;base64,${Buffer.from("<svg/>").toString("base64")}`;
+    expect(html).toContain(`src="${png}"`);
+    expect(html).toContain(`srcset="${png} 1x, ${svg} 2x"`);
+    expect(html).toContain(svg);
+    expect(html).not.toContain("./a.png");
+    expect(html).not.toContain("./b.svg");
+    // A file that is not there stays as written; check reports it.
+    expect(html).toContain('src="./gone.png"');
+    expect(await readdir(join(dir, "out"))).toEqual(["talk.html"]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// The built page opens without a server, but not these files without a network.
+test("check warns about files a slide loads from the network, and not about links", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`export default createSlide([
+  createSlide(() => <img src="https://example.com/a.png" />),
+  createSlide(() => <a href="https://example.com/">a link</a>),
+])`),
+    );
+    const checked = JSON.parse((await run(["check", "--json"], dir)).stdout);
+    expect(checked.ok).toBe(true);
+    expect(checked.data.warnings).toEqual([
+      expect.objectContaining({
+        code: "remote-file",
+        slides: [1],
+        message: expect.stringContaining("https://example.com/a.png"),
+      }),
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 // So a package can name its client by its built name, from src/ and dist/.
 test("a <Script> .js that does not exist is its .ts or .tsx source", async () => {
   const dir = await tempDir();

@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { watch } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { dirname, relative, resolve, sep } from "node:path";
-import { copyAssets } from "../build/assets.ts";
+import { copyAssets, embedAssets } from "../build/assets.ts";
 import { isBrowserName } from "../snapshot/browser.ts";
 import type { Deck } from "../deck/deck.ts";
 import { HinoteError, isHinoteError, UsageError } from "../errors.ts";
@@ -279,17 +279,46 @@ export const build: Command = {
   maxArgs: 1,
   description: `Writes the audience view as one HTML file that opens without a server, and copies the files the slides refer to next to it. No presenter view, no sync; the slide is in the hash (#3).
 
+With --embed, the files go into the HTML as data: URLs instead, so the one file is the whole deck, to attach or send. Large images make it large.
+
 The same as:
   hinote render --page static | hinote inline -o dist/index.html
   hinote assets -o dist`,
-  flags: { output: OUTPUT_FLAG("The HTML file to write.", "dist/index.html") },
-  examples: ["hinote build", "hinote check && hinote build -o out/talk.html"],
+  flags: {
+    output: OUTPUT_FLAG("The HTML file to write.", "dist/index.html"),
+    embed: {
+      type: "boolean",
+      description:
+        "Put the files the slides load into the HTML, so it is one file to send.",
+    },
+  },
+  examples: [
+    "hinote build",
+    "hinote check && hinote build -o out/talk.html",
+    "hinote build --embed -o talk.html",
+  ],
   bundles: true,
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
     const output = resolve(stringFlag(args, "output") ?? "dist/index.html");
     const deck = await loadDeckFile(deckFile);
     const html = await inlineScripts(await deck.render("static"));
+    if (args.flags.embed) {
+      const embedded = await embedAssets(html, dirname(deckFile));
+      await writeOutput(output, embedded.html);
+      out.result(
+        { output, embedded: embedded.embedded, bytes: embedded.bytes },
+        [
+          output,
+          ...(embedded.embedded.length > 0
+            ? [
+                `embedded ${files(embedded.embedded.length)}, ${Math.round(embedded.bytes / 1024)} KB`,
+              ]
+            : []),
+        ],
+      );
+      return;
+    }
     await writeOutput(output, html);
     // The page keeps relative URLs, so bring the files they name along.
     const copied = await copyAssets(html, dirname(deckFile), dirname(output));
