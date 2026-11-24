@@ -42,8 +42,8 @@
     "typecheck": "bun check && bun x tsc -p tsconfig.client.json --noEmit",
     "lint": "oxdg src --circular --fail-on-circular",
     "format": "bun fmt",
-    "build:lib": "bun scripts/build-lib.ts",
-    "prepack": "bun scripts/build-lib.ts"
+    "prepack": "bun scripts/build-lib.ts",
+    "build": "bun scripts/build-lib.ts"
   },
   "dependencies": {
     "@hinote/types": "^0.1.0"
@@ -72,5 +72,6 @@
       "version": ">=1.4.4",
       "onFail": "warn"
     }
-  }
+  },
+  "sideEffects": false
 }

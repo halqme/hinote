@@ -1,14 +1,8 @@
 {
-  // Type declarations for dist/. scripts/build-lib.ts writes the JavaScript.
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "noEmit": false,
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "rewriteRelativeImportExtensions": true,
-    "rootDir": "src",
-    "outDir": "dist"
-  },
-  "include": ["src/index.ts", "src/css-module.d.ts", "src/client-global.ts"],
+  // Every file in src/, including the browser global that tsconfig.json leaves
+  // out, as JavaScript with declarations. scripts/build-lib.ts runs it.
+  "extends": ["./tsconfig.json", "../../tsconfig.build.json"],
+  "compilerOptions": { "rootDir": "src", "outDir": "dist" },
+  "include": ["src"],
   "exclude": []
 }

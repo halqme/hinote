@@ -1,13 +1,6 @@
 {
-  // Type declarations for dist/. scripts/build.ts writes the JavaScript.
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "noEmit": false,
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "rewriteRelativeImportExtensions": true,
-    "rootDir": "src",
-    "outDir": "dist"
-  },
-  "include": ["src/index.tsx"]
+  "extends": ["./tsconfig.json", "../../tsconfig.build.json"],
+  "compilerOptions": { "rootDir": "src", "outDir": "dist" },
+  "include": ["src"],
+  "exclude": []
 }

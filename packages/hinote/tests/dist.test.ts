@@ -95,6 +95,24 @@ console.log(await (await deck.request("/1")).text());`,
     expect(run.stdout.toString()).toContain("<h1>library</h1>");
   });
 
+  // A page that only lays out, such as one rendered by an app of its own,
+  // should not carry the deck renderer and the presenter's browser script.
+  test("a bundle that imports one component leaves out the rest", async () => {
+    await writeFile(
+      join(bare, "row.mjs"),
+      `import { Row } from "hinote";\nconsole.log(Row);`,
+    );
+    const built = await Bun.build({
+      entrypoints: [join(bare, "row.mjs")],
+      target: "node",
+      external: ["hono", "hono/*"],
+    });
+    const text = await built.outputs[0]!.text();
+    expect(text).toContain("hinote-row");
+    expect(text).not.toContain("hinote-stage");
+    expect(text).not.toContain("createSlide");
+  });
+
   test("the CLI finds its skills and checks a deck under Node", async () => {
     const guide = hinote(bare, ["skills", "get", "core"]);
     expect(guide.exitCode).toBe(0);

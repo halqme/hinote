@@ -30,10 +30,10 @@
     }
   },
   "scripts": {
-    "build": "bun scripts/build.ts",
+    "build": "bun ../../scripts/build-package.ts",
     "test": "bun test",
     "typecheck": "bun check",
-    "prepack": "bun scripts/build.ts"
+    "prepack": "bun ../../scripts/build-package.ts"
   },
   "dependencies": {
     "@pierre/highlights": "^0.5.1"
@@ -43,5 +43,6 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "sideEffects": false
 }

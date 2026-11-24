@@ -9,7 +9,8 @@
     "test": "bun run --filter './packages/*' test",
     "typecheck": "bun run --filter './packages/*' typecheck",
     "lint": "oxlint --type-aware && bun run --filter './packages/*' lint",
-    "format": "bun fmt"
+    "format": "bun fmt",
+    "build": "bun run --filter './packages/*' build"
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",
