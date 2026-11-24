@@ -90,6 +90,9 @@ export async function bundle(
         importSource: jsxSource,
         development: false,
       },
+      // Bun otherwise throws "Bundle failed" and the reasons stay in an
+      // AggregateError nobody reads; the logs below carry them.
+      throw: false,
     });
     if (!built.success)
       throw new HinoteError(

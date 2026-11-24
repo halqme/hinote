@@ -391,6 +391,30 @@ test("prerender writes every page a static host needs, under a base path", async
   }
 });
 
+// The bundler's reason is the useful part: an import that does not exist,
+// a package that is not installed.
+test("a deck that does not bundle is reported with the bundler's reason", async () => {
+  const dir = await tempDir();
+  try {
+    for (const [source, reason] of [
+      [`import { Nope } from ${JSON.stringify(api)}`, "Nope"],
+      [`import { Nope } from "@hinote/not-installed"`, "@hinote/not-installed"],
+    ] as const) {
+      await writeFile(
+        join(dir, "deck.tsx"),
+        deckSource(`${source}
+export default createSlide([createSlide(() => <Nope />)])`),
+      );
+      const checked = await run(["check", "deck.tsx", "--json"], dir);
+      const problem = JSON.parse(checked.stdout).data.problems[0];
+      expect(problem.code).toBe("deck-load");
+      expect(problem.message).toContain(reason);
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 // So a package can name its client by its built name, from src/ and dist/.
 test("a <Script> .js that does not exist is its .ts or .tsx source", async () => {
   const dir = await tempDir();
