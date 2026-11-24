@@ -1,4 +1,6 @@
 {
+  // Compiler options every package shares. Each package's tsconfig.json
+  // extends this and adds its own paths, include, and exclude.
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
@@ -26,26 +28,6 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false,
-
-    // Tests and skills import "hinote"; check them against src/, not a built dist/.
-    "paths": {
-      "hinote": ["./src/index.ts"],
-      "hinote/code-themes": ["./src/code-themes.ts"],
-      "hinote/client": ["./src/client-global.ts"]
-    }
-  },
-  // Each bench/ project resolves hinote only after bench/run.ts installs it.
-  // client-global.ts declares the browser global. It applies to every file in
-  // the program that includes it, so it and the browser files stay out of this
-  // one; tsconfig.client.json checks those.
-  "exclude": [
-    "node_modules",
-    "dist",
-    "bench",
-    "types",
-    "src/client-global.ts",
-    "**/*.client.ts",
-    "**/*.client.tsx"
-  ]
+    "noPropertyAccessFromIndexSignature": false
+  }
 }

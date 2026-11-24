@@ -19,7 +19,7 @@
   },
   "overrides": [
     {
-      "files": ["tests/**"],
+      "files": ["packages/*/tests/**"],
       "rules": {
         // Tests pass values the types reject, to check the runtime errors.
         "typescript/no-unsafe-type-assertion": "off",
@@ -29,5 +29,9 @@
       }
     }
   ],
-  "ignorePatterns": ["dist", "bench", "src/client/main.generated.ts"]
+  "ignorePatterns": [
+    "dist",
+    "bench",
+    "packages/hinote/src/client/main.generated.ts"
+  ]
 }

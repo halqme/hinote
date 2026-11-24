@@ -1,0 +1,84 @@
+{
+  "name": "hinote",
+  "version": "0.5.2",
+  "private": false,
+  "description": "Local slide tool using Hono and Hono/JSX",
+  "keywords": [
+    "bun",
+    "hono",
+    "jsx",
+    "presentation",
+    "slides"
+  ],
+  "license": "MIT",
+  "author": "HALQME",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halqme/hinote.git",
+    "directory": "packages/hinote"
+  },
+  "bin": {
+    "hinote": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "CHANGELOG.md"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./code-themes": {
+      "types": "./dist/code-themes.d.ts",
+      "default": "./dist/code-themes.js"
+    },
+    "./client": {
+      "types": "./dist/client-global.d.ts",
+      "default": "./dist/client-global.js"
+    }
+  },
+  "scripts": {
+    "build:client": "bun scripts/build-client.ts",
+    "test": "bun test",
+    "typecheck": "bun check && bun x tsc -p tsconfig.client.json --noEmit",
+    "lint": "oxdg src --circular --fail-on-circular",
+    "format": "bun fmt",
+    "build:lib": "bun scripts/build-lib.ts",
+    "prepack": "bun scripts/build-lib.ts"
+  },
+  "dependencies": {
+    "@pierre/highlights": "^0.5.1"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "^21.0.4",
+    "@hono/node-server": "^2.1.9",
+    "@types/bun": "^1.4.4",
+    "esbuild": "^0.28.2",
+    "hono": "^4.13.19",
+    "oxdg": "^0.6.0",
+    "typescript": "^7.0.2"
+  },
+  "peerDependencies": {
+    "@hono/node-server": "^2.1.9",
+    "esbuild": "^0.28.2",
+    "hono": "^4.13.19"
+  },
+  "peerDependenciesMeta": {
+    "esbuild": {
+      "optional": true
+    },
+    "@hono/node-server": {
+      "optional": true
+    }
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "bun",
+      "version": ">=1.4.4",
+      "onFail": "warn"
+    }
+  }
+}

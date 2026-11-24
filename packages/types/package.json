@@ -1,0 +1,14 @@
+{
+  "name": "@hinote/types",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Types shared by hinote and the @hinote/* packages",
+  "license": "MIT",
+  "author": "HALQME",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halqme/hinote.git",
+    "directory": "packages/types"
+  },
+  "type": "module"
+}

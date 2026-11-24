@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Tests and skills import "hinote"; check them against src/, not a built dist/.
+    "paths": {
+      "hinote": ["./src/index.ts"],
+      "hinote/code-themes": ["./src/code-themes.ts"],
+      "hinote/client": ["./src/client-global.ts"]
+    }
+  },
+  // client-global.ts declares the browser global. It applies to every file in
+  // the program that includes it, so it and the browser files stay out of this
+  // one; tsconfig.client.json checks those.
+  "exclude": [
+    "node_modules",
+    "dist",
+    "types",
+    "src/client-global.ts",
+    "**/*.client.ts",
+    "**/*.client.tsx"
+  ]
+}

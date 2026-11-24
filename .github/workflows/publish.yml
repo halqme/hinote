@@ -26,9 +26,9 @@ jobs:
           fi
       - name: Require the tag to match package.json
         run: |
-          version=$(jq -r .version package.json)
+          version=$(jq -r .version packages/hinote/package.json)
           if [ "$GITHUB_REF_NAME" != "v${version}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match package.json version v${version}"
+            echo "Tag ${GITHUB_REF_NAME} does not match packages/hinote/package.json version v${version}"
             exit 1
           fi
       - uses: oven-sh/setup-bun@v2
@@ -36,4 +36,6 @@ jobs:
         with:
           node-version: lts/*
       - run: bun install --frozen-lockfile
+      # Only hinote is published. The @hinote/* packages are still private.
       - run: npm publish
+        working-directory: packages/hinote

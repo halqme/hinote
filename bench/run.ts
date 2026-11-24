@@ -175,7 +175,7 @@ mkdirSync(join(root, ".pack"), { recursive: true });
 const packed = spawnSync(
   "bun",
   ["pm", "pack", "--filename", join(root, ".pack/hinote.tgz"), "--quiet"],
-  { cwd: join(root, ".."), encoding: "utf8" },
+  { cwd: join(root, "../packages/hinote"), encoding: "utf8" },
 );
 if (packed.status !== 0)
   throw new Error(`bun pm pack failed:\n${packed.stderr}`);
