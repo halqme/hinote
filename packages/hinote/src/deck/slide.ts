@@ -1,5 +1,6 @@
 // A slide and its options. Decks are built from slides in create.ts, which
 // keeps this module free of deck.ts, since a deck renders slides.
+import type { SlideContext, Theme } from "@hinote/types";
 import type { Child } from "hono/jsx";
 import {
   parseCss,
@@ -11,15 +12,7 @@ import { SLIDE_ID } from "../components/link.tsx";
 import { HinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
 import { parseTransition, type Transition } from "./transition.ts";
-import { cssValue, parseTheme, type Theme } from "./theme.ts";
-
-// What a render function is told about its own slide, so a shared heading can
-// read the title once instead of repeating it.
-export type SlideContext = {
-  title?: string;
-  // The `section` of each deck around this slide, outermost first.
-  sections: readonly string[];
-};
+import { cssValue, parseTheme } from "./theme.ts";
 
 // A render function may be async, and so may the components it uses.
 export type SlideRender = (slide: SlideContext) => Child | Promise<Child>;

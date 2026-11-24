@@ -19,16 +19,11 @@ export { Table } from "./components/table.tsx";
 export type { TableProps } from "./components/table.tsx";
 export { createSlide } from "./deck/create.ts";
 export type { SlideInput } from "./deck/create.ts";
-export type {
-  Slide,
-  SlideContext,
-  SlideOptions,
-  SlideRender,
-} from "./deck/slide.ts";
+export type { SlideContext, Theme } from "@hinote/types";
+export type { Slide, SlideOptions, SlideRender } from "./deck/slide.ts";
 export { Script } from "./components/script.tsx";
 export type { ScriptProps } from "./components/script.tsx";
 export { Step } from "./components/step.tsx";
 export type { StepProps } from "./components/step.tsx";
-export type { Theme } from "./deck/theme.ts";
 export { themes } from "./deck/theme.ts";
 export type { Transition } from "./deck/transition.ts";

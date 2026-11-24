@@ -6,7 +6,8 @@ import { syncHub } from "./hub.ts";
 import { parseServedPath } from "../client/location.ts";
 import { renderDeck, type Page, type Sync } from "./render.ts";
 import type { Slide } from "./slide.ts";
-import { parseTheme, type Theme } from "./theme.ts";
+import type { Theme } from "@hinote/types";
+import { parseTheme } from "./theme.ts";
 import { parseTransition, type Transition } from "./transition.ts";
 
 export type Aspect = "16:9" | "4:3" | `${number}:${number}`;

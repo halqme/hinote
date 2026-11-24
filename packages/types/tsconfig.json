@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // index.d.ts is the source; check it rather than skip it as a library.
+    "skipLibCheck": false,
+    "types": []
+  },
+  "files": ["index.d.ts"]
+}

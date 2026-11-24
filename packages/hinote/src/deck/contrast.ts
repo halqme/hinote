@@ -1,4 +1,4 @@
-import type { Theme } from "./theme.ts";
+import type { Theme } from "@hinote/types";
 
 // Theme tokens hinote's own CSS uses for text and the surfaces they sit on.
 const TEXT_TOKENS = ["fg", "muted", "accent"] as const;

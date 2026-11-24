@@ -50,7 +50,8 @@
     "prepack": "bun scripts/build-lib.ts"
   },
   "dependencies": {
-    "@pierre/highlights": "^0.5.1"
+    "@pierre/highlights": "^0.5.1",
+    "@hinote/types": "^0.1.0"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^21.0.4",

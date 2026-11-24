@@ -1,20 +1,6 @@
+import type { Theme } from "@hinote/types";
 import { HinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
-
-// Each group holds named tokens. The listed names are the ones hinote's own CSS
-// reads; any other name is allowed and becomes a CSS variable the same way.
-type Tokens<Known extends string> = { [K in Known]?: string } & {
-  [name: string]: string | undefined;
-};
-
-export type Theme = {
-  colors?: Tokens<"bg" | "fg" | "accent" | "muted" | "surface" | "border">;
-  fonts?: Tokens<"base" | "heading" | "mono">;
-  typography?: Tokens<"h1" | "h2" | "h3" | "body" | "small" | "code">;
-  shadows?: Tokens<"sm" | "md" | "lg">;
-  spacing?: Tokens<"unit" | "safe">;
-  radius?: string;
-};
 
 // Group to CSS variable prefix: `colors.bg` is `--hinote-color-bg`.
 const GROUPS = {

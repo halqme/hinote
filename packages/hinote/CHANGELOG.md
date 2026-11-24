@@ -2,6 +2,10 @@
 
 What changed in each published version of hinote. Newest first. The GitHub release for a version uses that version's section as its body.
 
+## Unreleased
+
+- `Theme` and `SlideContext` are defined in the new `@hinote/types` package, which hinote now depends on. `hinote` still exports both, so existing imports keep working.
+
 ## 0.5.2
 
 - A top-level deck can set `lang` to a language tag such as `"ja"`. It is written on `<html lang>` of the audience page, the presenter page, and the built file.

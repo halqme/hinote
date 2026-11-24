@@ -16,6 +16,7 @@
         "hinote": "dist/cli.js",
       },
       "dependencies": {
+        "@hinote/types": "^0.1.0",
         "@pierre/highlights": "^0.5.1",
       },
       "devDependencies": {
@@ -39,7 +40,7 @@
     },
     "packages/types": {
       "name": "@hinote/types",
-      "version": "0.0.0",
+      "version": "0.1.0",
     },
   },
   "packages": {

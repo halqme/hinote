@@ -10,6 +10,7 @@ export type Page = "view" | "presenter" | "static";
 // "server" and "broadcast" sync with the presenter; "reload" only hears that
 // `hinote dev` reloaded the deck. Without one, a page syncs with nothing.
 export type Sync = "server" | "broadcast" | "reload";
+import type { Theme } from "@hinote/types";
 import type { Slide } from "./slide.ts";
 import { numberSteps } from "../components/step.tsx";
 import { servedPath, slideHash } from "../client/location.ts";
@@ -20,7 +21,6 @@ import {
   parseTheme,
   themeCss,
   themeDeclarations,
-  type Theme,
 } from "./theme.ts";
 
 // Every slide is laid out on a fixed canvas and scaled as a whole, so a slide looks
