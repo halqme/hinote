@@ -1,10 +1,4 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    // The tests render through hinote; use its source, not a built dist/.
-    "paths": {
-      "hinote": ["../hinote/src/index.ts"]
-    }
-  },
   "exclude": ["node_modules", "dist"]
 }

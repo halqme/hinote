@@ -3,6 +3,8 @@ import { join, relative, resolve } from "node:path";
 import { expect, test } from "bun:test";
 
 const repo = resolve(import.meta.dir, "..");
+// Tools shared by the workspace are installed at its root.
+const workspace = resolve(repo, "../..");
 
 async function tempDir() {
   const scratch = join(import.meta.dir, "../.tmp");
@@ -79,7 +81,7 @@ export type Client = HinoteClient;
             // Same as the repo: the reference does not follow `paths`.
             typeRoots: [
               relative(dir, join(repo, "types")),
-              relative(dir, join(repo, "node_modules/@types")),
+              relative(dir, join(workspace, "node_modules/@types")),
             ],
             paths: { "hinote/client": [clientTypes] },
           },

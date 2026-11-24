@@ -3,12 +3,12 @@
 The repository is a Bun workspace. Each package lives in `packages/`:
 
 - `packages/hinote`: the `hinote` package, the CLI and the core components.
-- `packages/code`: `@hinote/code`, the `<Code>` component. It depends on `@pierre/highlights` so that `hinote` does not. Its tests render through `hinote`, a dev dependency only.
+- `packages/code`: `@hinote/code`, the `<Code>` component. It depends on `@pierre/highlights` so that `hinote` does not.
 - `packages/d2`: `@hinote/d2`, `<D2>`, D2 diagrams drawn as SVG with `@terrastruct/d2`. The compiler is WebAssembly in a worker thread; the component draws one diagram at a time and holds the worker only while it draws, so a build exits when it is done.
-- `packages/katex`: `@hinote/katex`, `<Math>`, LaTeX as MathML with KaTeX. Like `@hinote/code`, it depends on `hinote` only for its tests.
+- `packages/katex`: `@hinote/katex`, `<Math>`, LaTeX as MathML with KaTeX.
 - `packages/types`: `@hinote/types`, the types shared by `hinote` and the `@hinote/*` packages, such as `Theme` and `SlideContext`. It is one hand-written `index.d.ts` with no JavaScript. `hinote` re-exports what it holds.
 
-Run `bun install` once at the root. The root `package.json` is private and holds only the workspace and the shared tools; `tsconfig.base.json` holds the compiler options every package extends, and `.oxlintrc.json` the lint rules.
+Run `bun install` once at the root. The root `package.json` is private and holds the workspace and the dev dependencies every package uses: TypeScript, `@types/bun`, `hono`, and the linters. A package lists only what it needs beyond those. `tsconfig.base.json` holds the compiler options every package extends, and its `paths` point `hinote` and `@hinote/types` at their source, so the `@hinote/*` packages' tests render through `hinote` without depending on it. `.oxlintrc.json` holds the lint rules.
 
 To try a change against a real deck, run `bun src/cli.ts init .tmp/talk --no-install` and then `bun src/cli.ts dev .tmp/talk` in `packages/hinote`.
 

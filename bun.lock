@@ -5,8 +5,12 @@
     "": {
       "name": "hinote",
       "devDependencies": {
+        "@types/bun": "^1.4.4",
+        "hono": "^4.13.19",
+        "oxdg": "^0.6.0",
         "oxlint": "^1.94.0",
         "tsrs": "^0.25.0-ts7.1.0-beta",
+        "typescript": "^7.0.2",
       },
     },
     "packages/code": {
@@ -14,13 +18,6 @@
       "version": "0.1.0",
       "dependencies": {
         "@pierre/highlights": "^0.5.1",
-      },
-      "devDependencies": {
-        "@hinote/types": "^0.1.0",
-        "@types/bun": "^1.4.4",
-        "hinote": "^0.5.2",
-        "hono": "^4.13.19",
-        "typescript": "^7.0.2",
       },
       "peerDependencies": {
         "hono": "^4.13.19",
@@ -31,13 +28,6 @@
       "version": "0.1.0",
       "dependencies": {
         "@terrastruct/d2": "^0.1.33",
-      },
-      "devDependencies": {
-        "@hinote/types": "^0.1.0",
-        "@types/bun": "^1.4.4",
-        "hinote": "^0.5.2",
-        "hono": "^4.13.19",
-        "typescript": "^7.0.2",
       },
       "peerDependencies": {
         "hono": "^4.13.19",
@@ -55,11 +45,7 @@
       "devDependencies": {
         "@happy-dom/global-registrator": "^21.0.4",
         "@hono/node-server": "^2.1.9",
-        "@types/bun": "^1.4.4",
         "esbuild": "^0.28.2",
-        "hono": "^4.13.19",
-        "oxdg": "^0.6.0",
-        "typescript": "^7.0.2",
       },
       "peerDependencies": {
         "@hono/node-server": "^2.1.9",
@@ -76,13 +62,6 @@
       "version": "0.1.0",
       "dependencies": {
         "katex": "^0.19.1",
-      },
-      "devDependencies": {
-        "@hinote/types": "^0.1.0",
-        "@types/bun": "^1.4.4",
-        "hinote": "^0.5.2",
-        "hono": "^4.13.19",
-        "typescript": "^7.0.2",
       },
       "peerDependencies": {
         "hono": "^4.13.19",

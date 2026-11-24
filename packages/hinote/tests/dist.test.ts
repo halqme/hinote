@@ -4,6 +4,8 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 
 const repo = resolve(import.meta.dir, "..");
+// Tools shared by the workspace are installed at its root.
+const workspace = resolve(repo, "../..");
 const node = Bun.which("node");
 
 // hinote has to work without Bun: the library as a Hono app on Node, Deno, or
@@ -159,7 +161,7 @@ console.log(await (await deck.request("/1")).text());`,
     const typed = join(bare, "typed");
     await symlink(join(bare, "node_modules"), join(typed, "node_modules"));
     const tsc = Bun.spawnSync(
-      [join(repo, "node_modules/.bin/tsc"), "-p", "tsconfig.json"],
+      [join(workspace, "node_modules/.bin/tsc"), "-p", "tsconfig.json"],
       { cwd: typed, stdout: "pipe", stderr: "pipe" },
     );
     expect(tsc.stdout.toString()).toBe("");

@@ -35,13 +35,6 @@
   "dependencies": {
     "@terrastruct/d2": "^0.1.33"
   },
-  "devDependencies": {
-    "@hinote/types": "^0.1.0",
-    "@types/bun": "^1.4.4",
-    "hinote": "^0.5.2",
-    "hono": "^4.13.19",
-    "typescript": "^7.0.2"
-  },
   "peerDependencies": {
     "hono": "^4.13.19"
   },

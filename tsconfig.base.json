@@ -28,6 +28,13 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+
+    // The workspace's own packages, from source, so a package's tests use the
+    // others without listing them as dependencies or building them first.
+    "paths": {
+      "hinote": ["./packages/hinote/src/index.ts"],
+      "@hinote/types": ["./packages/types/index.d.ts"]
+    }
   }
 }
