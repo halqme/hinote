@@ -76,6 +76,10 @@ function emit(out: Parameters<Command["run"]>[1], html: string, file?: string) {
 export type SlideInfo = {
   // Counted from 1, as in the URL /3.
   number: number;
+  // What <Link to> names it by.
+  id?: string;
+  // The section of each nested deck around it, outermost first.
+  sections?: string[];
   title?: string;
   notes?: string;
   // Key presses that reveal a step before the slide moves on.
@@ -162,6 +166,8 @@ export async function describeSlides(deck: Deck): Promise<SlideInfo[]> {
     const result = rendered[index] ?? { error: "not rendered" };
     const info: SlideInfo = {
       number: index + 1,
+      ...(slide.options.id ? { id: slide.options.id } : {}),
+      ...(slide.sections?.length ? { sections: [...slide.sections] } : {}),
       title: slide.options.title,
       notes: slide.options.notes,
       steps: 0,
@@ -295,7 +301,7 @@ export const inspect: Command = {
   summary: "Describe the deck: slides, titles, steps, notes",
   args: DECK_ARG,
   maxArgs: 1,
-  description: `Loads the deck and renders each slide by itself, then reports what is in it: for each slide its number (as in /3), title (the title option or its first heading), steps, notes, and the files it loads. A slide that fails to render is listed with its error.`,
+  description: `Loads the deck and renders each slide by itself, then reports what is in it: for each slide its number (as in /3), title (the title option or its first heading), id, the sections of the decks around it, steps, notes, transition, and the files it loads. The text lists slides under the section they belong to. A slide that fails to render is listed with its error.`,
   flags: {},
   examples: ["hinote inspect", "hinote inspect --json"],
   bundles: true,
@@ -311,20 +317,36 @@ export const inspect: Command = {
       presenter: deck.presenter,
       slides,
     };
-    out.result(data, [
-      `${file}: ${slides.length} slides, ${data.aspect}`,
-      ...slides.map((s) =>
-        [
-          String(s.number).padStart(3),
-          s.error ? `error: ${s.error}` : (s.title ?? "(no title)"),
-          s.steps > 0 ? `steps ${s.steps}` : "",
-          s.notes ? "notes" : "",
-          s.files.length > 0 ? `files ${s.files.join(" ")}` : "",
-        ]
-          .filter(Boolean)
-          .join("  "),
-      ),
-    ]);
+    // Slides indent under the sections of their nested decks, each named
+    // where it starts, so the outline of the talk shows and a slide back at
+    // the top level is back at the margin.
+    const lines = [`${file}: ${slides.length} slides, ${data.aspect}`];
+    let open: string[] = [];
+    for (const s of slides) {
+      const sections = s.sections ?? [];
+      let same = 0;
+      while (same < open.length && open[same] === sections[same]) same++;
+      for (let depth = same; depth < sections.length; depth++)
+        lines.push(`${"  ".repeat(depth + 1)}${sections[depth]}`);
+      open = sections;
+      lines.push(
+        "  ".repeat(sections.length) +
+          [
+            String(s.number).padStart(3),
+            s.error ? `error: ${s.error}` : (s.title ?? "(no title)"),
+            s.id ? `id ${s.id}` : "",
+            s.steps > 0 ? `steps ${s.steps}` : "",
+            s.notes ? "notes" : "",
+            s.transition && s.transition !== "none"
+              ? `transition ${s.transition}`
+              : "",
+            s.files.length > 0 ? `files ${s.files.join(" ")}` : "",
+          ]
+            .filter(Boolean)
+            .join("  "),
+      );
+    }
+    out.result(data, lines);
   },
 };
 

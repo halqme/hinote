@@ -946,6 +946,48 @@ export default createSlide({
   }
 });
 
+// The outline of the talk: which nested deck each slide is in, and the id a
+// <Link> uses, in the JSON and as indentation in the text.
+test("inspect shows each slide's sections and id, and indents the text by section", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`export default createSlide([
+  createSlide({ id: "open" }, () => <h1>Open</h1>),
+  createSlide({ section: "Method" }, [
+    createSlide(() => <h2>Measure</h2>),
+    createSlide({ section: "Details" }, [createSlide(() => <h2>Deep</h2>)]),
+  ]),
+  createSlide(() => <h2>Close</h2>),
+])`),
+    );
+    const { data } = JSON.parse((await run(["inspect", "--json"], dir)).stdout);
+    expect(
+      data.slides.map((s: { id?: string; sections?: string[] }) => [
+        s.id,
+        s.sections,
+      ]),
+    ).toEqual([
+      ["open", undefined],
+      [undefined, ["Method"]],
+      [undefined, ["Method", "Details"]],
+      [undefined, undefined],
+    ]);
+    const text = (await run(["inspect"], dir)).stdout.split("\n").slice(1, -1);
+    expect(text).toEqual([
+      "  1  Open  id open",
+      "  Method",
+      "    2  Measure",
+      "    Details",
+      "      3  Deep",
+      "  4  Close",
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("inspect reports each slide's title, steps, notes, and files", async () => {
   const dir = await tempDir();
   try {
