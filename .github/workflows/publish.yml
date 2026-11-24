@@ -40,7 +40,7 @@ jobs:
       # Each one is published only when npm does not have its version yet.
       - name: Publish the @hinote/* packages whose version is new
         run: |
-          for dir in packages/types packages/code; do
+          for dir in packages/types packages/code packages/katex; do
             name=$(jq -r .name "$dir/package.json")
             version=$(jq -r .version "$dir/package.json")
             if npm view "${name}@${version}" version >/dev/null 2>&1; then
