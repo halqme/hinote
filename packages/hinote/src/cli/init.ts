@@ -6,7 +6,7 @@ import { HinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
 import { isBun } from "../build/runtime.ts";
 
-const DECK = `import { Center, Code, Column, Step, createSlide } from "hinote";
+const DECK = `import { Card, Center, Column, Grid, Step, createSlide } from "hinote";
 import style from "./style.css" with { type: "text" };
 
 const title = createSlide({ title: "My talk", notes: "What to say first" }, () => (
@@ -27,19 +27,20 @@ const points = createSlide({ title: "Points" }, () => (
   </Column>
 ));
 
-const code = createSlide({ title: "Code" }, () => (
+const compare = createSlide({ title: "Compare" }, () => (
   <Column gap={3}>
-    <h2>Code</h2>
-    <Code lang="ts">{\`
-      const deck = createSlide([title, points, code]);
-    \`}</Code>
+    <h2>Two sides</h2>
+    <Grid columns={2} gap={2}>
+      <Card>Before</Card>
+      <Card>After</Card>
+    </Grid>
   </Column>
 ));
 
 export default createSlide({ aspect: "16:9", transition: "fade", css: style }, [
   title,
   points,
-  code,
+  compare,
 ]);
 `;
 

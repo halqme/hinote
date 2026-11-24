@@ -27,10 +27,10 @@ describe.skipIf(!node)("the built package under Node", () => {
       );
     await writeFile(
       join(path, "deck.tsx"),
-      `import { Code, Script, createSlide } from "hinote";
+      `import { Script, createSlide } from "hinote";
 import style from "./style.css" with { type: "text" };
 export default createSlide({ css: style }, [
-  createSlide(() => <div><h1>node</h1><Code lang="ts">{"let a = 1"}</Code>
+  createSlide(() => <div><h1>node</h1>
     <Script src={new URL("./widget.client.tsx", import.meta.url)} /></div>),
 ]);`,
     );
@@ -69,8 +69,8 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
     await cp(join(repo, "skills"), join(pkg, "skills"), { recursive: true });
     full = join(dir, "full");
     bare = join(dir, "bare");
-    await project(full, ["hono", "@pierre", "esbuild", "@hono/node-server"]);
-    await project(bare, ["hono", "@pierre"]);
+    await project(full, ["hono", "esbuild", "@hono/node-server"]);
+    await project(bare, ["hono"]);
   }, 60_000);
 
   afterAll(async () => {
@@ -107,7 +107,6 @@ console.log(await (await deck.request("/1")).text());`,
     expect(built.stderr.toString()).toBe("");
     const html = await Bun.file(join(full, "out/index.html")).text();
     expect(html).toContain("<h1>node</h1>");
-    expect(html).toContain('class="highlights"');
     expect(html).toContain("h1 { color: teal; }");
     // <Script> bundled for the browser by esbuild.
     expect(html).toContain("widget-");

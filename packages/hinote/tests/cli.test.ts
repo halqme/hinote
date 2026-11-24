@@ -428,7 +428,7 @@ test("init writes a deck that renders, and never overwrites", async () => {
     const deck = await loadDeckFile(join(project, "deck.tsx"));
     const html = await deck.render();
     expect(deck.slides.length).toBeGreaterThan(1);
-    expect(html).toContain('<pre class="highlights"');
+    expect(html).toContain('class="hinote-card"');
     // The starter deck imports its style.css.
     expect(html).toContain("--hinote-color-accent");
     const pkg = JSON.parse(

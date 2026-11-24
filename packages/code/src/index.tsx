@@ -1,7 +1,13 @@
 import type { Lang, Theme as CodeTheme, ThemeFamily } from "@pierre/highlights";
 import { pierreDark } from "@pierre/highlights/themes";
+import type { HinoteErrorLike } from "@hinote/types";
 import { raw } from "hono/html";
-import { HinoteError } from "../errors.ts";
+
+// hinote reports an error with this name as its own, message and all.
+class CodeError extends Error implements HinoteErrorLike {
+  override readonly name = "HinoteError";
+  readonly code = "error";
+}
 
 export type CodeProps = {
   // Language name or alias, such as "ts" or "rust".
@@ -9,7 +15,7 @@ export type CodeProps = {
   // The source. Children work too: <Code lang="ts">{`...`}</Code>.
   code?: string;
   children?: string | string[];
-  // A theme from "hinote/code-themes". Defaults to Pierre's dark theme.
+  // A theme from "@hinote/code/themes". Defaults to Pierre's dark theme.
   theme?: CodeTheme | ThemeFamily;
   class?: string;
 };
@@ -40,13 +46,13 @@ export async function Code(props: CodeProps) {
     props.code ??
     (Array.isArray(props.children) ? props.children.join("") : props.children);
   if (typeof source !== "string")
-    throw new HinoteError(
+    throw new CodeError(
       "<Code> needs its source as `code` or as text children.",
     );
   highlighter ??= import("@pierre/highlights");
   const { codeToHtml, isSupportedLanguage } = await highlighter;
   if (!isSupportedLanguage(props.lang))
-    throw new HinoteError(
+    throw new CodeError(
       `<Code lang="${String(props.lang)}"> is not a supported language.`,
     );
   // The result is a view into WebAssembly memory that the next call reuses, so decode it now.

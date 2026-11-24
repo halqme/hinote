@@ -4,6 +4,9 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 ## Unreleased
 
+- Breaking: `<Code>` moved to the new package `@hinote/code`, and its themes to `@hinote/code/themes`. `hinote` no longer exports `Code`, `CodeProps`, or `hinote/code-themes`, and no longer installs `@pierre/highlights`. Add `@hinote/code` and change the import.
+- `hinote init` writes a deck with no `<Code>`, so a new deck needs only `hinote` and `hono`.
+- An error a `@hinote/*` package throws is reported like hinote's own, with its code and hint.
 - `Theme` and `SlideContext` are defined in the new `@hinote/types` package, which hinote now depends on. `hinote` still exports both, so existing imports keep working.
 
 ## 0.5.2

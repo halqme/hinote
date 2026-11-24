@@ -36,16 +36,18 @@ jobs:
         with:
           node-version: lts/*
       - run: bun install --frozen-lockfile
-      # hinote depends on @hinote/types, so a new version of it goes out first.
-      # A version already on npm is left alone.
-      - name: Publish @hinote/types when its version is new
-        working-directory: packages/types
+      # hinote depends on @hinote/types, so the scoped packages go out first.
+      # Each one is published only when npm does not have its version yet.
+      - name: Publish the @hinote/* packages whose version is new
         run: |
-          version=$(jq -r .version package.json)
-          if npm view "@hinote/types@${version}" version >/dev/null 2>&1; then
-            echo "@hinote/types@${version} is already published"
-          else
-            npm publish
-          fi
+          for dir in packages/types packages/code; do
+            name=$(jq -r .name "$dir/package.json")
+            version=$(jq -r .version "$dir/package.json")
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "${name}@${version} is already published"
+            else
+              (cd "$dir" && npm publish)
+            fi
+          done
       - run: npm publish
         working-directory: packages/hinote

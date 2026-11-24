@@ -13,7 +13,6 @@ const built = await Bun.build({
   // The CLI too, so `npx hinote` runs on Node; bin points at dist/cli.js.
   entrypoints: [
     `${root}src/index.ts`,
-    `${root}src/code-themes.ts`,
     `${root}src/client-global.ts`,
     `${root}src/cli.ts`,
   ],
@@ -23,7 +22,7 @@ const built = await Bun.build({
   target: "node",
   // Code shared by the entry points goes in one chunk, not a copy in each.
   splitting: true,
-  // hono and @pierre/highlights stay imports, so the app shares one Hono.
+  // hono stays an import, so the app shares one Hono.
   packages: "external",
   jsx: { runtime: "automatic", importSource: "hono/jsx", development: false },
 });

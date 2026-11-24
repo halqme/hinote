@@ -1,4 +1,5 @@
-import { Center, Code, Column, Row, Step, createSlide } from "hinote";
+import { Center, Column, Row, Step, createSlide } from "hinote";
+import { Code } from "@hinote/code";
 import { Math } from "./math.tsx";
 
 export default createSlide([

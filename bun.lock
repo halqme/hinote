@@ -9,6 +9,23 @@
         "tsrs": "^0.25.0-ts7.1.0-beta",
       },
     },
+    "packages/code": {
+      "name": "@hinote/code",
+      "version": "0.1.0",
+      "dependencies": {
+        "@pierre/highlights": "^0.5.1",
+      },
+      "devDependencies": {
+        "@hinote/types": "^0.1.0",
+        "@types/bun": "^1.4.4",
+        "hinote": "^0.5.2",
+        "hono": "^4.13.19",
+        "typescript": "^7.0.2",
+      },
+      "peerDependencies": {
+        "hono": "^4.13.19",
+      },
+    },
     "packages/hinote": {
       "name": "hinote",
       "version": "0.5.2",
@@ -17,7 +34,6 @@
       },
       "dependencies": {
         "@hinote/types": "^0.1.0",
-        "@pierre/highlights": "^0.5.1",
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "^21.0.4",
@@ -103,6 +119,8 @@
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="],
 
     "@happy-dom/global-registrator": ["@happy-dom/global-registrator@21.0.4", "", { "dependencies": { "@types/node": ">=20.0.0", "happy-dom": "^21.0.4" } }, "sha512-Bbr0hW9hhDhBf3Jp0EyDlkCbFgbr0z2jd3BMKYOYW+fOkPM4Nx195GMXyCtRCGEgoNn6i09FabXrSkNFm2ONzg=="],
+
+    "@hinote/code": ["@hinote/code@workspace:packages/code"],
 
     "@hinote/types": ["@hinote/types@workspace:packages/types"],
 

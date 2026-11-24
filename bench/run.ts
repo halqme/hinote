@@ -170,15 +170,18 @@ async function startUp(tool: Tool, cwd: string) {
 // Launch the browser first so the first tool does not pay for it.
 if (browser) browse("open", "about:blank");
 
-// --filename takes a path; it cannot be combined with --destination.
+// --filename takes a path; it cannot be combined with --destination. The
+// hinote decks install all three from these files, not from npm.
 mkdirSync(join(root, ".pack"), { recursive: true });
-const packed = spawnSync(
-  "bun",
-  ["pm", "pack", "--filename", join(root, ".pack/hinote.tgz"), "--quiet"],
-  { cwd: join(root, "../packages/hinote"), encoding: "utf8" },
-);
-if (packed.status !== 0)
-  throw new Error(`bun pm pack failed:\n${packed.stderr}`);
+for (const name of ["hinote", "code", "types"]) {
+  const packed = spawnSync(
+    "bun",
+    ["pm", "pack", "--filename", join(root, `.pack/${name}.tgz`), "--quiet"],
+    { cwd: join(root, "../packages", name), encoding: "utf8" },
+  );
+  if (packed.status !== 0)
+    throw new Error(`bun pm pack ${name} failed:\n${packed.stderr}`);
+}
 
 for (const tool of tools) {
   const cwd = join(root, tool.dir ?? tool.name);

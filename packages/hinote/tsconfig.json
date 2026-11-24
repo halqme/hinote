@@ -4,7 +4,6 @@
     // Tests and skills import "hinote"; check them against src/, not a built dist/.
     "paths": {
       "hinote": ["./src/index.ts"],
-      "hinote/code-themes": ["./src/code-themes.ts"],
       "hinote/client": ["./src/client-global.ts"]
     }
   },

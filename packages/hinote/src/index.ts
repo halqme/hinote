@@ -3,9 +3,7 @@
 // oxlint-disable-next-line typescript/triple-slash-reference
 /// <reference path="./css-module.d.ts" preserve="true" />
 export type { Aspect, Deck, DeckOptions } from "./deck/deck.ts";
-export { Code } from "./components/code.tsx";
 export type { CssInput, CssSource } from "./deck/css.ts";
-export type { CodeProps } from "./components/code.tsx";
 export { Card, Center, Column, Flow, Grid, Row } from "./components/layout.tsx";
 export type {
   CardProps,

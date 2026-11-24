@@ -1,0 +1,54 @@
+{
+  "name": "@hinote/code",
+  "version": "0.1.0",
+  "description": "<Code> for hinote: syntax highlighting with @pierre/highlights",
+  "keywords": [
+    "hinote",
+    "hono",
+    "slides",
+    "syntax-highlighting"
+  ],
+  "license": "MIT",
+  "author": "HALQME",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halqme/hinote.git",
+    "directory": "packages/code"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./themes": {
+      "types": "./dist/themes.d.ts",
+      "default": "./dist/themes.js"
+    }
+  },
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "test": "bun test",
+    "typecheck": "bun check",
+    "prepack": "bun scripts/build.ts"
+  },
+  "dependencies": {
+    "@pierre/highlights": "^0.5.1"
+  },
+  "devDependencies": {
+    "@hinote/types": "^0.1.0",
+    "@types/bun": "^1.4.4",
+    "hinote": "^0.5.2",
+    "hono": "^4.13.19",
+    "typescript": "^7.0.2"
+  },
+  "peerDependencies": {
+    "hono": "^4.13.19"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

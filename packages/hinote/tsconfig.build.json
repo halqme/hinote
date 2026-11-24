@@ -9,11 +9,6 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": [
-    "src/index.ts",
-    "src/code-themes.ts",
-    "src/css-module.d.ts",
-    "src/client-global.ts"
-  ],
+  "include": ["src/index.ts", "src/css-module.d.ts", "src/client-global.ts"],
   "exclude": []
 }

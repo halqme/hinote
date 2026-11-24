@@ -1,8 +1,7 @@
 import { expect, test } from "bun:test";
-import { githubLight } from "../src/code-themes.ts";
-import { dedent } from "../src/components/code.tsx";
-import { HinoteError } from "../src/errors.ts";
-import { Code, createSlide } from "../src/index.ts";
+import { createSlide } from "hinote";
+import { Code, dedent } from "../src/index.tsx";
+import { githubLight } from "../src/themes.ts";
 
 async function render(node: () => unknown) {
   return createSlide([createSlide(node as () => never)]).render("static");
@@ -39,9 +38,13 @@ test("drops the indentation the surrounding JSX adds", () => {
   expect(dedent("")).toBe("");
 });
 
-test("rejects an unknown language and a missing source", async () => {
+// hinote reports these by name, like its own errors.
+test("rejects an unknown language and a missing source as HinoteError", async () => {
   await expect(
     render(() => <Code lang={"klingon" as "ts"}>x</Code>),
-  ).rejects.toThrow(HinoteError);
-  await expect(render(() => <Code lang="ts" />)).rejects.toThrow(HinoteError);
+  ).rejects.toMatchObject({ name: "HinoteError", code: "error" });
+  await expect(render(() => <Code lang="ts" />)).rejects.toMatchObject({
+    name: "HinoteError",
+    code: "error",
+  });
 });

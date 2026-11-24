@@ -1,13 +1,16 @@
 import { resolve } from "node:path";
 import { expect, test } from "bun:test";
 
-// Some hosts refuse to compile WebAssembly at run time. A deck without <Code>
-// must still render there; only <Code> needs the highlighter.
-test("a deck without <Code> renders where WebAssembly cannot be compiled", () => {
-  const index = resolve(import.meta.dir, "../src/index.ts");
+// Some hosts refuse to compile WebAssembly at run time. A deck that imports
+// @hinote/code but shows no code must still render there; only <Code> needs
+// the highlighter.
+test("importing <Code> does not compile WebAssembly until a slide uses it", () => {
+  const hinote = resolve(import.meta.dir, "../../hinote/src/index.ts");
+  const code = resolve(import.meta.dir, "../src/index.tsx");
   const script = `
     WebAssembly.Module = function () { throw new Error("no wasm here"); };
-    const { createSlide, Code } = await import(${JSON.stringify(index)});
+    const { createSlide } = await import(${JSON.stringify(hinote)});
+    const { Code } = await import(${JSON.stringify(code)});
     const { jsx } = await import("hono/jsx");
     const plain = createSlide([createSlide(() => jsx("h1", {}, "plain"))]);
     const html = await plain.render();
