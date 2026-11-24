@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { HinoteError, UsageError } from "../errors.ts";
 import { stringFlag } from "./args.ts";
 import type { Command } from "./command.ts";
+import { ownPackage } from "./package.ts";
 
 // The skills ship in the package, so they always match this version of the
 // CLI. This file runs from src/cli/ or, bundled, from dist/, so look upward.
@@ -68,13 +69,35 @@ async function findSkill(name: string | undefined): Promise<Skill> {
   return skill;
 }
 
+// A package's guide ships here, with this hinote. The packages are released
+// with hinote's version, so a different version of the package in the deck
+// may not match the guide. Nothing is said when it is not installed.
+async function versionNotice(skill: string): Promise<string | undefined> {
+  if (skill === "core") return undefined;
+  for (let dir = process.cwd(); ; dir = dirname(dir)) {
+    const file = join(dir, "node_modules", "@hinote", skill, "package.json");
+    if (existsSync(file)) {
+      const json: unknown = JSON.parse(await readFile(file, "utf8"));
+      const version =
+        typeof json === "object" && json !== null && "version" in json
+          ? String(json.version)
+          : undefined;
+      const own = ownPackage().version;
+      return version === undefined || version === own
+        ? undefined
+        : `This guide is for @hinote/${skill} ${own}, with hinote ${own}; the deck has ${version}. Install the same version as hinote.`;
+    }
+    if (dirname(dir) === dir) return undefined;
+  }
+}
+
 export const skills: Command = {
   name: "skills",
   group: "agent",
   summary: "Guides for agents writing decks, matched to this version",
   args: "[list|get|path] [name]",
   maxArgs: 2,
-  description: `Prints the guides that ship with this hinote, so an agent learns the version it is driving instead of guessing from flags. Start with core: the deck model, the edit-and-check loop, and what tends to go wrong. Its references hold the details; --ref loads one, --full appends all of them.
+  description: `Prints the guides that ship with this hinote, so an agent learns the version it is driving instead of guessing from flags. Start with core: the deck model, the edit-and-check loop, and what tends to go wrong. Its references hold the details; --ref loads one, --full appends all of them. The @hinote/* packages have a guide each, named after the package (chart for @hinote/chart), readable before the package is installed.
 
 To install a skill for an agent that reads skill directories, copy the directory skills path prints, e.g.
   cp -R "$(hinote skills path core)" .claude/skills/hinote`,
@@ -94,6 +117,7 @@ To install a skill for an agent that reads skill directories, copy the directory
     "hinote skills get core",
     "hinote skills get core --ref api",
     "hinote skills get core --full",
+    "hinote skills get chart",
   ],
   async run(args, out) {
     const [action = "list", name] = args.positionals;
@@ -149,6 +173,11 @@ To install a skill for an agent that reads skill directories, copy the directory
     if (args.flags.full)
       for (const reference of skill.references)
         text += `\n\n${await readFile(join(skill.path, "references", `${reference}.md`), "utf8")}`;
-    out.result({ name: skill.name, content: text }, text);
+    const warning = await versionNotice(skill.name);
+    if (warning && !out.json) console.error(`warning: ${warning}`);
+    out.result(
+      { name: skill.name, content: text, ...(warning ? { warning } : {}) },
+      text,
+    );
   },
 };

@@ -9,6 +9,8 @@ The repository is a Bun workspace. Each package lives in `packages/`:
 - `packages/katex`: `@hinote/katex`, `<Math>`, LaTeX as MathML with KaTeX.
 - `packages/types`: `@hinote/types`, the types shared by `hinote` and the `@hinote/*` packages, such as `Theme` and `SlideContext`. It is one hand-written `index.d.ts` with no JavaScript. `hinote` re-exports what it holds.
 
+How to use a package is its guide, `packages/hinote/skills/<name>/SKILL.md`, named after the package (`chart` for `@hinote/chart`). The guides ship with hinote, so `hinote skills get chart` works before the package is installed, and the core guide lists them. A package's README says only what the package is and where its guide is. Change the guide in the same commit as the package.
+
 Run `bun install` once at the root. The root `package.json` is private and holds the workspace and the dev dependencies every package uses: TypeScript, `@types/bun`, `hono`, and the linters. A package lists only what it needs beyond those. A range more than one package names, such as `hono`'s, is written once in the root's `workspaces.catalog`, and the packages write `catalog:`; a package of this workspace is named as `workspace:^`. `tsconfig.base.json` holds the compiler options every package extends, and its `paths` point `hinote` and `@hinote/types` at their source, so the `@hinote/*` packages' tests render through `hinote` without depending on it. `.oxlintrc.json` holds the lint rules.
 
 To try a change against a real deck, run `bun src/cli.ts init .tmp/talk --no-install` and then `bun src/cli.ts dev .tmp/talk` in `packages/hinote`.

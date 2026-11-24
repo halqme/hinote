@@ -2,7 +2,7 @@
 
 ## A formula (LaTeX)
 
-Add `@hinote/katex`; `<Math>` renders MathML on the server:
+Add `@hinote/katex`; `<Math>` renders MathML on the server (`hinote skills get katex`):
 
 ```tsx
 import { Math } from "@hinote/katex";
@@ -95,7 +95,7 @@ export default createSlide(async () => {
 
 ## A chart
 
-`<Chart>` from `@hinote/chart` draws a TanStack Charts chart and animates it, step by step if you like. Without a package, draw an SVG on the server from the data, or add `<Script>` for one that responds to clicks. The presenter can switch what every page shows with `hinote.send`:
+`<Chart>` from `@hinote/chart` draws a TanStack Charts chart and animates it, step by step if you like (`hinote skills get chart`). Without a package, draw an SVG on the server from the data, or add `<Script>` for one that responds to clicks. The presenter can switch what every page shows with `hinote.send`:
 
 ```tsx
 /// <reference types="hinote/client" />

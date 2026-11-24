@@ -976,6 +976,48 @@ test("skills prints the guide and its references, and names what exists when ask
   }
 });
 
+// An agent learns what a package does before the deck has it, and hears when
+// the deck has a version the guide was not written for.
+test("skills has a guide for each package, and says when the deck has another version of it", async () => {
+  const dir = await tempDir();
+  try {
+    const list = JSON.parse((await run(["skills", "--json"], dir)).stdout);
+    const names = list.data.map((s: { name: string }) => s.name);
+    for (const name of ["code", "katex", "d2", "chart"])
+      expect(names).toContain(name);
+
+    const absent = await run(["skills", "get", "chart"], dir);
+    expect(absent.code).toBe(0);
+    expect(absent.stdout).toStartWith("---\nname: hinote-chart\n");
+    expect(absent.stderr).toBe("");
+
+    const installed = join(dir, "node_modules", "@hinote", "chart");
+    await mkdir(installed, { recursive: true });
+    const own = JSON.parse(
+      await readFile(join(repo, "package.json"), "utf8"),
+    ).version;
+    await writeFile(
+      join(installed, "package.json"),
+      JSON.stringify({ version: own }),
+    );
+    expect((await run(["skills", "get", "chart"], dir)).stderr).toBe("");
+
+    await writeFile(
+      join(installed, "package.json"),
+      JSON.stringify({ version: "0.0.1" }),
+    );
+    const other = await run(["skills", "get", "chart"], dir);
+    expect(other.code).toBe(0);
+    expect(other.stderr).toContain("0.0.1");
+    const json = JSON.parse(
+      (await run(["skills", "get", "chart", "--json"], dir)).stdout,
+    );
+    expect(json.data.warning).toContain("0.0.1");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test(
   "dev serves slides, presenter mode, and files inside the deck directory",
   async () => {

@@ -77,11 +77,22 @@ A deck that passes `check` and `snapshot` can still say nothing. Before you fini
 - The URL holds only the slide (`/3`, `/presenter/3`). There are no nested paths.
 - Notes appear only in the presenter view.
 
+## Packages
+
+A slide that needs more than layout and text takes a package. Each has its own guide, readable before it is installed:
+
+| Package         | For                                                     | Guide                     |
+| --------------- | ------------------------------------------------------- | ------------------------- |
+| `@hinote/code`  | `<Code>`: highlighted source                            | `hinote skills get code`  |
+| `@hinote/katex` | `<Math>`: LaTeX formulas                                | `hinote skills get katex` |
+| `@hinote/d2`    | `<D2>`: diagrams of boxes and arrows                    | `hinote skills get d2`    |
+| `@hinote/chart` | `<Chart>`: bar, line, area, and dot charts that animate | `hinote skills get chart` |
+
 ## References
 
 Load one with `hinote skills get core --ref <name>`:
 
-- `api`: every option of `createSlide`, the components (`Row`, `Column`, `Center`, `Grid`, `Card`, `Flow`, `Table`, `Link`, `Step`, `Steps`, `Script`), the packages for code, formulas, diagrams, and charts, themes, and CSS.
+- `api`: every option of `createSlide`, the components (`Row`, `Column`, `Center`, `Grid`, `Card`, `Flow`, `Table`, `Link`, `Step`, `Steps`, `Script`), themes, and CSS.
 - `client`: `<Script>` and the `hinote` browser API, with sync between presenter and audience.
 - `serving`: presenting with `dev`, what `build`, `prerender`, and `snapshot` write, mounting the deck in Bun, Node, or Cloudflare Workers, and the one-step commands.
 - `design`: what makes a slide say something, how hinote supports it, and how to check it.
