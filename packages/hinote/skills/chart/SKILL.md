@@ -10,7 +10,7 @@ description: Draw charts that animate step by step on hinote slides with <Chart>
 This guide ships with hinote and matches its version; the package is released with the same version.
 
 ```sh
-bun add @hinote/chart @tanstack/charts
+bun add @hinote/chart
 ```
 
 ```tsx
@@ -66,7 +66,7 @@ The data, the chart, and its steps are all in the slide. The page gets only what
 - Without `domain`, the axes span the data of every step, so the marks move against axes that hold still. A mark keeps its place by its `x` (and `color`), so a bar grows or shrinks instead of leaving and entering.
 - `areas` stacks its series.
 
-For anything else, pass a chart from TanStack's `defineChart`, in `chart` or among the `steps`. It is drawn as it is, so fix its axes yourself if the steps should share them.
+For anything else, pass a chart from TanStack's `defineChart`, in `chart` or among the `steps`. It is drawn as it is, so fix its axes yourself if the steps should share them. `bars` and the others need nothing more; to write `defineChart` yourself, add `@tanstack/charts` at `~1.5`, the range `@hinote/chart` uses, so the deck and the package share one copy.
 
 ## Props
 

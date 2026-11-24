@@ -32,13 +32,9 @@
     "typecheck": "bun check",
     "prepack": "bun ../../scripts/build-package.ts"
   },
-  "peerDependencies": {
+  "dependencies": {
     "@tanstack/charts": "~1.5.0",
-    "hinote": "workspace:^",
     "hono": "catalog:"
-  },
-  "devDependencies": {
-    "@tanstack/charts": "~1.5.0"
   },
   "publishConfig": {
     "access": "public"

@@ -16,12 +16,8 @@
     "packages/chart": {
       "name": "@hinote/chart",
       "version": "0.5.2",
-      "devDependencies": {
+      "dependencies": {
         "@tanstack/charts": "~1.5.0",
-      },
-      "peerDependencies": {
-        "@tanstack/charts": "~1.5.0",
-        "hinote": "workspace:^",
         "hono": "catalog:",
       },
     },
@@ -30,8 +26,6 @@
       "version": "0.5.2",
       "dependencies": {
         "@pierre/highlights": "^0.5.1",
-      },
-      "peerDependencies": {
         "hono": "catalog:",
       },
     },
@@ -40,8 +34,6 @@
       "version": "0.5.2",
       "dependencies": {
         "@terrastruct/d2": "^0.1.33",
-      },
-      "peerDependencies": {
         "hono": "catalog:",
       },
     },
@@ -73,10 +65,8 @@
       "name": "@hinote/katex",
       "version": "0.5.2",
       "dependencies": {
-        "katex": "^0.19.1",
-      },
-      "peerDependencies": {
         "hono": "catalog:",
+        "katex": "^0.19.1",
       },
     },
     "packages/types": {
