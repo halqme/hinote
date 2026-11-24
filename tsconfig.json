@@ -1,0 +1,4 @@
+// Bun reads JSX and path settings from the tsconfig.json where it runs, not
+// from each package's. This one lets `bun test` at the root run every package.
+// It lists no files, so nothing type-checks the repo as one project.
+{ "extends": "./tsconfig.base.json", "files": [] }
