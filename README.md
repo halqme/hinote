@@ -7,6 +7,7 @@ The package and its guide are in [`packages/hinote`](packages/hinote/README.md).
 | Package                           | What it is                                               |
 | --------------------------------- | -------------------------------------------------------- |
 | [`hinote`](packages/hinote)       | The CLI and the core components.                         |
+| [`@hinote/chart`](packages/chart) | `<Chart>`, TanStack Charts drawn and animated by step.   |
 | [`@hinote/code`](packages/code)   | `<Code>`, syntax highlighting with `@pierre/highlights`. |
 | [`@hinote/d2`](packages/d2)       | `<D2>`, D2 diagrams as SVG.                              |
 | [`@hinote/katex`](packages/katex) | `<Math>`, LaTeX as MathML with KaTeX.                    |

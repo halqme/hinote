@@ -3,6 +3,7 @@
 The repository is a Bun workspace. Each package lives in `packages/`:
 
 - `packages/hinote`: the `hinote` package, the CLI and the core components.
+- `packages/chart`: `@hinote/chart`, `<Chart>`, TanStack Charts drawn on the server. The page gets each step's scene as JSON and animates between them with `src/client.ts`, which `<Chart>` adds for the CLI to bundle; `src/scene.ts` rebuilds the scales' `map` functions JSON drops. Like the other packages it does not import hinote: it writes the markup `<Script>` and `<Steps>` write, as `@hinote/types` describes it, and types `window.hinote` from there. `hinote` is a peer only so the page has `hinote.observe`.
 - `packages/code`: `@hinote/code`, the `<Code>` component. It depends on `@pierre/highlights` so that `hinote` does not.
 - `packages/d2`: `@hinote/d2`, `<D2>`, D2 diagrams drawn as SVG with `@terrastruct/d2`. The compiler is WebAssembly in a worker thread; the component draws one diagram at a time and holds the worker only while it draws, so a build exits when it is done.
 - `packages/katex`: `@hinote/katex`, `<Math>`, LaTeX as MathML with KaTeX.

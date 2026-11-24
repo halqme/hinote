@@ -1,0 +1,47 @@
+{
+  "name": "@hinote/chart",
+  "version": "0.5.2",
+  "description": "<Chart> for hinote: TanStack Charts drawn while the slide renders, animated step by step",
+  "keywords": [
+    "hinote",
+    "hono",
+    "chart",
+    "slides",
+    "tanstack"
+  ],
+  "license": "MIT",
+  "author": "HALQME",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halqme/hinote.git",
+    "directory": "packages/chart"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts",
+    "test": "bun test",
+    "typecheck": "bun check",
+    "prepack": "bun ../../scripts/build-package.ts"
+  },
+  "peerDependencies": {
+    "@tanstack/charts": "~1.5.0",
+    "hinote": "workspace:^",
+    "hono": "catalog:"
+  },
+  "devDependencies": {
+    "@tanstack/charts": "~1.5.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
+}
