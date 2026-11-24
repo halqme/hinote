@@ -1,6 +1,6 @@
 # hinote API
 
-Everything comes from `import { ... } from "hinote"`. Components that need a larger dependency are separate packages, each with its own guide: `<Code>` from `@hinote/code` (`hinote skills get code`), `<Math>` from `@hinote/katex` (`katex`), `<D2>` from `@hinote/d2` (`d2`), and `<Chart>` from `@hinote/chart` (`chart`).
+Everything comes from `import { ... } from "hinote"`. Components that need a larger dependency are in packages of their own; `hinote skills` lists their guides.
 
 ## createSlide
 

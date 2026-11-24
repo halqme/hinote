@@ -57,7 +57,6 @@ for (const el of document.querySelectorAll<HTMLElement>(".counter"))
 
 - The handler runs at once, then when `active` or `step` changes. Without `<Steps>`, `step` is the slide's.
 - An element outside the deck, such as a copy in the presenter's previews, is never active, so `observe` needs no `#deck`.
-- A package can do the same without importing hinote: the attributes and the `HinoteClient` type are in `@hinote/types` (`SlideMarkup`).
 
 ## The hinote global
 

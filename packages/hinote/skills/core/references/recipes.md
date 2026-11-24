@@ -1,17 +1,5 @@
 # Recipes
 
-## A formula (LaTeX)
-
-Add `@hinote/katex`; `<Math>` renders MathML on the server (`hinote skills get katex`):
-
-```tsx
-import { Math } from "@hinote/katex";
-
-<Math tex="\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}" />;
-```
-
-In a JSX attribute string a backslash is literal: write `\frac`, not `\\frac`.
-
 ## An image beside the text
 
 ```tsx
@@ -95,7 +83,7 @@ export default createSlide(async () => {
 
 ## A chart
 
-`<Chart>` from `@hinote/chart` draws a TanStack Charts chart and animates it, step by step if you like (`hinote skills get chart`). Without a package, draw an SVG on the server from the data, or add `<Script>` for one that responds to clicks. The presenter can switch what every page shows with `hinote.send`:
+Draw an SVG on the server from the data, or add `<Script>` for one that responds to clicks; `hinote skills` lists a package for charts that animate. The presenter can switch what every page shows with `hinote.send`:
 
 ```tsx
 /// <reference types="hinote/client" />
