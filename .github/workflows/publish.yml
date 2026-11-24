@@ -29,11 +29,12 @@ jobs:
         with:
           node-version: lts/*
       - run: bun install --frozen-lockfile
-      - name: Require the tag to match package.json
+      # Every package has the same version; scripts/version.ts fails if not.
+      - name: Require the tag to match the packages' version
         run: |
-          version=$(jq -r .version packages/hinote/package.json)
+          version=$(bun scripts/version.ts)
           if [ "$GITHUB_REF_NAME" != "v${version}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match packages/hinote/package.json version v${version}"
+            echo "Tag ${GITHUB_REF_NAME} does not match the packages' version v${version}"
             exit 1
           fi
       # bun pm pack builds each package and turns its catalog: and workspace:

@@ -5,6 +5,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 ## Unreleased
 
 - Breaking: `<Code>` moved to the new package `@hinote/code`, and its themes to `@hinote/code/themes`. `hinote` no longer exports `Code`, `CodeProps`, or `hinote/code-themes`, and no longer installs `@pierre/highlights`. Add `@hinote/code` and change the import.
+- `hinote` and every `@hinote/*` package share one version and are released together.
 - New package `@hinote/katex`: `<Math tex="...">` renders LaTeX as MathML while the slide renders, as a block or `inline`.
 - New package `@hinote/d2`: `<D2>` draws a D2 diagram as SVG while the slide renders, with `theme`, `sketch`, `layout`, and `scale`.
 - The package is built file for file instead of bundled, and declares no side effects, so a bundle keeps only what it imports. Importing only `Row` adds about 0.5 KB gzipped instead of 8 KB.

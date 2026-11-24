@@ -23,6 +23,8 @@ jobs:
         with:
           node-version: lts/*
       - run: bun install --frozen-lockfile
+      # Every package has the same version.
+      - run: bun scripts/version.ts
       - run: bun fmt --check
       - run: bun run typecheck
       - run: bun run lint

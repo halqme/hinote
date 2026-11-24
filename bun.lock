@@ -15,7 +15,7 @@
     },
     "packages/code": {
       "name": "@hinote/code",
-      "version": "0.1.0",
+      "version": "0.5.2",
       "dependencies": {
         "@pierre/highlights": "^0.5.1",
       },
@@ -25,7 +25,7 @@
     },
     "packages/d2": {
       "name": "@hinote/d2",
-      "version": "0.1.0",
+      "version": "0.5.2",
       "dependencies": {
         "@terrastruct/d2": "^0.1.33",
       },
@@ -59,7 +59,7 @@
     },
     "packages/katex": {
       "name": "@hinote/katex",
-      "version": "0.1.0",
+      "version": "0.5.2",
       "dependencies": {
         "katex": "^0.19.1",
       },
@@ -69,7 +69,7 @@
     },
     "packages/types": {
       "name": "@hinote/types",
-      "version": "0.1.0",
+      "version": "0.5.2",
     },
   },
   "catalog": {

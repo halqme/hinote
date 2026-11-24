@@ -1,6 +1,6 @@
 {
   "name": "@hinote/types",
-  "version": "0.1.0",
+  "version": "0.5.2",
   "description": "Types shared by hinote and the @hinote/* packages",
   "license": "MIT",
   "author": "HALQME",

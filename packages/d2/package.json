@@ -1,6 +1,6 @@
 {
   "name": "@hinote/d2",
-  "version": "0.1.0",
+  "version": "0.5.2",
   "description": "<D2> for hinote: D2 diagrams rendered as SVG while the slide renders",
   "keywords": [
     "hinote",
