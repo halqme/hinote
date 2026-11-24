@@ -1,7 +1,6 @@
 {
   "name": "hinote-workspace",
   "private": true,
-  "type": "module",
   "workspaces": {
     "packages": [
       "packages/*"
@@ -12,6 +11,7 @@
       "@hono/node-server": "^2.1.9"
     }
   },
+  "type": "module",
   "scripts": {
     "test": "bun run --filter './packages/*' test",
     "typecheck": "bun run --filter './packages/*' typecheck",
@@ -30,7 +30,7 @@
   "devEngines": {
     "runtime": {
       "name": "bun",
-      "version": ">=1.4.4",
+      "version": ">=1.4.5",
       "onFail": "warn"
     }
   }
