@@ -3,7 +3,7 @@
 // @hono/node-server, optional peer dependencies that `hinote init` adds when it
 // runs on Node. The library itself (src/index.ts) needs neither.
 import { readFile } from "node:fs/promises";
-import { HinoteError } from "../errors.ts";
+import { HinoteError, isHinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
 
 export const isBun = typeof Bun !== "undefined";
@@ -118,7 +118,7 @@ export async function bundle(
     if (!output) throw new HinoteError("build produced no output.");
     return output.text;
   } catch (error) {
-    if (error instanceof HinoteError) throw error;
+    if (isHinoteError(error)) throw error;
     // esbuild throws an error with the build's messages in `errors`.
     const errors =
       isPlainObject(error) && Array.isArray(error.errors) ? error.errors : [];

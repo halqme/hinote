@@ -12,7 +12,7 @@ import {
 } from "../deck/contrast.ts";
 import type { Deck } from "../deck/deck.ts";
 import { conventionProblems } from "./conventions.ts";
-import { HinoteError, UsageError } from "../errors.ts";
+import { HinoteError, isHinoteError, UsageError } from "../errors.ts";
 import { deckPath, loadDeckFile } from "../build/load.ts";
 import { inlineScripts } from "../build/scripts.ts";
 import { resolveInside } from "../build/server.ts";
@@ -343,12 +343,12 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
           });
       if (problems.every((p) => p.code !== "render"))
         await inlineScripts(await deck.render("static")).catch((error) => {
-          if (!(error instanceof HinoteError)) throw error;
+          if (!isHinoteError(error)) throw error;
           problems.push({ code: "script", message: error.message });
         });
       for (const warning of themeContrastWarnings(deck)) warnings.push(warning);
     } catch (error) {
-      if (!(error instanceof HinoteError)) throw error;
+      if (!isHinoteError(error)) throw error;
       problems.push({
         code: error.code,
         message: error.message,

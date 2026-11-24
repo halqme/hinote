@@ -7,7 +7,7 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { copyAssets } from "../build/assets.ts";
 import { isBrowserName } from "../snapshot/browser.ts";
 import type { Deck } from "../deck/deck.ts";
-import { HinoteError, UsageError } from "../errors.ts";
+import { HinoteError, isHinoteError, UsageError } from "../errors.ts";
 import {
   COMMANDS,
   diffProject,
@@ -252,7 +252,7 @@ With --json it prints one {"event", "data"} line per event: listening (the URLs)
           const message =
             error instanceof Error ? error.message : String(error);
           if (out.json) out.event("reload-failed", { message }, message);
-          else console.error(error instanceof HinoteError ? message : error);
+          else console.error(isHinoteError(error) ? message : error);
         }
       });
     };

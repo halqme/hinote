@@ -23,3 +23,16 @@ export type SlideContext = {
   // The `section` of each deck around this slide, outermost first.
   sections: readonly string[];
 };
+
+// An error hinote reports as its own: the message, a stable `code` to match
+// on, and a `hint` about what to do next, instead of a stack trace. Any Error
+// whose `name` is "HinoteError" and that has a string `code` counts, so a
+// package can throw one without importing hinote.
+export interface HinoteErrorLike extends Error {
+  name: "HinoteError";
+  code: string;
+  hint?: string;
+  // 1 for a problem with the deck or files, 2 for a command used wrongly.
+  // 1 when left out.
+  exitCode?: number;
+}

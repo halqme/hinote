@@ -1,4 +1,4 @@
-import { HinoteError } from "../errors.ts";
+import { isHinoteError } from "../errors.ts";
 
 // Where a command reports. With --json, stdout carries only JSON, one object
 // per line: the result as {"ok", "command", "data"}, and, for a command that
@@ -41,7 +41,7 @@ export function reportError(
   command: string,
   json: boolean,
 ): number {
-  const known = error instanceof HinoteError;
+  const known = isHinoteError(error);
   const message = error instanceof Error ? error.message : String(error);
   if (json)
     console.log(
@@ -59,5 +59,5 @@ export function reportError(
     console.error(known ? message : error);
     if (known && error.hint) console.error(`hint: ${error.hint}`);
   }
-  return known ? error.exitCode : 1;
+  return known ? (error.exitCode ?? 1) : 1;
 }

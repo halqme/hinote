@@ -5,7 +5,7 @@ import { basename, dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { cssAsText } from "./css-text.ts";
 import type { Deck } from "../deck/deck.ts";
-import { HinoteError } from "../errors.ts";
+import { HinoteError, isHinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
 import {
   bundle,
@@ -96,7 +96,7 @@ export async function loadDeckFile(file: string): Promise<Deck> {
       );
     return deck;
   } catch (error) {
-    if (error instanceof HinoteError) throw error;
+    if (isHinoteError(error)) throw error;
     const message = error instanceof Error ? error.message : String(error);
     throw new HinoteError(`Could not load ${absolute}: ${message}`, {
       code: "deck-load",
