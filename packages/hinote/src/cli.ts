@@ -18,7 +18,7 @@ import {
 } from "./cli/porcelain.ts";
 import { skills } from "./cli/skills.ts";
 import { hasNodePackages, isBun } from "./build/runtime.ts";
-import pkg from "../package.json" with { type: "json" };
+import { ownPackage } from "./cli/package.ts";
 
 export const COMMANDS: readonly Command[] = [
   init,
@@ -68,14 +68,14 @@ export async function main(argv: readonly string[]): Promise<number> {
       const topic =
         name === "help" ? rest.find((a) => !a.startsWith("-")) : undefined;
       if (topic === undefined) {
-        const text = overview(COMMANDS, pkg.version);
+        const text = overview(COMMANDS, ownPackage().version);
         if (json)
           console.log(
             JSON.stringify({
               ok: true,
               command: "help",
               data: {
-                version: pkg.version,
+                version: ownPackage().version,
                 commands: COMMANDS.map((c) => ({
                   name: c.name,
                   group: c.group,
@@ -99,9 +99,9 @@ export async function main(argv: readonly string[]): Promise<number> {
           ? JSON.stringify({
               ok: true,
               command: "version",
-              data: { version: pkg.version },
+              data: { version: ownPackage().version },
             })
-          : pkg.version,
+          : ownPackage().version,
       );
       return 0;
     }

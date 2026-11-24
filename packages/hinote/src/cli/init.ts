@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
-import packageJson from "../../package.json" with { type: "json" };
+import { ownPackage } from "./package.ts";
 import { HinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
 import { isBun } from "../build/runtime.ts";
@@ -128,9 +128,9 @@ export const NODE_DEV_PACKAGES = ["esbuild", "@hono/node-server"] as const;
 
 // The packages init puts in package.json, with the ranges of this version.
 function packageRanges(pm: PackageManager) {
-  const peers = packageJson.peerDependencies;
+  const { version, peerDependencies: peers } = ownPackage();
   return {
-    dependencies: { hinote: `^${packageJson.version}`, hono: peers.hono },
+    dependencies: { hinote: `^${version}`, hono: peers.hono },
     devDependencies:
       pm === "bun"
         ? undefined
@@ -266,7 +266,7 @@ export async function diffProject(
       typeof range === "string" ? { name, want, have: range } : { name, want },
     );
   }
-  return { version: packageJson.version, files, packages };
+  return { version: ownPackage().version, files, packages };
 }
 
 // A line diff by longest common subsequence. Settings files are a few dozen
