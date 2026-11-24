@@ -122,10 +122,9 @@ const VOID = new Set([
 export function markupWarnings(html: string): MarkupWarning[] {
   const stack: string[] = [];
   let found = false;
-  for (const [tag, close, name = "", attributes = "", self] of html.matchAll(
+  for (const [, close, name = "", attributes = "", self] of html.matchAll(
     /<(\/?)([a-z][a-z0-9-]*)\b([^>]*?)(\/?)>/g,
   )) {
-    void tag;
     if (close) {
       const at = stack.lastIndexOf(name);
       if (at >= 0) stack.length = at;
