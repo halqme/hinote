@@ -9,6 +9,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 - New package `@hinote/katex`: `<Math tex="...">` renders LaTeX as MathML while the slide renders, as a block or `inline`.
 - `hinote.observe(element, handler)` reports `{ active, step, steps }`: whether the element's slide is shown, and how many of its steps are out. A copy outside the deck, such as in the presenter's previews, is never active.
 - `<Steps count={n}>` takes the next n steps of the slide for code in the page to play, numbered with its `<Step>`s and hidden by nothing; `hinote.observe` counts them for the element.
+- `<Script src>` can name a `.js` file by the name it compiles to: when it does not exist, its `.ts` or `.tsx` source is bundled, as TypeScript resolves imports.
 - `HinoteClient`, `Position`, `Role`, and the markup `<Script>`, `<Step>`, and `<Steps>` write are described in `@hinote/types`, so a package can put code in the page without importing hinote. `hinote/client` still exports the same types.
 - New package `@hinote/d2`: `<D2>` draws a D2 diagram as SVG while the slide renders, with `theme`, `sketch`, `layout`, and `scale`.
 - The package is built file for file instead of bundled, and declares no side effects, so a bundle keeps only what it imports. Importing only `Row` adds about 0.5 KB gzipped instead of 8 KB.

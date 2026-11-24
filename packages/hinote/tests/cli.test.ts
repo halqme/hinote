@@ -12,6 +12,7 @@ import { join, resolve } from "node:path";
 import { expect, test } from "bun:test";
 import { Hono } from "hono";
 import { loadDeckFile } from "../src/build/load.ts";
+import { scriptPath } from "../src/build/scripts.ts";
 import { createDevApp, resolveInside } from "../src/build/server.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
@@ -384,6 +385,26 @@ test("prerender writes every page a static host needs, under a base path", async
     );
     expect(bad.code).toBe(1);
     expect(await Bun.file(join(dir, "bad")).exists()).toBe(false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// So a package can name its client by its built name, from src/ and dist/.
+test("a <Script> .js that does not exist is its .ts or .tsx source", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(join(dir, "a.client.ts"), "");
+    await writeFile(join(dir, "b.client.tsx"), "");
+    await writeFile(join(dir, "c.client.js"), "");
+    await writeFile(join(dir, "c.client.ts"), "");
+    expect(scriptPath(join(dir, "a.client.js"))).toBe(join(dir, "a.client.ts"));
+    expect(scriptPath(join(dir, "b.client.js"))).toBe(
+      join(dir, "b.client.tsx"),
+    );
+    // A .js that exists is used as it is.
+    expect(scriptPath(join(dir, "c.client.js"))).toBe(join(dir, "c.client.js"));
+    expect(scriptPath(join(dir, "gone.js"))).toBe(join(dir, "gone.js"));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
