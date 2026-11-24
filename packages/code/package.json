@@ -36,7 +36,7 @@
     "prepack": "bun ../../scripts/build-package.ts"
   },
   "dependencies": {
-    "@pierre/highlights": "^0.5.1",
+    "@pierre/highlights": "^0.5.2",
     "hono": "catalog:"
   },
   "publishConfig": {
