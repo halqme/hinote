@@ -5,7 +5,7 @@
 // start seeing `hinote` in every render function.
 import type { HinoteClient } from "./client/api.ts";
 
-export type { HinoteClient } from "./client/api.ts";
+export type { HinoteClient, Observed } from "./client/api.ts";
 export type { Position, Role } from "./client/player.ts";
 
 declare global {

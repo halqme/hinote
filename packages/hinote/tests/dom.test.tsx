@@ -5,7 +5,7 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { boot } from "../src/client/boot.ts";
 import type { HinoteClient } from "../src/client/api.ts";
-import { Link, Step, createSlide } from "../src/index.ts";
+import { Link, Step, Steps, createSlide } from "../src/index.ts";
 import type { Page, Sync } from "../src/deck/render.ts";
 
 // The page defines this. Importing hinote/client would type it for every file
@@ -198,6 +198,63 @@ describe("window.hinote", () => {
     expect(got).toEqual([{ vote: "a" }]);
     expect(() => hinote.send("has space")).toThrow();
     expect(() => hinote.send("position")).toThrow();
+  });
+
+  test("observe reports when an element's slide is shown and how many of its own steps are out", async () => {
+    const withChart = createSlide([
+      createSlide(() => <p>one</p>),
+      createSlide(() => (
+        <div>
+          <Step>first</Step>
+          <Steps count={2} class="chart">
+            chart
+          </Steps>
+          <Step>last</Step>
+        </div>
+      )),
+    ]);
+    await open(
+      "static",
+      "http://localhost/index.html",
+      undefined,
+      false,
+      withChart,
+    );
+    const chart = document.querySelector("#deck .chart");
+    const slide = document.querySelectorAll("#deck .slide")[1];
+    const seen: unknown[] = [];
+    const whole: unknown[] = [];
+    hinote.observe(chart!, (state) => seen.push(state));
+    hinote.observe(slide!, (state) => whole.push(state.step));
+    for (let i = 0; i < 5; i++) press("ArrowRight");
+    press("ArrowLeft");
+    press("ArrowLeft");
+    press("ArrowLeft");
+    press("ArrowLeft");
+    press("ArrowLeft");
+    // Its own steps count 0 to 2 while the slide's go 0 to 4, and a move
+    // that changes neither does not call it again.
+    expect(seen).toEqual([
+      { active: false, step: 0, steps: 2 },
+      { active: true, step: 0, steps: 2 },
+      { active: true, step: 1, steps: 2 },
+      { active: true, step: 2, steps: 2 },
+      { active: true, step: 1, steps: 2 },
+      { active: true, step: 0, steps: 2 },
+      { active: false, step: 0, steps: 2 },
+    ]);
+    expect(whole).toEqual([0, 0, 1, 2, 3, 4, 3, 2, 1, 0, 0]);
+  });
+
+  test("observe never reports a copy outside the deck as shown", async () => {
+    await open("static", "http://localhost/index.html");
+    const copy = document.querySelector("#deck .slide")!.cloneNode(true);
+    document.body.append(copy);
+    const seen: boolean[] = [];
+    hinote.observe(copy as Element, (state) => seen.push(state.active));
+    press("ArrowRight");
+    press("ArrowLeft");
+    expect(seen).toEqual([false]);
   });
 
   test("toCanvas turns a pointer into canvas pixels of the slide", async () => {

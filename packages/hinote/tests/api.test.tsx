@@ -10,6 +10,7 @@ import {
   Row,
   Script,
   Step,
+  Steps,
   Table,
   createSlide,
   themes,
@@ -371,6 +372,33 @@ describe("Step", () => {
     const html = await deckOf(slide).render();
     expect(html).toContain('<div data-hinote-step="1">late</div>');
     expect(html).toContain('<div data-hinote-step="2">after</div>');
+  });
+});
+
+describe("Steps", () => {
+  test("reserves steps for the element, numbered with the slide's <Step>s", async () => {
+    const slide = createSlide(() => (
+      <div>
+        <Step>before</Step>
+        <Steps count={2} class="chart">
+          drawn
+        </Steps>
+        <Step>after</Step>
+      </div>
+    ));
+    const html = await deckOf(slide).render();
+    expect(html).toContain('<div data-hinote-step="1">before</div>');
+    expect(html).toContain(
+      '<div data-hinote-steps="2-3" class="chart">drawn</div>',
+    );
+    expect(html).toContain('<div data-hinote-step="4">after</div>');
+  });
+
+  test("rejects a count that is not a positive integer", async () => {
+    for (const count of [0, 1.5, -1]) {
+      const slide = createSlide(() => <Steps count={count}>x</Steps>);
+      await expect(deckOf(slide).render()).rejects.toThrow(HinoteError);
+    }
   });
 });
 

@@ -19,6 +19,7 @@ import { resolveInside } from "../build/server.ts";
 import { defaultTheme, mergeTheme } from "../deck/theme.ts";
 import { stringFlag } from "./args.ts";
 import type { Command } from "./command.ts";
+import { stepsIn } from "../components/step.tsx";
 
 export const DECK_ARG = "[deck.tsx]";
 
@@ -108,9 +109,7 @@ export async function describeSlides(deck: Deck): Promise<SlideInfo[]> {
     }
     const body = result.html.slice(result.html.indexOf('<div id="deck"'));
     info.title ??= firstHeading(body);
-    info.steps = new Set(
-      [...body.matchAll(/data-hinote-step="(\d+)"/g)].map((m) => m[1]),
-    ).size;
+    info.steps = stepsIn(body).size;
     info.files = referencedPaths(result.html);
     return info;
   });

@@ -6,7 +6,7 @@ import {
   servedPath,
   slideHash,
 } from "./location.ts";
-import type { HinoteClient } from "./api.ts";
+import type { HinoteClient, Observed } from "./api.ts";
 import {
   createPlayer,
   isEventMessage,
@@ -86,10 +86,23 @@ function serverPort(base: string): Port {
   };
 }
 
+// The steps an element reserved, as `data-hinote-steps="from-to"`.
+function reservedSteps(
+  el: Element | null,
+): { from: number; to: number } | undefined {
+  const match = /^(\d+)-(\d+)$/.exec(
+    el?.getAttribute("data-hinote-steps") ?? "",
+  );
+  return match ? { from: Number(match[1]), to: Number(match[2]) } : undefined;
+}
+
 function stepCount(slide: Element): number {
   let count = 0;
   for (const el of slide.querySelectorAll<HTMLElement>("[data-hinote-step]")) {
     count = Math.max(count, Number(el.dataset.hinoteStep));
+  }
+  for (const el of slide.querySelectorAll("[data-hinote-steps]")) {
+    count = Math.max(count, reservedSteps(el)?.to ?? 0);
   }
   return count;
 }
@@ -405,9 +418,41 @@ export function boot(): void {
     }
   };
   let current: Position = { slide: 0, step: 0 };
+  // hinote.observe: one check per observed element, run on every move.
+  const observers = new Set<() => void>();
   const track = (position: Position) => {
     current = position;
     emit("position", position);
+    for (const check of observers) check();
+  };
+  const observe = (element: Element, handler: (state: Observed) => void) => {
+    const slide = slides.indexOf(
+      element.closest<HTMLElement>(".slide") ?? document.createElement("div"),
+    );
+    const own = reservedSteps(element.closest("[data-hinote-steps]"));
+    const total = own ? own.to - own.from + 1 : (steps[slide] ?? 0);
+    let last: string | undefined;
+    const check = () => {
+      const active = slide >= 0 && current.slide === slide;
+      const step = !active
+        ? 0
+        : own
+          ? Math.min(total, Math.max(0, current.step - own.from + 1))
+          : current.step;
+      const key = `${active} ${step}`;
+      if (key === last) return;
+      last = key;
+      try {
+        handler({ active, step, steps: total });
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    observers.add(check);
+    check();
+    return () => {
+      observers.delete(check);
+    };
   };
 
   const player = createPlayer({
@@ -453,6 +498,7 @@ export function boot(): void {
       if (name === "position") call(current);
       return () => handlers.delete(call);
     },
+    observe,
     send(name, data) {
       if (!isEventName(name) || name === "position")
         throw new Error(`hinote.send: "${name}" is not an event name.`);

@@ -1,9 +1,10 @@
-export type Role = "view" | "presenter";
+// A Position's `step` counts revealed steps: 0 shows none, `steps[slide]`
+// shows all.
+import type { Position, Role } from "@hinote/types";
+
+export type { Position, Role };
 
 export type Pointer = { x: number; y: number; active: boolean };
-
-// `step` counts revealed steps: 0 shows none, `steps[slide]` shows all.
-export type Position = { slide: number; step: number };
 
 export type SyncMessage =
   | { type: "navigate"; slide: number; step: number }
