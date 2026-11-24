@@ -6,6 +6,8 @@ Write slides with Hono and Hono/JSX.
 - **A deck is a Hono app.** `hinote dev` presents it, `build` writes the audience view as one HTML file, and `app.route()` mounts the same deck in a server of your own.
 - **The install stays small.** In the [comparison](https://github.com/halqme/hinote/blob/main/bench/README.md) with Slidev, Marp, and hono-decks, hinote on Bun installs 5 packages and 10.2 MB of `node_modules`. `build` writes 2 files, 32 KB (9 KB gzipped). The dev server responds in 0.10 s, and the build takes 0.06 s.
 
+Code, formulas, diagrams, and charts are separate packages, so a deck installs only what it shows: `@hinote/code`, `@hinote/katex`, `@hinote/d2`, and `@hinote/chart`.
+
 New to hinote? Run `hinote init`, then `hinote skills get core` for the loop and references.
 
 ## Getting started
@@ -44,5 +46,4 @@ The guide ships with the package and matches its version. `hinote skills get cor
 - **Sync lives in memory.** Pages sync through a hub inside the process that serves the deck. Pages that reach different processes do not follow each other: several isolates of a deployed Worker, several instances behind a load balancer, or serverless functions. Long-lived connections may also be cut where a host limits them.
 - **Prerendered pages sync within one browser.** They use `BroadcastChannel`, so a phone or another computer does not follow.
 - **Steps are not in the URL.** A reload shows the slide with no step revealed.
-- **`<Code>` is a separate package and needs WebAssembly.** Import it from `@hinote/code`. The highlighter loads on the first `<Code>`; a deck without code does not need it.
 - **Not tried yet:** Deno, a deployed Cloudflare Worker, and other serverless hosts.

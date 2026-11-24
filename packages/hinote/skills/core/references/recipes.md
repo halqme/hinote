@@ -2,17 +2,10 @@
 
 ## A formula (LaTeX)
 
-Render MathML on the server with KaTeX (`npm install katex`):
+Add `@hinote/katex`; `<Math>` renders MathML on the server:
 
 ```tsx
-import katex from "katex";
-import { raw } from "hono/html";
-
-export function Math(props: { tex: string }) {
-  return raw(
-    katex.renderToString(props.tex, { output: "mathml", displayMode: true }),
-  );
-}
+import { Math } from "@hinote/katex";
 
 <Math tex="\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}" />;
 ```
