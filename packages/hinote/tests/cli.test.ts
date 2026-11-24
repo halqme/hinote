@@ -69,6 +69,36 @@ test("loads a changed deck again instead of the cached module", async () => {
   }
 });
 
+// A package that loads a worker or WebAssembly from next to itself finds it
+// through import.meta.url.
+test("import.meta in a package the deck imports points at the package", async () => {
+  const dir = await tempDir();
+  try {
+    const pkg = join(dir, "node_modules/near-file");
+    await mkdir(pkg, { recursive: true });
+    await writeFile(
+      join(pkg, "package.json"),
+      '{"name":"near-file","type":"module","exports":"./index.js"}',
+    );
+    await writeFile(join(pkg, "word.txt"), "from the package");
+    await writeFile(
+      join(pkg, "index.js"),
+      `import { readFileSync } from "node:fs";
+export const word = readFileSync(new URL("./word.txt", import.meta.url), "utf8");`,
+    );
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(
+        `import { word } from "near-file";\nexport default createSlide([createSlide(() => <p>{word}</p>)])`,
+      ),
+    );
+    const html = await (await loadDeckFile(join(dir, "deck.tsx"))).render();
+    expect(html).toContain("<p>from the package</p>");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("import.meta in deck files points at the files, not the bundle", async () => {
   const dir = await tempDir();
   try {

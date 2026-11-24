@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { cssAsText } from "./css-text.ts";
 import type { Deck } from "../deck/deck.ts";
@@ -20,8 +20,10 @@ import { isDeck } from "../deck/create.ts";
 // second copy of hinote, so the deck is recognized by shape, not by class.
 // A fresh bundle per call also makes each reload see the edited files.
 // The bundle runs from a temporary file, so `import.meta.url` and friends would
-// point there. In the author's own files they are fixed to each file's real
-// path first, so `new URL("./data.json", import.meta.url)` still finds the data.
+// point there. In every bundled file they are fixed to that file's real path
+// first, so `new URL("./data.json", import.meta.url)` still finds the data, in
+// the author's files and in packages that load a worker or WebAssembly from
+// next to themselves.
 const META = /\bimport\.meta\.(url|dir|dirname|path|filename|file)\b/g;
 
 const sourceMeta: LoadPlugin = {
@@ -30,11 +32,7 @@ const sourceMeta: LoadPlugin = {
     build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, async ({ path }) => {
       const contents = await readText(path);
       const loader = loaderFor(path);
-      if (
-        path.includes(`${sep}node_modules${sep}`) ||
-        !contents.includes("import.meta")
-      )
-        return { contents, loader };
+      if (!contents.includes("import.meta")) return { contents, loader };
       const values: Record<string, string> = {
         url: pathToFileURL(path).href,
         dir: dirname(path),
