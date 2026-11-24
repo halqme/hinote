@@ -37,7 +37,6 @@
     }
   },
   "scripts": {
-    "build:client": "bun scripts/build-client.ts",
     "test": "bun test",
     "typecheck": "bun check && bun x tsc -p tsconfig.client.json --noEmit",
     "lint": "oxdg src --circular --fail-on-circular",

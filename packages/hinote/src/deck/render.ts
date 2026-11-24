@@ -1,6 +1,6 @@
 import { jsx } from "hono/jsx";
 import { HtmlEscapedCallbackPhase, resolveCallback } from "hono/utils/html";
-import clientScript from "../client/main.generated.ts";
+import clientScript from "../client/script.ts";
 import { loadCss, scopeCss, type CssSource, type StyleLayer } from "./css.ts";
 import { HinoteError } from "../errors.ts";
 // `view` and `presenter` are served by the deck and sync through it. `static` is

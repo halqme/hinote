@@ -25,4 +25,13 @@ if (fixed === types) {
   process.exit(1);
 }
 await writeFile(index, fixed);
+
+// From source, client/script.ts bundles the browser runtime when it loads.
+// The package carries the bundled text instead, so Node, Deno, and Workers
+// render without a bundler.
+const { default: clientScript } = await import("../src/client/script.ts");
+await writeFile(
+  `${dist}/client/script.js`,
+  `export default ${JSON.stringify(clientScript)};\n`,
+);
 console.log(dist);

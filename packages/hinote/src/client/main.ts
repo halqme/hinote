@@ -1,5 +1,4 @@
-// Browser runtime inlined into every page. `bun run build:client` turns it into
-// main.generated.ts, so rendering a deck never needs a bundler at runtime.
+// Browser runtime inlined into every page; script.ts bundles it.
 import { boot } from "./boot.ts";
 
 boot();

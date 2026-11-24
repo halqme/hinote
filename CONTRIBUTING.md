@@ -15,7 +15,7 @@ Run `bun install` once at the root. The root `package.json` is private and holds
 
 To try a change against a real deck, run `bun src/cli.ts init .tmp/talk --no-install` and then `bun src/cli.ts dev .tmp/talk` in `packages/hinote`.
 
-`packages/hinote/src/client/main.ts` runs in the browser. Pages inline the generated `src/client/main.generated.ts`, so rendering never needs a bundler. After editing the client, run `bun run build:client` in `packages/hinote`; `bun test` fails while the generated file is stale.
+`packages/hinote/src/client/main.ts` runs in the browser, and every page inlines it. From source, `src/client/script.ts` bundles it with `Bun.build` when hinote loads, so tests and `hinote dev` always run the current client. `bun run build` writes the bundled text into `dist/`, so the published package never needs a bundler.
 
 `bun run build` builds every package; in one package it builds that one. Each package's `dist/` is its `src/` compiled file for file by TypeScript, JavaScript next to declarations, by `scripts/build-package.ts` and the package's `tsconfig.build.json`. Nothing is bundled, and each package declares `"sideEffects": false`, so a deck's bundler keeps only the modules the deck imports. `prepack` builds before packing. A package ships `dist/` and not `src/`, so Bun and Node load the same JavaScript. hinote's `scripts/build-lib.ts` adds the CSS module declaration that tsc does not copy. `bun test` in hinote also builds `dist/` and runs it under Node when Node is installed.
 

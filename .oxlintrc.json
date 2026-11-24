@@ -29,9 +29,5 @@
       }
     }
   ],
-  "ignorePatterns": [
-    "dist",
-    "bench",
-    "packages/hinote/src/client/main.generated.ts"
-  ]
+  "ignorePatterns": ["dist", "bench"]
 }
