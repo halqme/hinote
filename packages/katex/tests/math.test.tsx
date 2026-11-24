@@ -36,3 +36,16 @@ test("rejects LaTeX that does not parse as HinoteError", async () => {
     ),
   });
 });
+
+// A JSX attribute keeps backslashes as written, so a doubled one before a
+// command is a line break and the command's name as text, not the command.
+test("rejects a doubled backslash before a command, and keeps a real line break", async () => {
+  await expect(render(() => <Math tex="\\frac{1}{2}" />)).rejects.toMatchObject(
+    {
+      code: "math",
+      hint: expect.stringContaining("write \\frac, not \\\\frac"),
+    },
+  );
+  const html = await render(() => <Math tex="a \\ b" />);
+  expect(html).toContain("<math");
+});
