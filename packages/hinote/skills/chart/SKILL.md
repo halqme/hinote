@@ -66,7 +66,40 @@ The data, the chart, and its steps are all in the slide. The page gets only what
 - Without `domain`, the axes span the data of every step, so the marks move against axes that hold still. A mark keeps its place by its `x` (and `color`), so a bar grows or shrinks instead of leaving and entering.
 - `areas` stacks its series.
 
-For anything else, pass a chart from TanStack's `defineChart`, in `chart` or among the `steps`. It is drawn as it is, so fix its axes yourself if the steps should share them. `bars` and the others need nothing more; to write `defineChart` yourself, add `@tanstack/charts` at `~1.5`, the range `@hinote/chart` uses, so the deck and the package share one copy.
+## defineChart
+
+Any other chart is TanStack's `defineChart`, with its marks and scales, all imported from `@hinote/chart`. Pass it as `chart`, or one for each step:
+
+```tsx
+import {
+  Chart,
+  barY,
+  defineChart,
+  ruleY,
+  scaleBand,
+  scaleLinear,
+} from "@hinote/chart";
+
+const target = 200;
+
+<Chart
+  label="Sales against the target"
+  chart={defineChart({
+    marks: [
+      barY(q1, { x: "month", y: "sales", key: "month" }),
+      ruleY([target]),
+    ],
+    scales: {
+      x: { scale: scaleBand },
+      y: { scale: scaleLinear().domain([0, 300]), grid: true },
+    },
+  })}
+/>;
+```
+
+- Everything `@tanstack/charts` exports comes from `@hinote/chart`, with `scaleBand`, `scaleLinear`, `scaleOrdinal`, `scalePoint`, and `scaleUtc`. The deck does not install `@tanstack/charts` itself, so the definition and the drawing use the same version.
+- A defined chart is drawn as it is. For steps, give marks a `key` that stays the same, and fix the axes with a configured scale (`scaleLinear().domain([0, 300])`): a scale given as a factory fits each step's own data.
+- Functions in the definition (formatters, scales) run on the server. Motion settings in it do not reach the page, which animates with TanStack's default motion.
 
 ## Props
 

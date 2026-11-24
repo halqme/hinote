@@ -1,8 +1,13 @@
-import { barY, defineChart } from "@tanstack/charts";
-import { scaleBand } from "@tanstack/charts/scales/band";
-import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { Step, createSlide } from "hinote";
-import { Chart, bars, lines } from "../../src/index.tsx";
+import {
+  Chart,
+  barY,
+  bars,
+  defineChart,
+  lines,
+  scaleBand,
+  scaleLinear,
+} from "../../src/index.tsx";
 
 const q1 = [
   { month: "Jan", sales: 120 },

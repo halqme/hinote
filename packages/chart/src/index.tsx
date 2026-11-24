@@ -2,12 +2,25 @@ import type { HinoteErrorLike } from "@hinote/types";
 import { createChartRuntime, renderChartSvg } from "@tanstack/charts";
 import { raw } from "hono/html";
 import { sceneJson, type Scene } from "./scene.ts";
-import { defineAll, isSpec, type AnyChart, type ChartSpec } from "./spec.ts";
+import {
+  defineAll,
+  isSpec,
+  type AnyChart,
+  type DescribedChart,
+} from "./spec.ts";
 
 export { areas, bars, dots, lines } from "./spec.ts";
-export type { BarOptions, ChartSpec, SeriesOptions } from "./spec.ts";
+// Everything to write a chart by hand, from the one copy of TanStack Charts
+// this package draws with: defineChart, the marks, and the scales.
+export * from "@tanstack/charts";
+export { scaleBand } from "@tanstack/charts/scales/band";
+export { scaleLinear } from "@tanstack/charts/scales/linear";
+export { scaleOrdinal } from "@tanstack/charts/scales/ordinal";
+export { scalePoint } from "@tanstack/charts/scales/point";
+export { scaleUtc } from "@tanstack/charts/scales/time";
+export type { BarOptions, DescribedChart, SeriesOptions } from "./spec.ts";
 
-type ChartInput = ChartSpec | AnyChart;
+type ChartInput = DescribedChart | AnyChart;
 
 export type ChartProps = {
   // What the chart shows, for screen readers.

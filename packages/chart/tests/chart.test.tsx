@@ -1,9 +1,17 @@
 import { expect, test } from "bun:test";
-import { barY, createChartRuntime, defineChart } from "@tanstack/charts";
-import { scaleBand } from "@tanstack/charts/scales/band";
-import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { Step, createSlide } from "hinote";
-import { Chart, areas, bars, dots, lines } from "../src/index.tsx";
+import {
+  Chart,
+  areas,
+  barY,
+  bars,
+  createChartRuntime,
+  defineChart,
+  dots,
+  lines,
+  scaleBand,
+  scaleLinear,
+} from "../src/index.tsx";
 import { revive, sceneJson } from "../src/scene.ts";
 
 async function render(...nodes: (() => unknown)[]) {

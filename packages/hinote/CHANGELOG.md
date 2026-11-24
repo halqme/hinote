@@ -13,7 +13,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 - `HinoteClient`, `Position`, `Role`, and the markup `<Script>`, `<Step>`, and `<Steps>` write are described in `@hinote/types`, so a package can put code in the page without importing hinote. `hinote/client` still exports the same types.
 - The `@hinote/*` component packages depend on `hono` (and `@hinote/chart` on `@tanstack/charts`) instead of asking the deck for it as a peer.
 - `hinote skills get code`, `katex`, `d2`, and `chart` print the guide to each package, also before it is installed, and say when the deck has a different version of the package. The core guide lists the packages and what each is for.
-- New package `@hinote/chart`: `<Chart>` draws a TanStack Charts chart as SVG while the slide renders and animates it in the page, with `bars`, `lines`, `areas`, and `dots` for the common charts. `steps={[...]}` moves to the next chart at each step.
+- New package `@hinote/chart`: `<Chart>` draws a TanStack Charts chart as SVG while the slide renders and animates it in the page, with `bars`, `lines`, `areas`, and `dots` for the common charts, and TanStack's `defineChart`, marks, and scales exported for the rest, so a deck needs no `@tanstack/charts` of its own. `steps={[...]}` moves to the next chart at each step.
 - New package `@hinote/d2`: `<D2>` draws a D2 diagram as SVG while the slide renders, with `theme`, `sketch`, `layout`, and `scale`.
 - The package is built file for file instead of bundled, and declares no side effects, so a bundle keeps only what it imports. Importing only `Row` adds about 0.5 KB gzipped instead of 8 KB.
 - `hinote init` writes a deck with no `<Code>`, so a new deck needs only `hinote` and `hono`.

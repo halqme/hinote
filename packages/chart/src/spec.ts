@@ -49,14 +49,14 @@ const SPEC = Symbol("hinote-chart");
 
 // A chart described, not yet defined. <Chart> defines it once it has seen
 // every step, so the steps can share their axes.
-export type ChartSpec = {
+export type DescribedChart = {
   readonly [SPEC]: true;
   readonly kind: Kind;
   readonly rows: readonly Row[];
   readonly options: BarOptions<Row>;
 };
 
-export function isSpec(value: unknown): value is ChartSpec {
+export function isSpec(value: unknown): value is DescribedChart {
   return typeof value === "object" && value !== null && SPEC in value;
 }
 
@@ -65,7 +65,7 @@ function spec<R extends Row>(
   kind: Kind,
   rows: readonly R[],
   options: BarOptions<R> | SeriesOptions<R>,
-): ChartSpec {
+): DescribedChart {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   return { [SPEC]: true, kind, rows, options: options as BarOptions<Row> };
 }
@@ -74,7 +74,7 @@ function spec<R extends Row>(
 export function bars<R extends Row>(
   rows: readonly R[],
   options: BarOptions<R>,
-): ChartSpec {
+): DescribedChart {
   return spec("bar", rows, options);
 }
 
@@ -82,7 +82,7 @@ export function bars<R extends Row>(
 export function lines<R extends Row>(
   rows: readonly R[],
   options: SeriesOptions<R>,
-): ChartSpec {
+): DescribedChart {
   return spec("line", rows, options);
 }
 
@@ -90,7 +90,7 @@ export function lines<R extends Row>(
 export function areas<R extends Row>(
   rows: readonly R[],
   options: SeriesOptions<R>,
-): ChartSpec {
+): DescribedChart {
   return spec("area", rows, options);
 }
 
@@ -98,13 +98,13 @@ export function areas<R extends Row>(
 export function dots<R extends Row>(
   rows: readonly R[],
   options: SeriesOptions<R>,
-): ChartSpec {
+): DescribedChart {
   return spec("dot", rows, options);
 }
 
 // The extent every step needs, so no step's marks leave the axes. Bars and
 // areas stand on zero; stacked ones reach the sum of their series.
-function extent(specs: readonly ChartSpec[]): [number, number] {
+function extent(specs: readonly DescribedChart[]): [number, number] {
   let low = Infinity;
   let high = -Infinity;
   for (const { kind, rows, options } of specs) {
@@ -125,7 +125,7 @@ function extent(specs: readonly ChartSpec[]): [number, number] {
 
 // Categories in the order they first appear, across every step, so a bar
 // keeps its place when a later step adds another.
-function categories(specs: readonly ChartSpec[]): string[] {
+function categories(specs: readonly DescribedChart[]): string[] {
   const seen = new Set<string>();
   for (const { rows, options } of specs)
     for (const row of rows) seen.add(String(row[options.x]));
@@ -133,7 +133,7 @@ function categories(specs: readonly ChartSpec[]): string[] {
 }
 
 function define(
-  item: ChartSpec,
+  item: DescribedChart,
   shared: { y: [number, number]; x: string[] | undefined; numericX: boolean },
 ): AnyChart {
   const { kind, rows, options } = item;
@@ -197,7 +197,7 @@ function numericDomain(
 // Defines every step's chart. Described steps share their axes; a chart from
 // defineChart is used as it is.
 export function defineAll(
-  items: readonly (ChartSpec | AnyChart)[],
+  items: readonly (DescribedChart | AnyChart)[],
 ): AnyChart[] {
   const specs = items.filter(isSpec);
   const numericX =
