@@ -15,6 +15,7 @@ import {
   type LoadPlugin,
 } from "./runtime.ts";
 import { isDeck } from "../deck/create.ts";
+import { tokenize } from "./lex.ts";
 
 // Bundle the deck so hinote and hono resolve from this package. The bundle is a
 // second copy of hinote, so the deck is recognized by shape, not by class.
@@ -23,8 +24,42 @@ import { isDeck } from "../deck/create.ts";
 // point there. In every bundled file they are fixed to that file's real path
 // first, so `new URL("./data.json", import.meta.url)` still finds the data, in
 // the author's files and in packages that load a worker or WebAssembly from
-// next to themselves.
-const META = /\bimport\.meta\.(url|dir|dirname|path|filename|file)\b/g;
+// next to themselves. Only code is rewritten: the same words in a string, a
+// comment, or a slide's text stay as written.
+const META_KEYS = new Set([
+  "url",
+  "dir",
+  "dirname",
+  "path",
+  "filename",
+  "file",
+]);
+
+export function fixImportMeta(
+  source: string,
+  values: Record<string, string>,
+  jsx: boolean,
+): string {
+  const tokens = tokenize(source, [], jsx);
+  let result = "";
+  let from = 0;
+  for (let i = 0; i + 4 < tokens.length; i++) {
+    const [meta0, dot1, meta2, dot3, key] = tokens.slice(i, i + 5);
+    if (
+      meta0?.v !== "import" ||
+      dot1?.v !== "." ||
+      meta2?.v !== "meta" ||
+      dot3?.v !== "." ||
+      key?.k !== "id" ||
+      !META_KEYS.has(key.v)
+    )
+      continue;
+    result += source.slice(from, meta0.at) + JSON.stringify(values[key.v]);
+    from = key.at + key.v.length;
+    i += 4;
+  }
+  return result + source.slice(from);
+}
 
 const sourceMeta: LoadPlugin = {
   name: "hinote-source-meta",
@@ -42,9 +77,7 @@ const sourceMeta: LoadPlugin = {
         file: basename(path),
       };
       return {
-        contents: contents.replace(META, (_, key: string) =>
-          JSON.stringify(values[key]),
-        ),
+        contents: fixImportMeta(contents, values, loader.endsWith("x")),
         loader,
       };
     });
