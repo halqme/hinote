@@ -218,7 +218,9 @@ function presenterView(
     box.className = "hinote-thumb";
     fillThumb(box, slide, steps[index] ?? 0);
     const label = document.createElement("span");
-    label.textContent = `${index + 1}`;
+    label.className = "hinote-overview-label";
+    const title = slide.dataset.title?.trim();
+    label.textContent = title ? `${index + 1}. ${title}` : `${index + 1}`;
     item.append(box, label);
     item.addEventListener("click", () => {
       go({ slide: index, step: 0 });
@@ -272,8 +274,8 @@ function presenterView(
     show(position) {
       for (const [index, item] of items.entries())
         item.classList.toggle("is-current", index === position.slide);
-      if (!nextEl) return;
       const next = nextPosition(position, steps);
+      if (!nextEl) return;
       const slide = next && slides[next.slide];
       if (next && slide) {
         nextEl.removeAttribute("data-end");
@@ -288,6 +290,8 @@ function presenterView(
       if (key === "o" || key === "O") setOverview(!open);
       else if (key === "Escape" && open) setOverview(false);
       else if (key === "l" || key === "L") setLaser(!laser);
+      else if (key === "p" || key === "P") actions.prev();
+      else if (key === "n" || key === "N") actions.next();
       else return false;
       return true;
     },
@@ -305,7 +309,7 @@ export function boot(): void {
   const slides = Array.from(document.querySelectorAll<HTMLElement>(".slide"));
   const steps = slides.map(stepCount);
   const notesEl = document.getElementById("hinote-notes");
-  const stepEl = document.getElementById("hinote-step");
+  const indicatorEl = document.getElementById("hinote-indicator");
   const pointerEl = document.getElementById("hinote-pointer");
   const sync = document.documentElement.dataset.sync;
   const directories = document.documentElement.dataset.paths === "directories";
@@ -364,13 +368,41 @@ export function boot(): void {
       );
     }
     presenter?.show(position);
-    if (stepEl) {
-      const total = steps[position.slide] ?? 0;
-      stepEl.textContent =
+    if (indicatorEl) {
+      const marks = [...indicatorEl.children];
+      if (marks.length !== slides.length) {
+        indicatorEl.replaceChildren(
+          ...slides.map(() => document.createElement("span")),
+        );
+      }
+      for (const [index, mark] of [...indicatorEl.children].entries()) {
+        if (!(mark instanceof HTMLElement)) continue;
+        const total = steps[index] ?? 0;
+        const state =
+          index < position.slide
+            ? "past"
+            : index === position.slide
+              ? "current"
+              : "future";
+        mark.dataset.state = state;
+        const fill =
+          state === "past"
+            ? 1
+            : state === "future"
+              ? 0
+              : total === 0
+                ? 1
+                : position.step / total;
+        mark.style.setProperty("--hinote-fill", String(fill));
+      }
+      const stepTotal = steps[position.slide] ?? 0;
+      indicatorEl.setAttribute(
+        "aria-label",
         slides.length === 0
           ? ""
-          : `${position.slide + 1} / ${slides.length}` +
-            (total > 0 ? ` · step ${position.step} / ${total}` : "");
+          : `Slide ${position.slide + 1} of ${slides.length}` +
+              (stepTotal > 0 ? `, step ${position.step} of ${stepTotal}` : ""),
+      );
     }
     if (notesEl)
       notesEl.replaceChildren(

@@ -101,17 +101,27 @@ html[data-transition="slide"][data-direction="back"]::view-transition-new(hinote
 #hinote-pointer{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 16px #ff2d2d;pointer-events:none;z-index:10;opacity:0}
 .hinote-thumb{position:relative;overflow:hidden;width:100%;aspect-ratio:var(--hinote-canvas-ratio);background:var(--hinote-color-bg);border-radius:6px}
 .hinote-thumb>.slide{display:revert-layer}
-html[data-page="presenter"] body{display:grid;grid-template-columns:minmax(0,1fr) minmax(18rem,30vw);background:#111318;color:#f4f4f5;font:16px/1.6 system-ui,sans-serif}
-html[data-page="presenter"] #deck{position:relative;inset:auto;min-width:0;min-height:0;padding:1.25rem;background:#0b0d12}
+html[data-page="presenter"] body{display:grid;grid-template-columns:minmax(0,1fr) minmax(17rem,26rem);grid-template-rows:minmax(0,1fr) auto;background:#111318;color:#f4f4f5;font:16px/1.5 system-ui,sans-serif}
+html[data-page="presenter"] #deck{grid-column:1;grid-row:1;position:relative;inset:auto;min-width:0;min-height:0;padding:1.25rem;background:#0b0d12}
 html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45)}
-#hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-height:0;padding:1.25rem;overflow:hidden;background:#181b22;border-left:1px solid #2c313c}
-#hinote-next{flex:none}
-#hinote-notes{white-space:pre-wrap;flex:1;min-height:0;overflow:auto}
-#hinote-notes>*{margin:0 0 1.6em}
-#hinote-notes :is(h1,h2,h3,h4,h5,h6){margin-bottom:.4em;font-size:1.05em;color:#fff}
-#hinote-notes :is(ul,ol){padding-left:1.4em;white-space:normal}
+html[data-page="presenter"] #hinote-panel{grid-column:2;grid-row:1 / -1}
+html[data-page="presenter"] #hinote-toolbar{grid-column:1;grid-row:2;padding:0 1.25rem 1.1rem;background:#0b0d12}
+#hinote-panel{display:flex;flex-direction:column;gap:.75rem;min-width:0;min-height:0;padding:1.1rem 1.25rem;overflow:hidden;background:#181b22;border-left:1px solid #2c313c}
+#hinote-indicator{display:flex;gap:4px;height:8px;margin:0}
+#hinote-indicator span{flex:1;min-width:0;border-radius:99px;background:#2a303b;overflow:hidden}
+#hinote-indicator span::before{content:"";display:block;height:100%;width:calc(var(--hinote-fill, 0) * 100%);background:#71717a}
+#hinote-indicator span[data-state="current"]{box-shadow:inset 0 0 0 1px #e4e4e7}
+#hinote-indicator span[data-state="current"]::before{background:#f4f4f5}
+#hinote-indicator span[data-state="past"]::before{background:#a1a1aa}
+#hinote-next{flex:none;width:100%}
+#hinote-notes{flex:1;min-height:0;overflow:auto;white-space:pre-wrap;padding:.9rem 0 0;border-top:1px solid #2c313c;font-size:1rem;line-height:1.45}
+#hinote-notes:empty{display:none}
+#hinote-notes>*{margin:0 0 .75em}
+#hinote-notes :is(h1,h2,h3,h4,h5,h6){margin-bottom:.25em;font-size:1rem;font-weight:600;line-height:1.25;color:#fff}
+#hinote-notes :is(ul,ol){padding-left:1.3em;white-space:normal}
+#hinote-notes li+li{margin-top:.2em}
+#hinote-notes strong{color:#fff}
 #hinote-notes code{font-family:ui-monospace,monospace;font-size:.92em;padding:0 .25em;border-radius:3px;background:#262b36}
-.hinote-label{margin:0;color:#a1a1aa;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 #hinote-next[data-end]::after{content:"End";position:absolute;inset:0;display:grid;place-items:center;color:#71717a;background:#0b0d12}
 #hinote-meta{display:flex;align-items:baseline;justify-content:space-between;gap:1rem}
 #hinote-toolbar{display:flex;flex-wrap:wrap;gap:.4rem}
@@ -119,12 +129,14 @@ html[data-page="presenter"] .hinote-stage{box-shadow:0 18px 50px rgb(0 0 0 / .45
 #hinote-toolbar button:hover{background:#262b36}
 #hinote-toolbar button:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
 #hinote-toolbar button[aria-pressed="true"]{border-color:#ff2d2d;color:#ff8a8a}
+#hinote-toolbar u{text-decoration:underline;text-underline-offset:2px}
 #hinote-timer{all:unset;cursor:pointer;font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
-#hinote-step,#hinote-clock{margin:0;color:#a1a1aa;font-size:13px;font-variant-numeric:tabular-nums}
+#hinote-clock{margin:0;color:#a1a1aa;font-size:13px;font-variant-numeric:tabular-nums}
 
 #hinote-overview{display:none;position:fixed;inset:0;z-index:20;overflow:auto;padding:2rem;background:rgb(10 12 16 / .96);grid-template-columns:repeat(auto-fill,minmax(16rem,1fr));gap:1.25rem;align-content:start}
 #hinote-overview.is-open{display:grid}
-.hinote-overview-item{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:.4rem;color:#d4d4d8;font:13px system-ui,sans-serif}
+.hinote-overview-item{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:.4rem;min-width:0;color:#d4d4d8;font:13px system-ui,sans-serif}
+.hinote-overview-label{overflow-wrap:break-word}
 .hinote-overview-item.is-current .hinote-thumb{outline:3px solid #38bdf8;outline-offset:2px}
 @media print{
 html,body{height:auto;overflow:visible;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -133,7 +145,7 @@ html[data-page] body{display:block}
 .hinote-stage{width:auto;height:auto;overflow:visible;box-shadow:none}
 .hinote-stage>.slide{display:revert-layer;position:relative;transform:none;break-after:page}
 [data-hinote-step].is-hidden{opacity:1;visibility:visible}
-#hinote-panel,#hinote-overview,#hinote-pointer{display:none}
+#hinote-panel,#hinote-notes,#hinote-toolbar,#hinote-overview,#hinote-pointer{display:none}
 }
 `.trim();
 
@@ -177,43 +189,14 @@ function slideStyle(slide: Slide): Record<string, string> {
   return style;
 }
 
-// Filled in by the client: the next preview, the timer, and the overview.
+// Filled in by the client: the progress indicator, the next preview, the timer,
+// and the overview. Notes stay in the side column. The toolbar sits under the slide.
 function presenterPanel(slideCount: number, notes: string) {
+  const where = slideCount > 0 ? `Slide 1 of ${slideCount}` : undefined;
   return [
     jsx(
       "aside",
       { id: "hinote-panel" },
-      jsx(
-        "div",
-        { id: "hinote-toolbar", role: "toolbar", "aria-label": "Presenter" },
-        jsx(
-          "button",
-          { type: "button", "data-action": "prev", title: "Previous (←)" },
-          "← Prev",
-        ),
-        jsx(
-          "button",
-          { type: "button", "data-action": "next", title: "Next (→)" },
-          "Next →",
-        ),
-        jsx(
-          "button",
-          { type: "button", "data-action": "overview", title: "Overview (O)" },
-          "Overview",
-        ),
-        jsx(
-          "button",
-          {
-            type: "button",
-            "data-action": "laser",
-            "aria-pressed": "false",
-            title: "Laser pointer (L)",
-          },
-          "Laser",
-        ),
-      ),
-      jsx("p", { class: "hinote-label" }, "Next"),
-      jsx("div", { id: "hinote-next", class: "hinote-thumb" }),
       jsx(
         "div",
         { id: "hinote-meta" },
@@ -225,13 +208,53 @@ function presenterPanel(slideCount: number, notes: string) {
         jsx("p", { id: "hinote-clock" }),
       ),
       jsx(
-        "p",
-        { id: "hinote-step" },
-        slideCount > 0 ? `1 / ${slideCount}` : "",
+        "div",
+        { id: "hinote-indicator", role: "img", "aria-label": where },
+        Array.from({ length: slideCount }, (_, index) =>
+          jsx("span", {
+            "data-state": index === 0 ? "current" : "future",
+            style: `--hinote-fill:${index === 0 ? 1 : 0}`,
+          }),
+        ),
       ),
-      jsx("p", { class: "hinote-label" }, "Notes"),
+      jsx("div", { id: "hinote-next", class: "hinote-thumb" }),
       jsx("div", { id: "hinote-notes" }, notes),
-      jsx("p", { class: "hinote-label" }, "← → move · O overview · L laser"),
+    ),
+    jsx(
+      "div",
+      { id: "hinote-toolbar", role: "toolbar", "aria-label": "Presenter" },
+      jsx(
+        "button",
+        { type: "button", "data-action": "prev", title: "Previous (P, ←)" },
+        jsx("u", {}, "←"),
+        " ",
+        jsx("u", {}, "P"),
+        "rev",
+      ),
+      jsx(
+        "button",
+        { type: "button", "data-action": "next", title: "Next (N, →)" },
+        jsx("u", {}, "N"),
+        "ext ",
+        jsx("u", {}, "→"),
+      ),
+      jsx(
+        "button",
+        { type: "button", "data-action": "overview", title: "Overview (O)" },
+        jsx("u", {}, "O"),
+        "verview",
+      ),
+      jsx(
+        "button",
+        {
+          type: "button",
+          "data-action": "laser",
+          "aria-pressed": "false",
+          title: "Laser pointer (L)",
+        },
+        jsx("u", {}, "L"),
+        "aser",
+      ),
     ),
     jsx("div", { id: "hinote-overview" }),
   ];
@@ -381,9 +404,11 @@ ${FRAME_CSS}`;
       jsx("section", {
         class: className,
         "data-hinote-id": slide.options.id,
-        // Notes are for the presenter; other pages never carry them.
+        // Notes and titles stay on the presenter page: notes in the side column,
+        // titles on the overview.
         "data-notes":
           page === "presenter" ? (slide.options.notes ?? "") : undefined,
+        "data-title": page === "presenter" ? slide.options.title : undefined,
         "data-hinote-css": author.scopes[index],
         "data-transition":
           slide.options.transition ?? input.transition ?? "none",

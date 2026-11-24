@@ -13,17 +13,17 @@ Everything comes from `import { ... } from "hinote"`. Components that need a lar
 
 Slide options:
 
-| Option       | Type                              | Meaning                                                                        |
-| ------------ | --------------------------------- | ------------------------------------------------------------------------------ |
-| `id`         | string                            | A name `<Link to>` points at: letters, digits, `_`, `-`; unique in the deck    |
-| `title`      | string                            | Its title; the first slide title becomes the page title when the deck has none |
-| `notes`      | string                            | Speaker notes, shown only in the presenter view; a Markdown subset, see below  |
-| `background` | string                            | CSS background of the slide                                                    |
-| `class`      | string                            | Class on the slide's `<section>`                                               |
-| `theme`      | Theme                             | Tokens for this slide only                                                     |
-| `transition` | `"none"` \| `"fade"` \| `"slide"` | How it enters                                                                  |
-| `css`        | string \| URL \| array            | CSS for this slide only                                                        |
-| `pageNumber` | boolean                           | `false` hides the deck's page number on this slide                             |
+| Option       | Type                              | Meaning                                                                                                           |
+| ------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `id`         | string                            | A name `<Link to>` points at: letters, digits, `_`, `-`; unique in the deck                                       |
+| `title`      | string                            | Its title, shown in the presenter's overview. The first slide title becomes the page title when the deck has none |
+| `notes`      | string                            | Speaker notes, shown only in the presenter view; a Markdown subset, see below                                     |
+| `background` | string                            | CSS background of the slide                                                                                       |
+| `class`      | string                            | Class on the slide's `<section>`                                                                                  |
+| `theme`      | Theme                             | Tokens for this slide only                                                                                        |
+| `transition` | `"none"` \| `"fade"` \| `"slide"` | How it enters                                                                                                     |
+| `css`        | string \| URL \| array            | CSS for this slide only                                                                                           |
+| `pageNumber` | boolean                           | `false` hides the deck's page number on this slide                                                                |
 
 The render function receives `{ title, sections }`: its own `title`, and the `section` of each deck around it, outermost first. A shared heading can read them instead of repeating the title in the options and the body:
 

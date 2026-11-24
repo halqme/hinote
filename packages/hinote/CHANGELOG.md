@@ -4,6 +4,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 ## Unreleased
 
+- The presenter view puts the timer, a progress mark for each slide, a preview of the next key press, and the notes in the side column. Notes are the same size as the panel text and take no space when a slide has none. Prev, Next, Overview, and Laser sit under the slide. `P` and `←` go back, `N` and `→` go forward, `O` opens the overview, and `L` toggles the laser. Those letters and arrows are underlined on the buttons. The overview lists titles.
 - Layout props are typed to what renders: `align` and `justify` take their CSS keywords, `gap` a number or a length with its unit (`"1.5rem"`, `var(...)`, `calc(...)`), and `<Step as>` and `<Steps as>` an HTML element. A misspelled keyword or a unitless `gap="2"` is a type error, and `gap="2"` is also an error at render with how to write it. A nested deck that sets a top-level option names it, with code `deck-option` and where it belongs.
 - `hinote inspect` shows the outline: each slide indented under the sections of its nested decks, with its `id` and transition. The JSON has `sections` and `id`.
 - `hinote build --embed` puts the files the slides load into the HTML as data: URLs, so the one file is the whole deck. `check` warns (`remote-file`) about files a slide loads from the network, which a built page shows only online.

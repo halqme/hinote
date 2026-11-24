@@ -326,6 +326,27 @@ describe("the presenter view", () => {
     expect(document.getElementById("hinote-notes")?.textContent).toBe(
       "first notes",
     );
+    const underlined = (action: string) =>
+      [
+        ...document.querySelectorAll(
+          `#hinote-toolbar [data-action="${action}"] u`,
+        ),
+      ].map((el) => el.textContent);
+    expect(underlined("prev")).toEqual(["←", "P"]);
+    expect(underlined("next")).toEqual(["N", "→"]);
+    expect(underlined("overview")).toEqual(["O"]);
+    expect(underlined("laser")).toEqual(["L"]);
+    press("n");
+    expect(active()).toBe(1);
+    expect(hidden()).toEqual([true, true]);
+    press("n");
+    expect(hidden()).toEqual([false, true]);
+    press("p");
+    expect(hidden()).toEqual([true, true]);
+    press("P");
+    expect(active()).toBe(0);
+    press("N");
+    expect(active()).toBe(1);
     click("overview");
     expect(
       document.getElementById("hinote-overview")?.classList.contains("is-open"),
@@ -334,6 +355,100 @@ describe("the presenter view", () => {
     expect(
       document.getElementById("hinote-overview")?.classList.contains("is-open"),
     ).toBe(false);
+  });
+
+  test("shows progress in the side column, the next slide under it, and titles only in the overview", async () => {
+    const titled = createSlide({ presenter: true }, [
+      createSlide({ title: "Open", notes: "Say this." }, () => <p>a</p>),
+      createSlide({ title: "Method" }, () => (
+        <ul>
+          <Step as="li">a</Step>
+          <Step as="li">b</Step>
+        </ul>
+      )),
+      createSlide(() => <p>c</p>),
+    ]);
+    await open(
+      "presenter",
+      "http://localhost/presenter/1",
+      undefined,
+      false,
+      titled,
+    );
+    expect(document.getElementById("hinote-title")).toBeNull();
+    expect(document.getElementById("hinote-upcoming")).toBeNull();
+    expect(document.querySelector(".hinote-label")).toBeNull();
+    const panel = document.getElementById("hinote-panel");
+    expect(document.getElementById("hinote-notes")?.parentElement).toBe(panel);
+    expect(document.getElementById("hinote-next")?.parentElement).toBe(panel);
+    expect(document.getElementById("hinote-toolbar")?.parentElement).toBe(
+      document.body,
+    );
+    const marks = () =>
+      [...document.querySelectorAll("#hinote-indicator span")].map((el) =>
+        el instanceof HTMLElement
+          ? [el.dataset.state, el.style.getPropertyValue("--hinote-fill")]
+          : [],
+      );
+    const indicator = document.getElementById("hinote-indicator");
+    expect(indicator?.getAttribute("aria-label")).toBe("Slide 1 of 3");
+    expect(marks()).toEqual([
+      ["current", "1"],
+      ["future", "0"],
+      ["future", "0"],
+    ]);
+    press("ArrowRight");
+    expect(indicator?.getAttribute("aria-label")).toBe(
+      "Slide 2 of 3, step 0 of 2",
+    );
+    expect(marks()[1]).toEqual(["current", "0"]);
+    press("ArrowRight");
+    expect(marks()[1]).toEqual(["current", "0.5"]);
+    press("ArrowRight");
+    expect(marks()[1]).toEqual(["current", "1"]);
+    press("ArrowRight");
+    expect(marks().map((mark) => mark[0])).toEqual(["past", "past", "current"]);
+    expect(
+      document.getElementById("hinote-next")?.hasAttribute("data-end"),
+    ).toBe(true);
+    expect(
+      [...document.querySelectorAll(".hinote-overview-label")].map(
+        (el) => el.textContent,
+      ),
+    ).toEqual(["1. Open", "2. Method", "3"]);
+  });
+
+  test("notes are shown when a slide has them, and not when it does not", async () => {
+    const noted = createSlide({ presenter: true }, [
+      createSlide({ notes: "# Claim\n\nSay this." }, () => <p>a</p>),
+      createSlide(() => <p>b</p>),
+    ]);
+    await open(
+      "presenter",
+      "http://localhost/presenter/1",
+      undefined,
+      false,
+      noted,
+    );
+    const notes = document.getElementById("hinote-notes")!;
+    expect(notes.textContent).toContain("Say this.");
+    expect(getComputedStyle(notes).display).not.toBe("none");
+    expect(getComputedStyle(notes).fontSize).toBe("16px");
+    expect(getComputedStyle(notes.querySelector("h1")!).fontSize).toBe("16px");
+    press("ArrowRight");
+    expect(notes.textContent).toBe("");
+    expect(getComputedStyle(notes).display).toBe("none");
+  });
+
+  test("the audience page carries neither speaker notes nor slide titles", async () => {
+    const titled = createSlide({ presenter: true }, [
+      createSlide({ title: "Open", notes: "secret" }, () => <p>a</p>),
+    ]);
+    await open("view", "http://localhost/1", undefined, false, titled);
+    expect(document.getElementById("hinote-notes")).toBeNull();
+    expect(document.getElementById("hinote-title")).toBeNull();
+    expect(document.querySelector("[data-notes]")).toBeNull();
+    expect(document.querySelector("[data-title]")).toBeNull();
   });
 
   test("the laser starts off, and a choice stays across a reload", async () => {

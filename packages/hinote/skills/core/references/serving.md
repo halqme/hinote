@@ -1,12 +1,12 @@
 # Showing and shipping a deck
 
-| Goal                              | Command                         | Result                                                                      |
-| --------------------------------- | ------------------------------- | --------------------------------------------------------------------------- |
-| Present from this machine         | `hinote dev`                    | `/` for the audience, `/presenter` with notes, timer, next preview, laser   |
-| Present to devices on the network | `hinote dev --host 0.0.0.0`     | Presenter off unless the deck sets `presenter: true`                        |
-| Hand out one file                 | `hinote build`                  | `dist/index.html` plus the files slides load; with `--embed`, only the HTML |
-| Host on a static site             | `hinote prerender --base /repo` | `/`, `/3/`, and with `presenter: true`, `/presenter/`                       |
-| Mount in a server                 | `hinote assets`                 | `public/` with only the files slides load                                   |
+| Goal                              | Command                         | Result                                                                              |
+| --------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
+| Present from this machine         | `hinote dev`                    | `/` for the audience, `/presenter` with timer, progress, next preview, notes, laser |
+| Present to devices on the network | `hinote dev --host 0.0.0.0`     | Presenter off unless the deck sets `presenter: true`                                |
+| Hand out one file                 | `hinote build`                  | `dist/index.html` plus the files slides load; with `--embed`, only the HTML         |
+| Host on a static site             | `hinote prerender --base /repo` | `/`, `/3/`, and with `presenter: true`, `/presenter/`                               |
+| Mount in a server                 | `hinote assets`                 | `public/` with only the files slides load                                           |
 
 The pipeline, step by step (each runs alone):
 
@@ -44,7 +44,7 @@ Run `hinote assets` again after adding images. Bun, Node with `@hono/node-server
 
 ## Presenting with dev
 
-- `/` is the audience view and `/presenter` shows the slide, a preview of the next key press, a timer (click to restart; it survives reloads), the clock, and the notes. `O` opens an overview; click a slide to jump.
+- `/` is the audience view and `/presenter` shows the slide, a timer (click to restart; it survives reloads), the clock, and a progress mark for each slide. The side column has a preview of the next key press and the notes, at the same size as the panel text. Notes take no space when a slide has none. Prev, Next, Overview, and Laser sit under the slide. `P` and `←` go back, `N` and `→` go forward, `O` opens an overview of every slide by number and title, and `L` toggles the laser. The underlined letters and arrows on the buttons are those keys.
 - Keys: arrows, Page Up/Down, Space, Enter, Backspace, Home, End.
 - The presenter sends the pointer. Pages sync through the deck (SSE at `/_hinote/events`, POST to `/_hinote/sync`), so other devices that reach the server follow; a window opened later jumps to the presenter.
 - `dev` reloads the deck and open pages when a file in the deck directory changes. A deck that fails to load is reported, and the last good one keeps serving. It serves files inside the deck directory and refuses paths outside it.
