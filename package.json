@@ -2,9 +2,16 @@
   "name": "hinote-workspace",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "catalog": {
+      "hono": "^4.13.19",
+      "esbuild": "^0.28.2",
+      "@hono/node-server": "^2.1.9"
+    }
+  },
   "scripts": {
     "test": "bun run --filter './packages/*' test",
     "typecheck": "bun run --filter './packages/*' typecheck",
@@ -14,7 +21,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",
-    "hono": "^4.13.19",
+    "hono": "catalog:",
     "oxdg": "^0.6.0",
     "oxlint": "^1.94.0",
     "tsrs": "^0.25.0-ts7.1.0-beta",

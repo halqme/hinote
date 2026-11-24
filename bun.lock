@@ -6,7 +6,7 @@
       "name": "hinote",
       "devDependencies": {
         "@types/bun": "^1.4.4",
-        "hono": "^4.13.19",
+        "hono": "catalog:",
         "oxdg": "^0.6.0",
         "oxlint": "^1.94.0",
         "tsrs": "^0.25.0-ts7.1.0-beta",
@@ -20,7 +20,7 @@
         "@pierre/highlights": "^0.5.1",
       },
       "peerDependencies": {
-        "hono": "^4.13.19",
+        "hono": "catalog:",
       },
     },
     "packages/d2": {
@@ -30,7 +30,7 @@
         "@terrastruct/d2": "^0.1.33",
       },
       "peerDependencies": {
-        "hono": "^4.13.19",
+        "hono": "catalog:",
       },
     },
     "packages/hinote": {
@@ -40,17 +40,17 @@
         "hinote": "dist/cli.js",
       },
       "dependencies": {
-        "@hinote/types": "^0.1.0",
+        "@hinote/types": "workspace:^",
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "^21.0.4",
-        "@hono/node-server": "^2.1.9",
-        "esbuild": "^0.28.2",
+        "@hono/node-server": "catalog:",
+        "esbuild": "catalog:",
       },
       "peerDependencies": {
-        "@hono/node-server": "^2.1.9",
-        "esbuild": "^0.28.2",
-        "hono": "^4.13.19",
+        "@hono/node-server": "catalog:",
+        "esbuild": "catalog:",
+        "hono": "catalog:",
       },
       "optionalPeers": [
         "@hono/node-server",
@@ -64,13 +64,18 @@
         "katex": "^0.19.1",
       },
       "peerDependencies": {
-        "hono": "^4.13.19",
+        "hono": "catalog:",
       },
     },
     "packages/types": {
       "name": "@hinote/types",
       "version": "0.1.0",
     },
+  },
+  "catalog": {
+    "@hono/node-server": "^2.1.9",
+    "esbuild": "^0.28.2",
+    "hono": "^4.13.19",
   },
   "packages": {
     "@emnapi/core": ["@emnapi/core@1.11.2", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.2", "tslib": "^2.4.0" } }, "sha512-TC8MkTuZUtcTSiFeuC0ksCh9QIJ5+F21MvZ4Wn4ORfYaFJ/0dsiudv5tVkejgwZlwQ39jL9WWDe2lz8x0WglOA=="],

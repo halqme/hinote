@@ -24,6 +24,11 @@ jobs:
             echo "Release commit ${GITHUB_SHA} is not on main"
             exit 1
           fi
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - run: bun install --frozen-lockfile
       - name: Require the tag to match package.json
         run: |
           version=$(jq -r .version packages/hinote/package.json)
@@ -31,23 +36,22 @@ jobs:
             echo "Tag ${GITHUB_REF_NAME} does not match packages/hinote/package.json version v${version}"
             exit 1
           fi
-      - uses: oven-sh/setup-bun@v2
-      - uses: actions/setup-node@v7
-        with:
-          node-version: lts/*
-      - run: bun install --frozen-lockfile
-      # hinote depends on @hinote/types, so the scoped packages go out first.
-      # Each one is published only when npm does not have its version yet.
-      - name: Publish the @hinote/* packages whose version is new
+      # bun pm pack builds each package and turns its catalog: and workspace:
+      # ranges into plain versions, which npm publish would leave as they are.
+      # npm publishes the tarball, so trusted publishing still applies.
+      # @hinote/types goes first because hinote depends on it, and a package
+      # npm already has at this version is skipped, so a rerun can finish.
+      - name: Publish every package
         run: |
-          for dir in packages/types packages/code packages/katex packages/d2; do
+          mkdir -p "$RUNNER_TEMP/packs"
+          for dir in packages/types packages/code packages/katex packages/d2 packages/hinote; do
             name=$(jq -r .name "$dir/package.json")
             version=$(jq -r .version "$dir/package.json")
             if npm view "${name}@${version}" version >/dev/null 2>&1; then
               echo "${name}@${version} is already published"
-            else
-              (cd "$dir" && npm publish)
+              continue
             fi
+            tarball="$RUNNER_TEMP/packs/$(basename "$dir").tgz"
+            (cd "$dir" && bun pm pack --filename "$tarball" --quiet)
+            npm publish "$tarball" --access public
           done
-      - run: npm publish
-        working-directory: packages/hinote

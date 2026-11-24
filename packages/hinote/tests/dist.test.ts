@@ -1,4 +1,12 @@
-import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  rename,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
@@ -61,18 +69,23 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
     // Outside the repository, so Node cannot find the repository's own
     // esbuild by walking up from these projects.
     dir = await mkdtemp(join(tmpdir(), "hinote-dist-"));
-    const pkg = join(dir, "hinote");
-    const build = Bun.spawnSync(
-      ["bun", "scripts/build-lib.ts", join(pkg, "dist")],
+    // The tarball npm gets: `prepack` builds dist/, and the catalog and
+    // workspace ranges in package.json become plain versions.
+    const tarball = join(dir, "hinote.tgz");
+    const packed = Bun.spawnSync(
+      ["bun", "pm", "pack", "--filename", tarball, "--quiet"],
       { cwd: repo, stderr: "pipe" },
     );
-    if (build.exitCode !== 0) throw new Error(build.stderr.toString());
-    await cp(join(repo, "package.json"), join(pkg, "package.json"));
-    await cp(join(repo, "skills"), join(pkg, "skills"), { recursive: true });
+    if (packed.exitCode !== 0) throw new Error(packed.stderr.toString());
+    const untar = Bun.spawnSync(["tar", "xzf", tarball, "-C", dir], {
+      stderr: "pipe",
+    });
+    if (untar.exitCode !== 0) throw new Error(untar.stderr.toString());
+    await rename(join(dir, "package"), join(dir, "hinote"));
     full = join(dir, "full");
     bare = join(dir, "bare");
-    await project(full, ["hono", "esbuild", "@hono/node-server"]);
-    await project(bare, ["hono"]);
+    await project(full, ["hono", "@hinote", "esbuild", "@hono/node-server"]);
+    await project(bare, ["hono", "@hinote"]);
   }, 60_000);
 
   afterAll(async () => {

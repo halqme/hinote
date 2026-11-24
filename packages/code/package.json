@@ -39,7 +39,7 @@
     "@pierre/highlights": "^0.5.1"
   },
   "peerDependencies": {
-    "hono": "^4.13.19"
+    "hono": "catalog:"
   },
   "publishConfig": {
     "access": "public"

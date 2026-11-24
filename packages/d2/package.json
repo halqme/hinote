@@ -36,7 +36,7 @@
     "@terrastruct/d2": "^0.1.33"
   },
   "peerDependencies": {
-    "hono": "^4.13.19"
+    "hono": "catalog:"
   },
   "publishConfig": {
     "access": "public"
