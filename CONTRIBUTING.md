@@ -4,6 +4,7 @@ The repository is a Bun workspace. Each package lives in `packages/`:
 
 - `packages/hinote`: the `hinote` package, the CLI and the core components.
 - `packages/code`: `@hinote/code`, the `<Code>` component. It depends on `@pierre/highlights` so that `hinote` does not. Its tests render through `hinote`, a dev dependency only.
+- `packages/d2`: `@hinote/d2`, `<D2>`, D2 diagrams drawn as SVG with `@terrastruct/d2`. The compiler is WebAssembly in a worker thread; the component draws one diagram at a time and holds the worker only while it draws, so a build exits when it is done.
 - `packages/katex`: `@hinote/katex`, `<Math>`, LaTeX as MathML with KaTeX. Like `@hinote/code`, it depends on `hinote` only for its tests.
 - `packages/types`: `@hinote/types`, the types shared by `hinote` and the `@hinote/*` packages, such as `Theme` and `SlideContext`. It is one hand-written `index.d.ts` with no JavaScript. `hinote` re-exports what it holds.
 
@@ -19,4 +20,4 @@ Before committing, run `bun run test`, `bun run typecheck`, and `bun run lint` a
 
 ## Releasing
 
-Every change that reaches users adds a line under `## Unreleased` in `packages/hinote/CHANGELOG.md`. To release, rename that heading to the new version, set the same version in `packages/hinote/package.json`, and merge to `main`. Then publish a GitHub release tagged `v<version>` whose body is that version's section of the changelog, not only a compare link. Publishing the release runs `.github/workflows/publish.yml`, which checks that the tag matches `packages/hinote/package.json` and runs `npm publish` in `packages/hinote`. Before that it publishes `@hinote/types`, `@hinote/code`, and `@hinote/katex` when npm does not have the version in their `package.json` yet. Bump a package's version whenever it changes, note the change in the changelog, and raise the range `hinote` depends on when `@hinote/types` changes.
+Every change that reaches users adds a line under `## Unreleased` in `packages/hinote/CHANGELOG.md`. To release, rename that heading to the new version, set the same version in `packages/hinote/package.json`, and merge to `main`. Then publish a GitHub release tagged `v<version>` whose body is that version's section of the changelog, not only a compare link. Publishing the release runs `.github/workflows/publish.yml`, which checks that the tag matches `packages/hinote/package.json` and runs `npm publish` in `packages/hinote`. Before that it publishes `@hinote/types`, `@hinote/code`, `@hinote/katex`, and `@hinote/d2` when npm does not have the version in their `package.json` yet. Bump a package's version whenever it changes, note the change in the changelog, and raise the range `hinote` depends on when `@hinote/types` changes.
