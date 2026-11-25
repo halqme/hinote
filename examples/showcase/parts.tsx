@@ -60,7 +60,7 @@ export type Section = {
   to: string;
   // `section` on this nested deck. The running head and the door read it back.
   name: string;
-  // The door's claim, also the line beside the name in the contents.
+  // The door's claim. As the door's title, <Contents> puts it beside the name.
   line: string;
 };
 
