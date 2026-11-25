@@ -1,4 +1,5 @@
 import { HinoteError } from "../errors.ts";
+import { closest, didYouMean } from "../suggest.ts";
 import { isPlainObject } from "../guards.ts";
 
 // How the next slide enters. Steps inside a slide never animate this way.
@@ -28,7 +29,12 @@ const EASING = /^[\w\s(),.-]+$/;
 
 function parseName(value: unknown, label: string): TransitionName {
   const name = NAMES.find((entry) => entry === value);
-  if (!name) throw new HinoteError(`${label} must be one of ${NAME_LIST}.`);
+  if (!name) {
+    const near = typeof value === "string" ? closest(value, NAMES) : undefined;
+    throw new HinoteError(`${label} must be one of ${NAME_LIST}.`, {
+      hint: near && `Did you mean "${near}"?`,
+    });
+  }
   return name;
 }
 
@@ -36,9 +42,9 @@ export function parseTransition(value: unknown, label: string): Transition {
   if (!isPlainObject(value)) return parseName(value, label);
   for (const key of Object.keys(value)) {
     if (key !== "name" && key !== "duration" && key !== "easing")
-      throw new HinoteError(
-        `${label} has an unknown key "${key}". It takes "name", "duration", and "easing".`,
-      );
+      throw new HinoteError(`${label} has an unknown key "${key}".`, {
+        hint: didYouMean(key, ["name", "duration", "easing"]),
+      });
   }
   const transition: Exclude<Transition, string> = {
     name: parseName(value.name, `${label} "name"`),

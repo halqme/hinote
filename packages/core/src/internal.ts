@@ -9,3 +9,4 @@ export { transitionName } from "./deck/transition.ts";
 export { stepsIn } from "./components/step.tsx";
 export { HinoteError, isHinoteError } from "./errors.ts";
 export { isPlainObject } from "./guards.ts";
+export { closest } from "./suggest.ts";

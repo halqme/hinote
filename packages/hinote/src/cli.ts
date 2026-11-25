@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { closest } from "@hinote/core/internal";
 import { UsageError } from "./errors.ts";
 import { parseArgs } from "./cli/args.ts";
 import type { Command } from "./cli/command.ts";
@@ -39,14 +40,15 @@ const find = (name: string | undefined) =>
   (name === "skill" ? skills : undefined);
 
 function unknown(name: string): UsageError {
-  const near = COMMANDS.filter(
-    (c) => c.name.startsWith(name.slice(0, 2)) || name.startsWith(c.name),
-  ).map((c) => c.name);
+  const near = closest(
+    name,
+    COMMANDS.map((c) => c.name),
+  );
   return new UsageError(
     `Unknown command "${name}".`,
-    near.length > 0
-      ? `Did you mean ${near.join(" or ")}? Run: hinote help`
-      : "Run: hinote help",
+    near === undefined
+      ? "Run: hinote help"
+      : `Did you mean ${near}? Run: hinote help`,
   );
 }
 

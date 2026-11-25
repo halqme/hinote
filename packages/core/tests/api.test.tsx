@@ -399,6 +399,39 @@ describe("createSlide", () => {
     );
   });
 
+  // A slip in a name is answered with the nearest one, wherever it belongs.
+  test("an unknown option suggests the one meant, or lists them when none is near", () => {
+    const hint = (make: () => unknown) => {
+      try {
+        make();
+      } catch (error) {
+        return error instanceof HinoteError ? error.hint : undefined;
+      }
+      return undefined;
+    };
+    expect(hint(() => createSlide({ them: {} } as never, []))).toBe(
+      'Did you mean "theme"?',
+    );
+    expect(hint(() => createSlide({ aspect: "4:3" } as never, []))).toBe(
+      'Did you mean "document.aspect"?',
+    );
+    expect(
+      hint(() => createSlide({ document: { aspct: "4:3" } } as never, [])),
+    ).toBe('Did you mean "aspect"?');
+    expect(hint(() => createSlide({ titel: "x" } as never, () => null))).toBe(
+      'Did you mean "title"?',
+    );
+    expect(hint(() => createSlide({ transition: "slid" as never }, []))).toBe(
+      'Did you mean "slide"?',
+    );
+    expect(hint(() => createSlide({ theme: { color: {} } as never }, []))).toBe(
+      'Did you mean "colors"?',
+    );
+    expect(hint(() => createSlide({ zzzz: 1 } as never, []))).toBe(
+      'It takes "document", "section", "theme", "transition", "css".',
+    );
+  });
+
   test("page numbers are the flattened position, and one slide can hide its own", async () => {
     const deck = createSlide({ document: { pageNumber: true } }, [
       createSlide({ pageNumber: false }, () => <p>title</p>),

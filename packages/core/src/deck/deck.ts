@@ -5,6 +5,7 @@ import { validator } from "hono/validator";
 import { contentsAt, outline } from "./contents.ts";
 import { parseCss, type CssInput, type CssSource } from "./css.ts";
 import { HinoteError } from "../errors.ts";
+import { didYouMean } from "../suggest.ts";
 import { isPlainObject } from "../guards.ts";
 import { syncHub } from "./hub.ts";
 import { parseServedPath } from "../client/location.ts";
@@ -122,7 +123,9 @@ function parseDocument(value: unknown): DocumentOptions {
     throw new HinoteError('Deck option "document" must be an object.');
   for (const key of Object.keys(value)) {
     if (!DOCUMENT_KEYS.has(key))
-      throw new HinoteError(`Unknown document option "${key}".`);
+      throw new HinoteError(`Unknown document option "${key}".`, {
+        hint: didYouMean(key, [...DOCUMENT_KEYS]),
+      });
   }
   const options: DocumentOptions = {};
   if (value.title !== undefined) {
@@ -167,7 +170,14 @@ export function parseDeckOptions(
 ): ParsedDeckOptions {
   for (const key of Object.keys(value)) {
     if (!OPTION_KEYS.has(key))
-      throw new HinoteError(`Unknown deck option "${key}".`);
+      throw new HinoteError(`Unknown deck option "${key}".`, {
+        // An option of the document, written beside it, is found there too.
+        hint: didYouMean(
+          key,
+          [...OPTION_KEYS],
+          [...DOCUMENT_KEYS].map((k) => `document.${k}`),
+        ),
+      });
   }
   const options: ParsedDeckOptions = {};
   if (value.document !== undefined)

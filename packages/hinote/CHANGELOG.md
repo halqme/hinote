@@ -4,6 +4,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 ## Unreleased
 
+- An unknown deck, document, or slide option, transition, transition key, theme group, or CLI command is answered with the nearest name in its `hint`, such as `Did you mean "document.aspect"?` for `aspect` beside `document`, or with every name it takes when none is near.
 - Breaking: the options only the top-level deck may set move into `document`: `createSlide({ document: { title, lang, aspect, presenter, pageNumber }, theme, css }, [...])`. `section`, `theme`, `transition`, and `css` stay where they are, and a slide's own `title` and `pageNumber: false` too. The old keys at the top of the deck options are unknown options, and a nested deck that sets `document` is an error (`deck-option`).
 - The `@hinote/*` component packages install the new package `@hinote/shared`, which holds the code they share. A deck does not import it.
 - New package `@hinote/qr`: `<Qr value="https://…">` draws a QR code as inline SVG while the slide renders, in the color of the text around it with nothing under it, and the empty space around it a reader needs. `color` (several make a gradient), `background`, and `finderColor` set its colors; `shape` and `finder` draw the modules and corner squares as squares, rounded squares, or dots; `logo` puts an image in the middle at level H. `size`, `level`, `margin`, and `label` are optional. It needs nothing from Node, so it runs on Cloudflare Workers too.

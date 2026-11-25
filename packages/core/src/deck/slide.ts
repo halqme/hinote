@@ -10,6 +10,7 @@ import {
 } from "./css.ts";
 import { SLIDE_ID } from "../components/link.tsx";
 import { HinoteError } from "../errors.ts";
+import { didYouMean } from "../suggest.ts";
 import { isPlainObject } from "../guards.ts";
 import { parseTransition, type Transition } from "./transition.ts";
 import { cssValue, parseTheme } from "./theme.ts";
@@ -75,7 +76,9 @@ export function parseSlideOptions(
 ): Slide["options"] {
   for (const key of Object.keys(value)) {
     if (!OPTION_KEYS.has(key))
-      throw new HinoteError(`Unknown slide option "${key}".`);
+      throw new HinoteError(`Unknown slide option "${key}".`, {
+        hint: didYouMean(key, [...OPTION_KEYS]),
+      });
   }
   const options: Slide["options"] = {};
   if (value.id !== undefined) {

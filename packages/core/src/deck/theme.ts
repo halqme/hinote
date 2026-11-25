@@ -1,5 +1,6 @@
 import type { Theme } from "@hinote/types";
 import { HinoteError } from "../errors.ts";
+import { didYouMean } from "../suggest.ts";
 import { isPlainObject } from "../guards.ts";
 
 // Group to CSS variable prefix: `colors.bg` is `--hinote-color-bg`.
@@ -116,6 +117,7 @@ export function parseTheme(value: unknown, label = "theme"): Theme {
     if (!isGroup(key))
       throw new HinoteError(
         `${label}.${key} is not a theme group. Use ${GROUP_NAMES.join(", ")}, or radius.`,
+        { hint: didYouMean(key, [...GROUP_NAMES, "radius"]) },
       );
     if (!isPlainObject(group))
       throw new HinoteError(`${label}.${key} must be an object.`);

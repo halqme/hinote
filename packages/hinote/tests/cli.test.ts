@@ -49,6 +49,19 @@ async function run(
   return { stdout, stderr, code };
 }
 
+test("a misspelled command suggests the one meant", async () => {
+  const dir = await tempDir();
+  try {
+    const typo = await run(["biuld"], dir);
+    expect(typo.code).toBe(2);
+    expect(typo.stderr).toContain("Did you mean build?");
+    const far = await run(["zzzzzz"], dir);
+    expect(far.stderr).not.toContain("Did you mean");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("loads a changed deck again instead of the cached module", async () => {
   const dir = await tempDir();
   try {
