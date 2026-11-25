@@ -49,6 +49,8 @@ export function contentsAt(
     name: section.name,
     ...(section.title === undefined ? {} : { title: section.title }),
     ...(section.id === undefined ? {} : { id: section.id }),
+    first: section.start + 1,
+    count: section.end - section.start,
     current: section.start <= index && index < section.end,
     sections: contentsAt(section.sections, index),
   }));

@@ -21,6 +21,8 @@ export type {
 } from "./components/layout.tsx";
 export { Contents } from "./components/contents.tsx";
 export type { ContentsProps } from "./components/contents.tsx";
+export { Progress, SectionBar, SectionDots } from "./components/indicators.tsx";
+export type { IndicatorProps } from "./components/indicators.tsx";
 export { Link } from "./components/link.tsx";
 export type { LinkProps } from "./components/link.tsx";
 export { Table } from "./components/table.tsx";

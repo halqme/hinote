@@ -9,7 +9,7 @@ export type Page = "view" | "presenter" | "static";
 // "server" and "broadcast" sync with the presenter; "reload" only hears that
 // `hinote dev` reloaded the deck. Without one, a page syncs with nothing.
 export type Sync = "server" | "broadcast" | "reload";
-import type { ContentsEntry, Theme } from "@hinote/types";
+import type { SlideContext, Theme } from "@hinote/types";
 import type { Slide } from "./slide.ts";
 import { numberSteps } from "../components/step.tsx";
 import { servedPath, slideHash } from "../client/location.ts";
@@ -42,6 +42,9 @@ import {
 // Flow puts an arrow between boxes; the arrow is ::before content deck CSS can replace.
 // Table widths are a --hinote-column-width variable per <col>; the width rule is here.
 // Contents lists name then title on one line, nested sections indented, the current one in accent.
+// SectionBar, SectionDots, and Progress are small and muted, with the current part in accent.
+// Progress fills to --hinote-progress and marks each section start at --hinote-at.
+// Their lists space items with gap, so the base li+li margin is reset.
 const SLIDE_CSS = `
 *{box-sizing:border-box}
 .slide{display:flex;flex-direction:column;padding:var(--hinote-space-safe);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
@@ -66,11 +69,21 @@ const SLIDE_CSS = `
 .hinote-table tr.is-emphasis{background:var(--hinote-color-surface);font-weight:700}
 .hinote-table tr.is-emphasis>:first-child{box-shadow:inset 4px 0 0 var(--hinote-color-accent)}
 .hinote-contents ol{display:flex;flex-direction:column;gap:calc(var(--hinote-space-unit) * 1.5);margin:0;padding:0;list-style:none}
+.hinote-contents li,.hinote-section-bar li,.hinote-section-dots li{margin:0}
 .hinote-contents ol ol{margin-top:calc(var(--hinote-space-unit) * 1.5);padding-left:calc(var(--hinote-space-unit) * 4);font-size:.85em}
 .hinote-contents-entry{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 calc(var(--hinote-space-unit) * 2);color:inherit;text-decoration:none}
 .hinote-contents-name{font-weight:700}
 .hinote-contents-title{color:var(--hinote-color-muted)}
 .hinote-contents-item.is-current>.hinote-contents-entry .hinote-contents-name{color:var(--hinote-color-accent)}
+.hinote-section-bar ol{display:flex;flex-wrap:wrap;gap:0 calc(var(--hinote-space-unit) * 3);margin:0;padding:0;list-style:none}
+.hinote-section-bar-name{color:var(--hinote-color-muted);text-decoration:none}
+.hinote-section-bar-item.is-current .hinote-section-bar-name{color:var(--hinote-color-accent)}
+.hinote-section-dots{display:flex;flex-wrap:wrap;gap:calc(var(--hinote-space-unit) * .75);margin:0;padding:0;list-style:none}
+.hinote-section-dots li{width:calc(var(--hinote-space-unit) * 1.25);height:calc(var(--hinote-space-unit) * 1.25);border:1px solid var(--hinote-color-muted);border-radius:50%}
+.hinote-section-dots li.is-current{background:var(--hinote-color-accent);border-color:var(--hinote-color-accent)}
+.hinote-progress{position:relative;width:100%;height:calc(var(--hinote-space-unit) * .75);background:var(--hinote-color-border)}
+.hinote-progress-bar{position:absolute;inset:0 auto 0 0;width:calc(var(--hinote-progress) * 100%);background:var(--hinote-color-accent)}
+.hinote-progress-tick{position:absolute;top:0;bottom:0;left:calc(var(--hinote-at) * 100%);width:2px;background:var(--hinote-color-bg)}
 :where(.slide) :is(h1,h2,h3,p){margin:0}
 :where(.slide) h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
 :where(.slide) h2{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}
@@ -403,9 +416,9 @@ export async function renderDeck(input: {
   // Slide ids of the whole deck and their flattened index, for <Link to>.
   // Rendering one slide alone still resolves links to the others.
   targets?: ReadonlyMap<string, number>;
-  // The sections of the whole deck as each slide sees them, so one slide
-  // rendered alone still lists every section.
-  contents: (slide: Slide) => readonly ContentsEntry[];
+  // Where each slide is in the whole deck and the sections as it sees them,
+  // so one slide rendered alone still lists every section.
+  place: (slide: Slide) => Pick<SlideContext, "contents" | "number" | "total">;
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
@@ -441,7 +454,7 @@ ${FRAME_CSS}`;
           await slide.render({
             title: slide.options.title,
             sections: slide.sections ?? [],
-            contents: input.contents(slide),
+            ...input.place(slide),
           }),
         ),
       ),

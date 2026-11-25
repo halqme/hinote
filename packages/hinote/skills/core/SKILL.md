@@ -91,7 +91,7 @@ Components that need a larger dependency, such as a highlighter, live in package
 
 Load one with `hinote skills get core --ref <name>`:
 
-- `api`: every option of `createSlide`, the components (`Row`, `Column`, `Center`, `Grid`, `Card`, `Flow`, `Table`, `Link`, `Contents`, `Step`, `Steps`, `Morph`, `Script`), themes, and CSS.
+- `api`: every option of `createSlide`, the components (`Row`, `Column`, `Center`, `Grid`, `Card`, `Flow`, `Table`, `Link`, `Contents`, `SectionBar`, `SectionDots`, `Progress`, `Step`, `Steps`, `Morph`, `Script`), themes, and CSS.
 - `client`: `<Script>` and the `hinote` browser API, with sync between presenter and audience.
 - `serving`: presenting with `dev`, what `build`, `prerender`, and `snapshot` write, mounting the deck in Bun, Node, or Cloudflare Workers, and the one-step commands.
 - `design`: what makes a slide say something, how hinote supports it, and how to check it.

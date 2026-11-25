@@ -353,7 +353,14 @@ export class Deck extends Hono {
       ...options,
       slides,
       targets: this.#targets(),
-      contents: (slide) => contentsAt(sections, this.slides.indexOf(slide)),
+      place: (slide) => {
+        const index = this.slides.indexOf(slide);
+        return {
+          contents: contentsAt(sections, index),
+          number: index + 1,
+          total: this.slides.length,
+        };
+      },
       theme: this.config.theme,
       title: this.config.document?.title,
       lang: this.config.document?.lang,

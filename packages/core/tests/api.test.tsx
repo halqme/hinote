@@ -9,7 +9,10 @@ import {
   Grid,
   Link,
   Morph,
+  Progress,
   Row,
+  SectionBar,
+  SectionDots,
   Script,
   Step,
   Steps,
@@ -242,6 +245,43 @@ describe("createSlide", () => {
     // The section around it is current too, but it is not the slide's own.
     expect(html).toContain(">Part<");
     expect(html).toContain(">Method<");
+  });
+
+  test("SectionBar, SectionDots, and Progress show where the slide is in the deck", async () => {
+    const indicators = createSlide((slide) => (
+      <div>
+        <SectionBar slide={slide} />
+        <SectionDots slide={slide} />
+        <Progress slide={slide} />
+      </div>
+    ));
+    const deck = createSlide([
+      textSlide("cover"),
+      createSlide({ section: "Method" }, [
+        createSlide({ id: "method" }, () => <p>m</p>),
+        indicators,
+        textSlide("m3"),
+      ]),
+      createSlide({ section: "Results" }, [textSlide("r")]),
+    ]);
+    const third = (await deck.render()).split("<section").slice(1)[2] ?? "";
+    // The bar links the sections and marks the one the slide is in.
+    expect(third).toMatch(
+      /<li class="hinote-section-bar-item is-current" aria-current="true"><a href="\/2" data-hinote-to="method" class="hinote-section-bar-name">Method<\/a><\/li><li class="hinote-section-bar-item"><span class="hinote-section-bar-name">Results<\/span>/,
+    );
+    // Method has three slides, and this is its second.
+    expect(third).toContain('aria-label="Method: slide 2 of 3"');
+    expect(third).toContain('<li></li><li class="is-current"></li><li></li>');
+    // Slide 3 of 5, with ticks where Method (slide 2) and Results (slide 5) start.
+    expect(third).toContain('aria-valuenow="3"');
+    expect(third).toContain("--hinote-progress:0.6");
+    expect(third).toContain("--hinote-at:0.2");
+    expect(third).toContain("--hinote-at:0.8");
+    // Outside every section there are no dots.
+    const first = createSlide([
+      createSlide((slide) => <SectionDots slide={slide} />),
+    ]);
+    expect(await first.render()).not.toContain('hinote-section-dots"');
   });
 
   test("two nested decks with one section next to each other are one entry", async () => {

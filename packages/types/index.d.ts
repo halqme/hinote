@@ -24,6 +24,10 @@ export type SlideContext = {
   sections: readonly string[];
   // The sections of the whole deck, in order, for a table of contents.
   contents: readonly ContentsEntry[];
+  // This slide's place in the whole deck, from 1, as in /3, and how many
+  // slides the deck has.
+  number: number;
+  total: number;
 };
 
 // One section of the deck: a run of slides from a nested deck with a `section`.
@@ -34,6 +38,10 @@ export type ContentsEntry = {
   // so an entry links only when that slide has one.
   title?: string;
   id?: string;
+  // The number of its first slide, as SlideContext.number counts, and how
+  // many slides it has, nested sections included.
+  first: number;
+  count: number;
   // The slide being rendered is in this section.
   current: boolean;
   // Sections of the decks nested inside this one.
