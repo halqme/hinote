@@ -40,7 +40,7 @@ Cloudflare Workers: `main = "deck.tsx"` and `[assets] directory = "./public"` in
 
 Run `hinote assets` again after adding images. Bun, Node with `@hono/node-server`, and `wrangler dev` were checked; Deno and a deployed Worker were not. To reach the deck from farther away, put it behind a tunnel or any host that runs Hono; sync keeps pages in step only when they reach the same process.
 
-`<Script>` with a file URL is bundled only by the hinote CLI; in a server of your own, pass a string `src` to a script you built.
+`<Script>` with a file URL is bundled only by the hinote CLI. In a server of your own, bundle the file with your own bundler and pass its URL as a string `src`; a page that still has a file URL answers 500 with a `script-unbundled` error instead of serving a script that never runs. The scripts packages add, such as the one that animates `@hinote/chart`, come built and run in any server.
 
 ## Presenting with dev
 

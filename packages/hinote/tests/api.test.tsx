@@ -533,6 +533,30 @@ describe("Script", () => {
     }
   });
 
+  // Only the CLI bundles a file; a page that would carry a script that never
+  // runs is refused instead, with how to pass a built one.
+  test("a deck served on its own refuses a page whose <Script> file was never bundled", async () => {
+    const deck = deckOf(
+      createSlide(() => (
+        <Script src={new URL("file:///deck/poll.client.tsx")} />
+      )),
+    );
+    let error: unknown;
+    deck.onError((err, c) => {
+      error = err;
+      return c.text("failed", 500);
+    });
+    expect((await deck.request("/")).status).toBe(500);
+    expect(error).toMatchObject({
+      name: "HinoteError",
+      code: "script-unbundled",
+      hint: expect.stringContaining('<Script src="'),
+    });
+
+    const built = deckOf(createSlide(() => <Script src="/js/poll.js" />));
+    expect((await built.request("/")).status).toBe(200);
+  });
+
   test("a script a package put in several slides runs once, at the end of the page", async () => {
     const packaged =
       '<script type="module" data-hinote-script="pkg">window.n=(window.n||0)+1</script>';

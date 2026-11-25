@@ -89,6 +89,7 @@ export type HinoteClient = {
 // write it without importing hinote:
 // - `<script type="module" data-hinote-src="file:///...">` is bundled and
 //   inlined once per page, after window.hinote exists (what <Script> writes).
+//   Only the CLI bundles it; a deck served without it refuses the page.
 // - `<script type="module" data-hinote-script="name">code</script>` is code a
 //   package built itself. The page keeps the first of each name, at the end
 //   of <body> after window.hinote exists, in any server.

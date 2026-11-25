@@ -195,9 +195,20 @@ export class Deck extends Hono {
       let html = this.#pages.get(key);
       if (!html) {
         const transform = this.transform;
-        html = this.render(kind, { base, sync }).then((rendered) =>
-          transform ? transform(rendered) : rendered,
-        );
+        html = this.render(kind, { base, sync }).then((rendered) => {
+          if (transform) return transform(rendered);
+          // Only the hinote CLI bundles a <Script> file. Served as it is, the
+          // page would carry a script that never runs.
+          if (rendered.includes(" data-hinote-src="))
+            throw new HinoteError(
+              "A slide has <Script src> with a file URL, which only the hinote CLI bundles.",
+              {
+                code: "script-unbundled",
+                hint: 'In a server of your own, bundle the file yourself and pass its URL as a string: <Script src="/scripts/poll.js" />.',
+              },
+            );
+          return rendered;
+        });
         this.#pages.set(key, html);
         html.catch(() => this.#pages.delete(key));
       }
