@@ -20,6 +20,7 @@ import { defaultTheme, mergeTheme } from "../deck/theme.ts";
 import { stringFlag } from "./args.ts";
 import type { Command } from "./command.ts";
 import { stepsIn } from "../components/step.tsx";
+import { transitionName } from "../deck/transition.ts";
 
 export const DECK_ARG = "[deck.tsx]";
 
@@ -165,6 +166,7 @@ export async function describeSlides(deck: Deck): Promise<SlideInfo[]> {
   const rendered = await deck.renderEach("view");
   return deck.slides.map((slide, index) => {
     const result = rendered[index] ?? { error: "not rendered" };
+    const transition = slide.options.transition ?? deck.config.transition;
     const info: SlideInfo = {
       number: index + 1,
       ...(slide.options.id ? { id: slide.options.id } : {}),
@@ -173,7 +175,7 @@ export async function describeSlides(deck: Deck): Promise<SlideInfo[]> {
       notes: slide.options.notes,
       steps: 0,
       class: slide.options.class,
-      transition: slide.options.transition ?? deck.config.transition,
+      transition: transition && transitionName(transition),
       files: [],
     };
     if ("error" in result) {

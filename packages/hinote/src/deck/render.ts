@@ -14,7 +14,7 @@ import type { Theme } from "@hinote/types";
 import type { Slide } from "./slide.ts";
 import { numberSteps } from "../components/step.tsx";
 import { servedPath, slideHash } from "../client/location.ts";
-import type { Transition } from "./transition.ts";
+import { transitionData, type Transition } from "./transition.ts";
 import {
   defaultTheme,
   mergeTheme,
@@ -89,15 +89,37 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--hinote-color-bg)
 .hinote-stage{view-transition-name:hinote-stage}
 ::view-transition-old(root),::view-transition-new(root){animation:none}
 ::view-transition-image-pair(hinote-stage){overflow:clip}
-::view-transition-old(hinote-stage),::view-transition-new(hinote-stage){animation-duration:.35s;animation-timing-function:ease}
+::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation-duration:var(--hinote-transition-duration,.35s);animation-timing-function:var(--hinote-transition-easing,ease)}
+html:is([data-transition="slide"],[data-transition="slide-up"],[data-transition="wipe"])::view-transition-old(hinote-stage),html:is([data-transition="slide"],[data-transition="slide-up"],[data-transition="wipe"])::view-transition-new(hinote-stage){mix-blend-mode:normal}
 html[data-transition="slide"]::view-transition-old(hinote-stage){animation-name:hinote-to-left}
 html[data-transition="slide"]::view-transition-new(hinote-stage){animation-name:hinote-from-right}
 html[data-transition="slide"][data-direction="back"]::view-transition-old(hinote-stage){animation-name:hinote-to-right}
 html[data-transition="slide"][data-direction="back"]::view-transition-new(hinote-stage){animation-name:hinote-from-left}
+html[data-transition="slide-up"]::view-transition-old(hinote-stage){animation-name:hinote-to-top}
+html[data-transition="slide-up"]::view-transition-new(hinote-stage){animation-name:hinote-from-bottom}
+html[data-transition="slide-up"][data-direction="back"]::view-transition-old(hinote-stage){animation-name:hinote-to-bottom}
+html[data-transition="slide-up"][data-direction="back"]::view-transition-new(hinote-stage){animation-name:hinote-from-top}
+html[data-transition="zoom"]::view-transition-old(hinote-stage){animation-name:hinote-zoom-past}
+html[data-transition="zoom"]::view-transition-new(hinote-stage){animation-name:hinote-zoom-near}
+html[data-transition="zoom"][data-direction="back"]::view-transition-old(hinote-stage){animation-name:hinote-zoom-away}
+html[data-transition="zoom"][data-direction="back"]::view-transition-new(hinote-stage){animation-name:hinote-zoom-back}
+html[data-transition="wipe"]::view-transition-old(hinote-stage){animation:none}
+html[data-transition="wipe"]::view-transition-new(hinote-stage){animation-name:hinote-wipe-left}
+html[data-transition="wipe"][data-direction="back"]::view-transition-new(hinote-stage){animation-name:hinote-wipe-right}
 @keyframes hinote-to-left{to{transform:translateX(-100%)}}
 @keyframes hinote-to-right{to{transform:translateX(100%)}}
 @keyframes hinote-from-left{from{transform:translateX(-100%)}}
 @keyframes hinote-from-right{from{transform:translateX(100%)}}
+@keyframes hinote-to-top{to{transform:translateY(-100%)}}
+@keyframes hinote-to-bottom{to{transform:translateY(100%)}}
+@keyframes hinote-from-top{from{transform:translateY(-100%)}}
+@keyframes hinote-from-bottom{from{transform:translateY(100%)}}
+@keyframes hinote-zoom-past{to{transform:scale(1.15);opacity:0}}
+@keyframes hinote-zoom-near{from{transform:scale(.85);opacity:0}}
+@keyframes hinote-zoom-away{to{transform:scale(.85);opacity:0}}
+@keyframes hinote-zoom-back{from{transform:scale(1.15);opacity:0}}
+@keyframes hinote-wipe-left{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0)}}
+@keyframes hinote-wipe-right{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
 #hinote-pointer{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 16px #ff2d2d;pointer-events:none;z-index:10;opacity:0}
 .hinote-thumb{position:relative;overflow:hidden;width:100%;aspect-ratio:var(--hinote-canvas-ratio);background:var(--hinote-color-bg);border-radius:6px}
 .hinote-thumb>.slide{display:revert-layer}
@@ -461,8 +483,7 @@ ${FRAME_CSS}`;
           page === "presenter" ? (slide.options.notes ?? "") : undefined,
         "data-title": page === "presenter" ? slide.options.title : undefined,
         "data-hinote-css": author.scopes[index],
-        "data-transition":
-          slide.options.transition ?? input.transition ?? "none",
+        ...transitionData(slide.options.transition ?? input.transition),
         style: slideStyle(slide),
         dangerouslySetInnerHTML: { __html: html + pageHtml },
       }),

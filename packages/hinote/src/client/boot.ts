@@ -418,7 +418,8 @@ export function boot(): void {
   const show = (position: Position) => {
     const from = shown;
     shown = position.slide;
-    const transition = slides[position.slide]?.dataset.transition ?? "none";
+    const entering = slides[position.slide];
+    const transition = entering?.dataset.transition ?? "none";
     if (
       from === undefined ||
       from === position.slide ||
@@ -431,6 +432,13 @@ export function boot(): void {
     }
     root.dataset.transition = transition;
     root.dataset.direction = position.slide > from ? "forward" : "back";
+    for (const [property, value] of [
+      ["--hinote-transition-duration", entering?.dataset.transitionDuration],
+      ["--hinote-transition-easing", entering?.dataset.transitionEasing],
+    ] as const) {
+      if (value) root.style.setProperty(property, value);
+      else root.style.removeProperty(property);
+    }
     document.startViewTransition(() => apply(position));
   };
 

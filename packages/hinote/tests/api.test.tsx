@@ -323,12 +323,33 @@ describe("transition", () => {
     ]);
   });
 
+  test("a transition with its own timing passes its duration and easing to the slide", async () => {
+    const deck = createSlide(
+      { transition: { name: "zoom", duration: 600, easing: "ease-out" } },
+      [textSlide("x")],
+    );
+    const html = await deck.render();
+    expect(html).toMatch(
+      /<section[^>]*data-transition="zoom" data-transition-duration="600ms" data-transition-easing="ease-out"/,
+    );
+  });
+
+  test.each([
+    { name: "spin" },
+    { name: "fade", duration: -1 },
+    { name: "fade", easing: "ease;color:red" },
+    { name: "fade", speed: 2 },
+  ])("rejects the transition %j", (transition) => {
+    const call = createSlide as (first?: unknown, second?: unknown) => unknown;
+    expect(() => call({ transition }, () => <p>x</p>)).toThrow(HinoteError);
+  });
+
   test("rejects unknown transitions", () => {
     const call = createSlide as (first?: unknown, second?: unknown) => unknown;
-    expect(() => call({ transition: "zoom" }, [textSlide("x")])).toThrow(
+    expect(() => call({ transition: "spin" }, [textSlide("x")])).toThrow(
       HinoteError,
     );
-    expect(() => call({ transition: "zoom" }, () => <p>x</p>)).toThrow(
+    expect(() => call({ transition: "spin" }, () => <p>x</p>)).toThrow(
       HinoteError,
     );
   });

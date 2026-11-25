@@ -13,17 +13,17 @@ Everything comes from `import { ... } from "hinote"`. Components that need a lar
 
 Slide options:
 
-| Option       | Type                              | Meaning                                                                                                           |
-| ------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `id`         | string                            | A name `<Link to>` points at: letters, digits, `_`, `-`; unique in the deck                                       |
-| `title`      | string                            | Its title, shown in the presenter's overview. The first slide title becomes the page title when the deck has none |
-| `notes`      | string                            | Speaker notes, shown only in the presenter view; a Markdown subset, see below                                     |
-| `background` | string                            | CSS background of the slide                                                                                       |
-| `class`      | string                            | Class on the slide's `<section>`                                                                                  |
-| `theme`      | Theme                             | Tokens for this slide only                                                                                        |
-| `transition` | `"none"` \| `"fade"` \| `"slide"` | How it enters                                                                                                     |
-| `css`        | string \| URL \| array            | CSS for this slide only                                                                                           |
-| `pageNumber` | boolean                           | `false` hides the deck's page number on this slide                                                                |
+| Option       | Type                                 | Meaning                                                                                                           |
+| ------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `id`         | string                               | A name `<Link to>` points at: letters, digits, `_`, `-`; unique in the deck                                       |
+| `title`      | string                               | Its title, shown in the presenter's overview. The first slide title becomes the page title when the deck has none |
+| `notes`      | string                               | Speaker notes, shown only in the presenter view; a Markdown subset, see below                                     |
+| `background` | string                               | CSS background of the slide                                                                                       |
+| `class`      | string                               | Class on the slide's `<section>`                                                                                  |
+| `theme`      | Theme                                | Tokens for this slide only                                                                                        |
+| `transition` | name \| `{ name, duration, easing }` | How it enters; see Transitions below                                                                              |
+| `css`        | string \| URL \| array               | CSS for this slide only                                                                                           |
+| `pageNumber` | boolean                              | `false` hides the deck's page number on this slide                                                                |
 
 The render function receives `{ title, sections }`: its own `title`, and the `section` of each deck around it, outermost first. A shared heading can read them instead of repeating the title in the options and the body:
 
@@ -38,6 +38,10 @@ const results = createSlide({ title: "結果" }, (slide) => (
 ));
 export default createSlide({ section: "実験1-1" }, [results]);
 ```
+
+### Transitions
+
+`transition` is one of `"none"` (default), `"fade"`, `"slide"` (the next slide pushes in from the right), `"slide-up"` (from below), `"zoom"` (the old slide grows and fades past, the next one grows into place), or `"wipe"` (the next slide is revealed from the right edge over the old one). Going back runs a transition the other way. `{ name: "zoom", duration: 600, easing: "ease-out" }` sets its own timing: `duration` in milliseconds (0.35 s by default) and `easing` a CSS easing function (`ease` by default). The slide entering decides, so a slide's own transition wins over the deck's. Transitions use the View Transitions API; a browser without it, and a reader who prefers reduced motion, gets an instant change.
 
 Notes are plain text with a small part of Markdown: `#` headings, `-` / `*` / `+` and `1.` lists, blank lines between paragraphs, and `**strong**`, `*em*`, and `` `code` `` inside a line. Notes without any of that look as before, line breaks included. HTML in a note is shown as text and never runs. `inspect --json` returns the note string as written.
 
