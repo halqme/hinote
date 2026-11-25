@@ -1,4 +1,4 @@
-import { Morph, Step, createSlide } from "hinote";
+import { Card, Grid, Morph, Step, createSlide } from "hinote";
 import { Chart, bars } from "@hinote/chart";
 import { Code } from "@hinote/code";
 import { D2 } from "@hinote/d2";
@@ -31,8 +31,8 @@ const theme = {
 // The wordmark: across the cover, small in the running head of the next
 // slide, and across the last page again. One <Morph> name carries it.
 const Brand = () => (
-  <Morph name="brand" class="brand">
-    hinote
+  <Morph name="brand">
+    <div class="brand">hinote</div>
   </Morph>
 );
 
@@ -60,11 +60,13 @@ const Page = (props: {
   <div class="page">
     <Head no={props.no} section={props.section} brand={props.brand} />
     <div class={props.wide ? "spread is-wide" : "spread"}>
+      {/* The figure comes first in the HTML, so its steps are numbered
+          before a step in the standfirst that comments on them. */}
+      <figure class="figure">{props.children}</figure>
       <div class="text">
         {props.headline}
         {props.standfirst}
       </div>
-      <figure class="figure">{props.children}</figure>
     </div>
   </div>
 );
@@ -308,7 +310,9 @@ const math = createSlide(
 );
 
 // Two slides with the same three cards and headline: on the second, one card
-// grows and the others step aside.
+// grows and the others step aside. hinote's Grid lines up the cards' rows
+// (number, heading, text), and a <Morph> around each card carries it to the
+// next slide.
 const cards = [
   { name: "write", no: "i", head: "Write", body: "deck.tsx in your editor" },
   {
@@ -325,14 +329,6 @@ const cards = [
   },
 ];
 
-const Card = (props: { card: (typeof cards)[number]; big?: boolean }) => (
-  <Morph name={props.card.name} class={props.big ? "card is-big" : "card"}>
-    <span class="card-no">{props.card.no}</span>
-    <h3>{props.card.head}</h3>
-    <p>{props.card.body}</p>
-  </Morph>
-);
-
 const morphAll = createSlide(
   {
     title: "What stays on screen moves instead of cutting",
@@ -344,19 +340,29 @@ const morphAll = createSlide(
       section="Morph"
       wide
       headline={
-        <Morph name="morph-title" as="h2" class="morph-title">
-          What stays on screen <em>moves</em> instead of cutting
+        <Morph name="morph-title">
+          <h2 class="morph-title">
+            What stays on screen <em>moves</em> instead of cutting
+          </h2>
         </Morph>
       }
     >
-      <div class="cards">
+      <Grid columns={3} gap={3} class="cards">
         {cards.map((card) => (
-          <Card card={card} />
+          <Morph name={card.name}>
+            <Card class="card">
+              <span class="card-no">{card.no}</span>
+              <h3>{card.head}</h3>
+              <p>{card.body}</p>
+            </Card>
+          </Morph>
         ))}
-      </div>
+      </Grid>
     </Page>
   ),
 );
+
+const [write, present, share] = cards;
 
 const morphOne = createSlide(
   {
@@ -370,18 +376,32 @@ const morphOne = createSlide(
       section="Morph"
       wide
       headline={
-        <Morph name="morph-title" as="h2" class="morph-title is-small">
-          What stays on screen <em>moves</em> instead of cutting
+        <Morph name="morph-title">
+          <h2 class="morph-title is-small">
+            What stays on screen <em>moves</em> instead of cutting
+          </h2>
         </Morph>
       }
     >
-      <div class="cards is-focus">
-        <Card card={cards[1]} big />
+      <Grid columns={3} gap={3} class="cards is-focus">
+        <Morph name={present.name}>
+          <Card span={2} class="card is-big">
+            <span class="card-no">{present.no}</span>
+            <h3>{present.head}</h3>
+            <p>{present.body}</p>
+          </Card>
+        </Morph>
         <div class="cards-side">
-          <Card card={cards[0]} />
-          <Card card={cards[2]} />
+          {[write, share].map((card) => (
+            <Morph name={card.name}>
+              <Card class="card">
+                <span class="card-no">{card.no}</span>
+                <h3>{card.head}</h3>
+              </Card>
+            </Morph>
+          ))}
         </div>
-      </div>
+      </Grid>
     </Page>
   ),
 );

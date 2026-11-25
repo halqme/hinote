@@ -146,7 +146,7 @@ strong {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 640px 1fr;
+  grid-template-columns: 640px minmax(0, 1fr);
   gap: calc(var(--hinote-space-unit) * 10);
   align-items: center;
 }
@@ -159,6 +159,7 @@ strong {
 }
 
 .text {
+  order: -1;
   display: flex;
   flex-direction: column;
   gap: calc(var(--hinote-space-unit) * 4);
@@ -217,33 +218,27 @@ strong {
   font-size: var(--hinote-text-h3);
 }
 
+/* The cards are hinote's Grid and Card: the Grid lines up their rows. This
+   only sets the look and pushes the heading and text to the bottom. */
 .cards {
   align-self: stretch;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: calc(var(--hinote-space-unit) * 3);
-}
-
-.cards.is-focus {
-  grid-template-columns: 2fr 1fr;
-  flex: 1;
-}
-
-.cards-side {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: calc(var(--hinote-space-unit) * 3);
+  grid-template-rows: 1fr auto auto;
 }
 
 .card {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: calc(var(--hinote-space-unit) * 1.5);
-  min-height: 340px;
-  padding: calc(var(--hinote-space-unit) * 5);
-  border: 1px solid var(--hinote-color-border);
-  background: var(--hinote-color-surface);
+  border-radius: 0;
+}
+
+.card .hinote-card-cell {
+  padding: calc(var(--hinote-space-unit) * 1) calc(var(--hinote-space-unit) * 5);
+}
+
+.card .hinote-card-cell:first-child {
+  padding-top: calc(var(--hinote-space-unit) * 5);
+}
+
+.card .hinote-card-cell:last-child {
+  padding-bottom: calc(var(--hinote-space-unit) * 5);
 }
 
 .card h3 {
@@ -255,11 +250,14 @@ strong {
 }
 
 .card-no {
-  margin-bottom: auto;
   font-family: var(--hinote-font-heading);
   font-style: italic;
   font-size: var(--hinote-text-h3);
   color: var(--hinote-color-accent);
+}
+
+.cards.is-focus {
+  flex: 1;
 }
 
 .card.is-big {
@@ -270,12 +268,18 @@ strong {
   font-size: 11rem;
 }
 
-.cards-side .card {
-  min-height: 0;
+/* The two small cards share the third column, stacked. */
+.cards-side {
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: calc(var(--hinote-space-unit) * 3);
 }
 
-.cards-side .card p {
-  display: none;
+/* Each takes one of the two rows here, not the rows of the Grid around it. */
+.cards-side .card {
+  grid-row: auto;
+  grid-template-rows: 1fr auto;
 }
 
 /* ---------- Step effects ---------- */
@@ -283,7 +287,9 @@ strong {
 .effects {
   align-self: stretch;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, …): a word wider than its column, as with a fallback font,
+     does not push the cards off the slide. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: calc(var(--hinote-space-unit) * 3);
 }
 
@@ -291,7 +297,8 @@ strong {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  aspect-ratio: 3 / 4;
+  min-width: 0;
+  height: 420px;
   padding: calc(var(--hinote-space-unit) * 4);
   border: 1px solid var(--hinote-color-border);
   background: var(--hinote-color-surface);
@@ -300,7 +307,7 @@ strong {
 .effect-name {
   font-family: var(--hinote-font-heading);
   font-style: italic;
-  font-size: var(--hinote-text-h1);
+  font-size: var(--hinote-text-h2);
   line-height: 1;
   color: var(--hinote-color-accent);
 }
