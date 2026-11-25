@@ -59,7 +59,7 @@ export async function measureSlide(
     : { problems: [], warnings: [] };
 }
 
-// Built as a string so agent-browser, puppeteer, and CDP each run the same code.
+// Built as a string, which CDP evaluates in the page.
 function measureExpression(index: number): string {
   return `(() => {
     const SLOP = ${SLOP};

@@ -4,6 +4,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 ## Unreleased
 
+- Breaking: `hinote snapshot` drives Chromium over the Chrome DevTools Protocol only, and `--browser` and `HINOTE_CHROME_FOR_TESTING` are gone. It uses Google Chrome, Chromium, or Edge, else the newest build Playwright (Vitest's browser mode included), Puppeteer, or agent-browser downloaded, chrome-headless-shell included; `HINOTE_CHROME` names the binary. agent-browser and the puppeteer package are no longer drivers, and `data.browser` in the JSON is the binary's path.
 - New package `@hinote/core`: the library alone, without the CLI. A server or an app that serves a deck itself can depend on it and build with its own bundler, or with none; it does not install Rolldown. `hinote` depends on it and re-exports it, so a deck still imports from `hinote` and `hinote/client`.
 - `<Chart>` animates in a server of your own too: `@hinote/chart` ships its page code already bundled and puts it in the page, instead of leaving it for the CLI to bundle. A package can do the same with `<script type="module" data-hinote-script="name">`, which the page keeps once, at its end.
 - A deck served without the CLI answers 500 with `script-unbundled` when a slide has `<Script>` with a file URL, which only the CLI bundles, instead of serving a script that never runs. Pass the URL of a script you built as a string `src`.

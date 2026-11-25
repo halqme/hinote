@@ -1,11 +1,9 @@
-// Launches one browser so a command can open pages, photograph them, and
-// measure layout. `hinote snapshot` uses this for both the PNGs and the
-// overflow / clipped / safe-area report.
-//
-// `--browser auto` tries these in order and uses the first that can launch:
-// agent-browser, puppeteer, Chrome (or Chromium or Edge), Chrome for Testing.
+// Launches one Chromium and drives it over the Chrome DevTools Protocol, so
+// a command can open pages, photograph them, and measure layout. `hinote
+// snapshot` uses this for both the PNGs and the overflow / clipped /
+// safe-area report. CDP is all hinote speaks: any browser that answers it
+// can take the pictures.
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { createRequire } from "node:module";
 import {
   existsSync,
   mkdtempSync,
@@ -19,15 +17,6 @@ import { basename, join } from "node:path";
 import { type Canvas, isPlainObject } from "@hinote/core/internal";
 import { HinoteError } from "../errors.ts";
 
-export const BROWSER_NAMES = [
-  "agent-browser",
-  "puppeteer",
-  "chrome",
-  "chrome-for-testing",
-] as const;
-
-export type BrowserName = (typeof BROWSER_NAMES)[number];
-
 export type CapturePage = {
   goto(url: string): Promise<void>;
   // The expression runs in the page. A promise result is the value it fulfills
@@ -37,179 +26,96 @@ export type CapturePage = {
   screenshot(file: string, selector: string): Promise<void>;
 };
 
-type UsePage<T> = (page: CapturePage, browser: BrowserName) => Promise<T>;
-
 // How long a browser gets to start, answer, or load a page.
 export const READY_MS = 15_000;
 
-const require = createRequire(import.meta.url);
+// Where hinote looks for a Chromium, in order; the first one found is used.
+// `file` is a binary at that path, `command` a name on PATH, and `cache` a
+// directory a tool downloads Chromium builds into, where the newest build
+// wins. To look somewhere else, add a line.
+export type Place = { file: string } | { command: string } | { cache: string };
 
-export function isBrowserName(value: string): value is BrowserName {
-  return (BROWSER_NAMES as readonly string[]).includes(value);
-}
+const home = (path: string) => join(homedir(), path);
 
-// Pure so a test can say which browser auto picks without launching one.
-export function chooseBrowser(
-  requested: BrowserName | "auto",
-  available: readonly BrowserName[],
-): BrowserName {
-  if (requested === "auto") {
-    const found = BROWSER_NAMES.find((name) => available.includes(name));
-    if (!found) throw noneAvailable();
-    return found;
+export const PLACES: readonly Place[] = [
+  { file: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" },
+  { file: home("Applications/Google Chrome.app/Contents/MacOS/Google Chrome") },
+  { file: "/Applications/Chromium.app/Contents/MacOS/Chromium" },
+  { file: "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" },
+  { file: "/usr/bin/google-chrome" },
+  { file: "/usr/bin/google-chrome-stable" },
+  { file: "/usr/bin/chromium" },
+  { file: "/usr/bin/chromium-browser" },
+  { file: "/usr/bin/microsoft-edge" },
+  { command: "google-chrome" },
+  { command: "google-chrome-stable" },
+  { command: "chromium" },
+  { command: "chromium-browser" },
+  { command: "microsoft-edge" },
+  {
+    file: "/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+  },
+  {
+    file: home(
+      "Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    ),
+  },
+  // Playwright, and Vitest's browser mode through it.
+  { cache: home("Library/Caches/ms-playwright") },
+  { cache: home(".cache/ms-playwright") },
+  { cache: home("Library/Caches/puppeteer") },
+  { cache: home(".cache/puppeteer") },
+  { cache: home(".agent-browser/browsers") },
+  { cache: home("Library/Caches/Google/Chrome for Testing") },
+];
+
+// The Chromium binaries a cache holds, by file name. The helper apps inside a
+// macOS bundle have other names.
+const BINARIES = new Set([
+  "Google Chrome for Testing",
+  "Chromium",
+  "chrome",
+  "chrome.exe",
+  "chrome-headless-shell",
+  "chrome-headless-shell.exe",
+]);
+
+// HINOTE_CHROME, when set, is the binary; otherwise the first of `places`.
+export function findBrowser(
+  places: readonly Place[] = PLACES,
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  if (env.HINOTE_CHROME) return env.HINOTE_CHROME;
+  for (const place of places) {
+    const found =
+      "file" in place
+        ? existsSync(place.file)
+          ? place.file
+          : undefined
+        : "command" in place
+          ? hasCommand(place.command)
+            ? place.command
+            : undefined
+          : newestIn(place.cache);
+    if (found) return found;
   }
-  if (!available.includes(requested)) throw browserMissing(requested);
-  return requested;
+  return undefined;
 }
 
-export function hasCommand(command: string): boolean {
+function hasCommand(command: string): boolean {
   const which = process.platform === "win32" ? "where" : "which";
   return spawnSync(which, [command], { stdio: "ignore" }).status === 0;
 }
 
-export function findChrome(): string | undefined {
-  return (
-    fileFromEnv("HINOTE_CHROME") ??
-    firstExisting(CHROME_CANDIDATES) ??
-    firstOnPath([
-      "google-chrome",
-      "google-chrome-stable",
-      "chromium",
-      "chromium-browser",
-      "microsoft-edge",
-    ])
-  );
-}
-
-export function findChromeForTesting(): string | undefined {
-  return fileFromEnv("HINOTE_CHROME_FOR_TESTING") ?? walkForTesting();
-}
-
-const INSTALLED: Record<BrowserName, () => boolean> = {
-  "agent-browser": () => hasCommand("agent-browser"),
-  puppeteer: () => hasPackage("puppeteer"),
-  chrome: () => findChrome() !== undefined,
-  "chrome-for-testing": () => findChromeForTesting() !== undefined,
-};
-
-export function installedBrowsers(
-  names: readonly BrowserName[] = BROWSER_NAMES,
-): BrowserName[] {
-  return names.filter((name) => INSTALLED[name]());
-}
-
-export async function withBrowser<T>(
-  requested: BrowserName | "auto",
-  viewport: Canvas,
-  use: UsePage<T>,
-): Promise<T> {
-  // A named browser is the only one worth looking for.
-  const available = installedBrowsers(
-    requested === "auto" ? BROWSER_NAMES : [requested],
-  );
-  const name = chooseBrowser(requested, available);
-  if (name === "agent-browser") return withAgentBrowser(viewport, use);
-  if (name === "puppeteer") return withPuppeteer(viewport, use);
-  const binary = name === "chrome" ? findChrome() : findChromeForTesting();
-  if (!binary) throw browserMissing(name);
-  return withChrome(name, binary, viewport, use);
-}
-
-function noneAvailable(): HinoteError {
-  return new HinoteError("No browser is available to take the pictures.", {
-    code: "browser",
-    hint: "Install one of agent-browser, puppeteer, Google Chrome, or Chrome for Testing, or pass --browser <name>.",
-  });
-}
-
-function browserMissing(name: BrowserName): HinoteError {
-  const env =
-    name === "chrome"
-      ? "HINOTE_CHROME"
-      : name === "chrome-for-testing"
-        ? "HINOTE_CHROME_FOR_TESTING"
-        : undefined;
-  const given = env ? process.env[env] : undefined;
-  if (given && !existsSync(given))
-    return new HinoteError(`${env} is not a file: ${given}`, {
-      code: "browser",
-    });
-  const hint: Record<BrowserName, string> = {
-    "agent-browser": "Install it with: npm install -g agent-browser",
-    puppeteer: "Install it in this project with: npm install -D puppeteer",
-    chrome:
-      "Install Google Chrome, Chromium, or Edge, or set HINOTE_CHROME to the binary.",
-    "chrome-for-testing":
-      "Install Chrome for Testing, or set HINOTE_CHROME_FOR_TESTING to the binary.",
-  };
-  return new HinoteError(`No ${name} browser is available.`, {
-    code: "browser",
-    hint: hint[name],
-  });
-}
-
-function hasPackage(name: string): boolean {
-  try {
-    require.resolve(name);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function fileFromEnv(name: string): string | undefined {
-  const value = process.env[name];
-  return value && existsSync(value) ? value : undefined;
-}
-
-function firstExisting(paths: readonly string[]): string | undefined {
-  return paths.find((path) => existsSync(path));
-}
-
-function firstOnPath(commands: readonly string[]): string | undefined {
-  for (const command of commands) if (hasCommand(command)) return command;
-  return undefined;
-}
-
-const CHROME_CANDIDATES = [
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  "/Applications/Chromium.app/Contents/MacOS/Chromium",
-  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-  join(
-    homedir(),
-    "Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  ),
-  "/usr/bin/google-chrome",
-  "/usr/bin/google-chrome-stable",
-  "/usr/bin/chromium",
-  "/usr/bin/chromium-browser",
-  "/usr/bin/microsoft-edge",
-];
-
-const TESTING_CANDIDATES = [
-  "/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
-  join(
-    homedir(),
-    "Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
-  ),
-];
-
-const TESTING_ROOTS = [
-  join(homedir(), "Library/Caches/ms-playwright"),
-  join(homedir(), ".cache/ms-playwright"),
-  join(homedir(), "Library/Caches/puppeteer"),
-  join(homedir(), ".cache/puppeteer"),
-  join(homedir(), "Library/Caches/Google/Chrome for Testing"),
-];
-
-// Playwright and Puppeteer drop the binary several directories down, under a
-// versioned cache. Skip the framework copies inside the .app bundle.
-function walkForTesting(): string | undefined {
+// Caches keep each build under a versioned directory, several levels down.
+// Paths sort by that version, numbers as numbers, so the last one is the
+// newest build.
+function newestIn(cache: string): string | undefined {
   const found: string[] = [];
-  for (const path of TESTING_CANDIDATES) if (existsSync(path)) found.push(path);
-  for (const root of TESTING_ROOTS) walk(root, 0, found);
-  found.sort((a, b) => a.localeCompare(b));
-  return found.at(-1);
+  walk(cache, 0, found);
+  return found
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .at(-1);
 }
 
 function walk(dir: string, depth: number, found: string[]): void {
@@ -226,20 +132,29 @@ function walk(dir: string, depth: number, found: string[]): void {
     if (entry.isDirectory()) {
       if (entry.name === "Frameworks" || entry.name === "Resources") continue;
       walk(path, depth + 1, found);
-      continue;
-    }
-    if (isTestingBinary(path)) found.push(path);
+    } else if (BINARIES.has(basename(path))) found.push(path);
   }
 }
 
-function isTestingBinary(file: string): boolean {
-  if (file.includes("Helper")) return false;
-  const name = basename(file);
-  if (name === "Google Chrome for Testing") return true;
-  return (
-    (name === "chrome" || name === "chrome.exe") &&
-    /chrome|chromium/i.test(file)
-  );
+export async function withBrowser<T>(
+  viewport: Canvas,
+  use: (page: CapturePage, browser: string) => Promise<T>,
+): Promise<T> {
+  const given = process.env.HINOTE_CHROME;
+  if (given && !existsSync(given))
+    throw new HinoteError(`HINOTE_CHROME is not a file: ${given}`, {
+      code: "browser",
+    });
+  const binary = findBrowser();
+  if (!binary) throw noneAvailable();
+  return withChrome(binary, viewport, (page) => use(page, binary));
+}
+
+function noneAvailable(): HinoteError {
+  return new HinoteError("No browser is available to take the pictures.", {
+    code: "browser",
+    hint: "Install Google Chrome, Chromium, or Edge, or download Chromium with a tool hinote looks in (npx playwright install chromium), or set HINOTE_CHROME to a Chromium binary.",
+  });
 }
 
 // Asks `ready` every 50 ms until it says yes, for up to READY_MS.
@@ -253,181 +168,6 @@ export async function poll(
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   throw await timedOut();
-}
-
-function spawnCommand(
-  command: string,
-  args: string[],
-  env?: Record<string, string>,
-): Promise<{ code: number | null; stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      env: env ? { ...process.env, ...env } : process.env,
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (chunk: string) => {
-      stdout += chunk;
-    });
-    child.stderr?.on("data", (chunk: string) => {
-      stderr += chunk;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => resolve({ code, stdout, stderr }));
-  });
-}
-
-async function withAgentBrowser<T>(
-  viewport: Canvas,
-  runPage: UsePage<T>,
-): Promise<T> {
-  // A named session so a browser the person already has open is left alone.
-  const session = `hinote-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
-  const agent = async (args: string[]): Promise<string> => {
-    const result = await spawnCommand(
-      "agent-browser",
-      ["--session", session, "--json", ...args],
-      { AGENT_BROWSER_DEFAULT_TIMEOUT: String(READY_MS) },
-    );
-    if (result.code !== 0)
-      throw new HinoteError(`agent-browser ${args[0] ?? ""} failed.`, {
-        code: "browser",
-        hint: (result.stderr || result.stdout).trim().slice(0, 500),
-      });
-    return result.stdout;
-  };
-  const page: CapturePage = {
-    async goto(url) {
-      await agent(["open", url]);
-      await agent(["wait", "--load", "load"]);
-    },
-    async evaluate(expression) {
-      return agentValue(await agent(["eval", expression]));
-    },
-    async screenshot(file, selector) {
-      await agent(["screenshot", selector, file]);
-    },
-  };
-  try {
-    await agent([
-      "set",
-      "viewport",
-      String(viewport.width),
-      String(viewport.height),
-      "1",
-    ]);
-    return await runPage(page, "agent-browser");
-  } finally {
-    await agent(["close"]).catch(() => {});
-  }
-}
-
-// agent-browser --json wraps the value. The shape has varied by command, so
-// accept the envelopes it has used and fall back to the text.
-function agentValue(stdout: string): unknown {
-  const text = stdout.trim();
-  if (!text) return undefined;
-  try {
-    const parsed: unknown = JSON.parse(text);
-    if (isPlainObject(parsed)) {
-      if (isPlainObject(parsed.data) && "result" in parsed.data)
-        return parsed.data.result;
-      if ("result" in parsed) return parsed.result;
-    }
-    return parsed;
-  } catch {
-    return text;
-  }
-}
-
-type PuppeteerPage = {
-  goto(
-    url: string,
-    options: { waitUntil: "load"; timeout: number },
-  ): Promise<unknown>;
-  evaluate(
-    pageFunction: (code: string) => unknown,
-    code: string,
-  ): Promise<unknown>;
-  $(selector: string): Promise<{
-    screenshot(options: { path: string }): Promise<unknown>;
-  } | null>;
-  close(): Promise<void>;
-};
-
-type Puppeteer = { launch(options: object): Promise<PuppeteerBrowser> };
-
-function isPuppeteer(value: unknown): value is Puppeteer {
-  return isPlainObject(value) && typeof value.launch === "function";
-}
-
-type PuppeteerBrowser = {
-  newPage(): Promise<PuppeteerPage>;
-  close(): Promise<void>;
-};
-
-async function withPuppeteer<T>(
-  viewport: Canvas,
-  runPage: UsePage<T>,
-): Promise<T> {
-  // Through a variable, so a bundler leaves the optional package alone.
-  const name = "puppeteer";
-  let loaded: unknown;
-  try {
-    loaded = await import(name);
-  } catch {
-    throw browserMissing("puppeteer");
-  }
-  const puppeteer = [
-    isPlainObject(loaded) ? loaded.default : undefined,
-    loaded,
-  ].find(isPuppeteer);
-  if (!puppeteer) throw browserMissing("puppeteer");
-  const browser = await puppeteer.launch({
-    headless: true,
-    defaultViewport: {
-      width: viewport.width,
-      height: viewport.height,
-      deviceScaleFactor: 1,
-    },
-    args: [
-      "--hide-scrollbars",
-      "--force-device-scale-factor=1",
-      ...chromeExtraArgs(),
-    ],
-  });
-  try {
-    const opened = await browser.newPage();
-    const page: CapturePage = {
-      goto(url) {
-        return opened
-          .goto(url, { waitUntil: "load", timeout: READY_MS })
-          .then(() => {});
-      },
-      // A string is the source of an expression, not a function. puppeteer
-      // would otherwise treat it as the body of one.
-      evaluate(expression) {
-        return opened.evaluate(
-          // oxlint-disable-next-line no-eval -- hinote's own page script, not input
-          (code: string): unknown => (0, eval)(code),
-          expression,
-        );
-      },
-      async screenshot(file, selector) {
-        const handle = await opened.$(selector);
-        if (!handle)
-          throw new HinoteError(`The page has no ${selector}.`, {
-            code: "browser",
-          });
-        await handle.screenshot({ path: file });
-      },
-    };
-    return await runPage(page, "puppeteer");
-  } finally {
-    await browser.close();
-  }
 }
 
 // What a CDP method returns. Each caller checks the fields it reads.
@@ -503,10 +243,9 @@ class Cdp {
 }
 
 async function withChrome<T>(
-  name: BrowserName,
   binary: string,
   viewport: Canvas,
-  runPage: UsePage<T>,
+  runPage: (page: CapturePage) => Promise<T>,
 ): Promise<T> {
   const dir = mkdtempSync(join(tmpdir(), "hinote-chrome-"));
   const child = spawn(
@@ -554,7 +293,7 @@ async function withChrome<T>(
         await stderr.tail(),
       );
     cdp = await Cdp.connect(url);
-    return await runPage(await chromePage(cdp, viewport), name);
+    return await runPage(await chromePage(cdp, viewport));
   } finally {
     cdp?.close();
     killProcess(child);
@@ -686,8 +425,8 @@ function killProcess(child: ChildProcess): void {
   child.kill("SIGKILL");
 }
 
-// Shared by the chrome and puppeteer paths so root/container and odd Chromium
-// builds get the same flags without a CLI option.
+// Flags from the environment, so root/container and odd Chromium builds get
+// what they need without a CLI option.
 export function chromeExtraArgs(
   env: NodeJS.ProcessEnv = process.env,
   uid: number | null = typeof process.getuid === "function"

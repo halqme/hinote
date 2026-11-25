@@ -5,7 +5,6 @@ import { watch } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { dirname, relative, resolve, sep } from "node:path";
 import { copyAssets, embedAssets } from "../build/assets.ts";
-import { isBrowserName } from "../snapshot/browser.ts";
 import type { Deck } from "@hinote/core/internal";
 import { HinoteError, isHinoteError, UsageError } from "../errors.ts";
 import { COMMANDS, diffProject, initProject, packageManager } from "./init.ts";
@@ -401,16 +400,9 @@ export const snapshot: Command = {
 
 --slides 2,5,8 photographs and measures only those slides. Pictures keep the slide's number (shots/5.png), and the report covers only those slides. A number the deck does not have is a usage error.
 
---browser chooses who takes them: agent-browser, puppeteer, chrome, or chrome-for-testing. auto, the default, uses the first of those that is installed. puppeteer means the puppeteer package in this project, which downloads its own browser. chrome is Google Chrome, Chromium, or Edge (or HINOTE_CHROME). chrome-for-testing is Chrome for Testing (or HINOTE_CHROME_FOR_TESTING). As root, chrome and puppeteer add --no-sandbox. Extra Chromium flags go in HINOTE_CHROME_FLAGS; a start failure puts Chrome's stderr tail in the error hint.`,
+The pictures are taken by a Chromium hinote drives over the Chrome DevTools Protocol: Google Chrome, Chromium, or Edge where they are installed, else the newest build Playwright (and Vitest's browser mode), Puppeteer, or agent-browser downloaded. HINOTE_CHROME names the binary instead. As root, hinote adds --no-sandbox. Extra Chromium flags go in HINOTE_CHROME_FLAGS; a start failure puts Chrome's stderr tail in the error hint.`,
   flags: {
     output: OUTPUT_FLAG("The directory to write the PNGs into.", "shots"),
-    browser: {
-      type: "string",
-      value: "name",
-      default: "auto",
-      description:
-        "Which browser takes the pictures: auto, agent-browser, puppeteer, chrome, or chrome-for-testing. auto uses the first one installed, in that order.",
-    },
     slides: {
       type: "string",
       value: "n,n,...",
@@ -422,21 +414,15 @@ export const snapshot: Command = {
   examples: [
     "hinote snapshot",
     "hinote snapshot --slides 2,5,8",
-    "hinote snapshot --browser chrome -o shots",
+    "hinote snapshot -o shots",
     "hinote snapshot --json",
   ],
   async run(args, out) {
-    const requested = stringFlag(args, "browser") ?? "auto";
-    if (requested !== "auto" && !isBrowserName(requested))
-      throw new UsageError(
-        `--browser ${requested} is not a browser hinote knows.`,
-        "Use auto, agent-browser, puppeteer, chrome, or chrome-for-testing.",
-      );
     const slides = stringFlag(args, "slides");
     const only = slides === undefined ? undefined : slideNumbers(slides);
     const deckFile = deckPath(args.positionals[0]);
     const outDir = resolve(stringFlag(args, "output") ?? "shots");
-    const shot = await takeSnapshots(deckFile, outDir, requested, only);
+    const shot = await takeSnapshots(deckFile, outDir, only);
     const ok = shot.problems.length === 0;
     const lines = [
       ...shot.files,

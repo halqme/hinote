@@ -6,18 +6,9 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { expect, test } from "bun:test";
 import { Card, Flow, Grid, Row, Table, createSlide } from "@hinote/core";
-import {
-  findChrome,
-  findChromeForTesting,
-  hasCommand,
-  withBrowser,
-} from "../src/snapshot/browser.ts";
+import { findBrowser, withBrowser } from "../src/snapshot/browser.ts";
 
-const browser =
-  (hasCommand("agent-browser") && "agent-browser") ||
-  (findChromeForTesting() && "chrome-for-testing") ||
-  (findChrome() && "chrome") ||
-  undefined;
+const browser = findBrowser();
 
 test.skipIf(!browser)(
   "deck CSS overrides Row gap without !important",
@@ -47,7 +38,6 @@ test.skipIf(!browser)(
       await writeFile(overriddenFile, overridden);
 
       const gaps = await withBrowser(
-        browser!,
         { width: 1920, height: 1080 },
         async (page) => {
           await page.goto(pathToFileURL(plainFile).href);
@@ -97,7 +87,6 @@ test.skipIf(!browser)(
       const file = join(dir, "cards.html");
       await writeFile(file, html);
       const measured = (await withBrowser(
-        browser!,
         { width: 1920, height: 1080 },
         async (page) => {
           await page.goto(pathToFileURL(file).href);
@@ -165,7 +154,6 @@ test.skipIf(!browser)(
       const file = join(dir, "cards.html");
       await writeFile(file, html);
       const measured = (await withBrowser(
-        browser!,
         { width: 1920, height: 1080 },
         async (page) => {
           await page.goto(pathToFileURL(file).href);
@@ -225,7 +213,6 @@ test.skipIf(!browser)(
       await writeFile(plainFile, plain);
       await writeFile(overriddenFile, overridden);
       const colors = await withBrowser(
-        browser!,
         { width: 1920, height: 1080 },
         async (page) => {
           await page.goto(pathToFileURL(plainFile).href);
@@ -271,7 +258,6 @@ test.skipIf(!browser)(
         }),
       );
       const breaks = await withBrowser(
-        browser!,
         { width: 1920, height: 1080 },
         async (tab) => {
           const seen: unknown[] = [];
@@ -328,7 +314,6 @@ test.skipIf(!browser)(
         getComputedStyle(document.querySelector(".hinote-flow-box:not(.is-emphasis)")).borderTopColor,
       ].join("|")`;
       const seen = await withBrowser(
-        browser!,
         { width: 1920, height: 1080 },
         async (tab) => {
           await tab.goto(pathToFileURL(plainFile).href);
@@ -380,7 +365,6 @@ test.skipIf(!browser)(
         return Math.round((a.getBoundingClientRect().width / b.getBoundingClientRect().width) * 10) / 10;
       })()`;
       const seen = await withBrowser(
-        browser!,
         { width: 1920, height: 1080 },
         async (tab) => {
           await tab.goto(pathToFileURL(plainFile).href);

@@ -3,12 +3,7 @@
 // problems; safe-area crossings are warnings.
 import { mkdir, readFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
-import {
-  poll,
-  withBrowser,
-  type BrowserName,
-  type CapturePage,
-} from "./browser.ts";
+import { poll, withBrowser, type CapturePage } from "./browser.ts";
 import {
   measureSlide,
   revealAllExpression,
@@ -27,7 +22,8 @@ const STAGE = ".hinote-stage";
 export type Snapshot = {
   output: string;
   canvas: Canvas;
-  browser: BrowserName;
+  // The Chromium binary that took the pictures.
+  browser: string;
   files: string[];
   problems: LayoutIssue[];
   warnings: LayoutIssue[];
@@ -38,7 +34,6 @@ export type Snapshot = {
 export async function takeSnapshots(
   entry: string,
   outDir: string,
-  browser: BrowserName | "auto",
   only?: readonly number[],
 ): Promise<Snapshot> {
   const deck = await loadDeckFile(entry);
@@ -67,7 +62,7 @@ export async function takeSnapshots(
     const files: string[] = [];
     const problems: LayoutIssue[] = [];
     const warnings: LayoutIssue[] = [];
-    const used = await withBrowser(browser, canvas, async (page, name) => {
+    const used = await withBrowser(canvas, async (page, browser) => {
       for (const number of numbers) {
         const index = number - 1;
         const file = resolve(directory, `${number}.png`);
@@ -76,7 +71,7 @@ export async function takeSnapshots(
         problems.push(...layout.problems);
         warnings.push(...layout.warnings);
       }
-      return name;
+      return browser;
     });
     return {
       output: shown(directory),
@@ -105,7 +100,7 @@ async function photograph(
     () =>
       new HinoteError(`Slide ${index + 1} was not ready to photograph.`, {
         code: "browser",
-        hint: "The slide did not become the size of the canvas. Try another browser with --browser.",
+        hint: "The slide did not become the size of the canvas. Try another Chromium build with HINOTE_CHROME.",
       }),
   );
   // Every step must be visible with no fade: the picture and the layout report
@@ -125,7 +120,7 @@ async function photograph(
       `Slide ${index + 1} was photographed at ${size.width}×${size.height}, not the canvas ${canvas.width}×${canvas.height}.`,
       {
         code: "browser",
-        hint: "The browser scaled the page. Try another with --browser.",
+        hint: "The browser scaled the page. Try another Chromium build with HINOTE_CHROME.",
       },
     );
   return layout;

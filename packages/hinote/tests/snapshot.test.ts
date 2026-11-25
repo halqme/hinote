@@ -9,12 +9,7 @@ import {
 import { join, resolve } from "node:path";
 import { inflateSync } from "node:zlib";
 import { expect, test } from "bun:test";
-import {
-  findChrome,
-  findChromeForTesting,
-  hasCommand,
-  installedBrowsers,
-} from "../src/snapshot/browser.ts";
+import { findBrowser } from "../src/snapshot/browser.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
 const api = resolve(import.meta.dir, "../../core/src/index.ts");
@@ -51,17 +46,6 @@ export default createSlide([
 ]);
 `;
 
-test("an unknown browser is a usage error", async () => {
-  const dir = await tempDir();
-  try {
-    const bad = await run(["snapshot", "--browser", "lynx", "--json"], dir);
-    expect(bad.code).toBe(2);
-    expect(JSON.parse(bad.stdout).error.code).toBe("usage");
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-});
-
 test("--slides that are not slide numbers, or not in the deck, are usage errors", async () => {
   const dir = await tempDir();
   try {
@@ -76,20 +60,17 @@ test("--slides that are not slide numbers, or not in the deck, are usage errors"
   }
 });
 
-test("a browser that is not installed names itself", async () => {
-  const installed = installedBrowsers();
-  if (installed.includes("puppeteer")) return;
+test("HINOTE_CHROME that is not a file is an error", async () => {
   const dir = await tempDir();
   try {
     await writeFile(join(dir, "deck.tsx"), deck);
-    const missing = await run(
-      ["snapshot", "--browser", "puppeteer", "--json"],
-      dir,
-    );
+    const missing = await run(["snapshot", "--json"], dir, {
+      HINOTE_CHROME: join(dir, "no-chrome"),
+    });
     expect(missing.code).toBe(1);
     expect(JSON.parse(missing.stdout).error).toMatchObject({
       code: "browser",
-      hint: expect.stringContaining("puppeteer"),
+      message: expect.stringContaining("HINOTE_CHROME"),
     });
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -106,13 +87,9 @@ test("when chrome dies on start, the error hint carries its stderr", async () =>
       "#!/bin/sh\necho 'Running as root without --no-sandbox is not supported.' >&2\nexit 1\n",
     );
     await chmod(fake, 0o755);
-    const failed = await run(
-      ["snapshot", "--browser", "chrome", "--json"],
-      dir,
-      {
-        HINOTE_CHROME: fake,
-      },
-    );
+    const failed = await run(["snapshot", "--json"], dir, {
+      HINOTE_CHROME: fake,
+    });
     expect(failed.code).toBe(1);
     expect(JSON.parse(failed.stdout).error).toMatchObject({
       code: "browser",
@@ -124,55 +101,34 @@ test("when chrome dies on start, the error hint carries its stderr", async () =>
   }
 }, 30_000);
 
-async function pictures(browser: string) {
-  const dir = await tempDir();
-  try {
-    await writeFile(join(dir, "deck.tsx"), deck);
-    const shot = await run(
-      ["snapshot", "--browser", browser, "--json", "-o", "shots"],
-      dir,
-    );
-    expect(shot.stderr).toBe("");
-    expect(shot.code).toBe(0);
-    const data = JSON.parse(shot.stdout).data;
-    expect(data.browser).toBe(browser);
-    expect(data.canvas).toEqual({ width: 1920, height: 1080 });
-    expect(data.files).toEqual(["shots/1.png", "shots/2.png"]);
-    expect(data.problems).toEqual([]);
-    expect(data.warnings).toEqual([]);
-    const first = await readFile(join(dir, "shots/1.png"));
-    const second = await readFile(join(dir, "shots/2.png"));
-    expect(first.readUInt32BE(16)).toBe(1920);
-    expect(first.readUInt32BE(20)).toBe(1080);
-    expect(second.readUInt32BE(16)).toBe(1920);
-    expect(second.readUInt32BE(20)).toBe(1080);
-    expect(Buffer.compare(first, second)).not.toBe(0);
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-}
+const browser = findBrowser();
 
-const browser =
-  (findChromeForTesting() && "chrome-for-testing") ||
-  (findChrome() && "chrome") ||
-  (hasCommand("agent-browser") && "agent-browser") ||
-  undefined;
-
-test.skipIf(!findChromeForTesting())(
-  "chrome for testing writes one canvas-sized PNG per slide",
-  () => pictures("chrome-for-testing"),
-  60_000,
-);
-
-test.skipIf(!findChrome())(
-  "chrome writes one canvas-sized PNG per slide",
-  () => pictures("chrome"),
-  60_000,
-);
-
-test.skipIf(!hasCommand("agent-browser"))(
-  "agent-browser writes one canvas-sized PNG per slide",
-  () => pictures("agent-browser"),
+test.skipIf(!browser)(
+  "snapshot writes one canvas-sized PNG per slide",
+  async () => {
+    const dir = await tempDir();
+    try {
+      await writeFile(join(dir, "deck.tsx"), deck);
+      const shot = await run(["snapshot", "--json", "-o", "shots"], dir);
+      expect(shot.stderr).toBe("");
+      expect(shot.code).toBe(0);
+      const data = JSON.parse(shot.stdout).data;
+      expect(data.browser).toBe(browser!);
+      expect(data.canvas).toEqual({ width: 1920, height: 1080 });
+      expect(data.files).toEqual(["shots/1.png", "shots/2.png"]);
+      expect(data.problems).toEqual([]);
+      expect(data.warnings).toEqual([]);
+      const first = await readFile(join(dir, "shots/1.png"));
+      const second = await readFile(join(dir, "shots/2.png"));
+      expect(first.readUInt32BE(16)).toBe(1920);
+      expect(first.readUInt32BE(20)).toBe(1080);
+      expect(second.readUInt32BE(16)).toBe(1920);
+      expect(second.readUInt32BE(20)).toBe(1080);
+      expect(Buffer.compare(first, second)).not.toBe(0);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
   60_000,
 );
 
@@ -253,10 +209,7 @@ export default createSlide({ pageNumber: true }, [
 ]);
 `,
       );
-      const shot = await run(
-        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
-        dir,
-      );
+      const shot = await run(["snapshot", "--json", "-o", "shots"], dir);
       expect(shot.stderr).toBe("");
       const body = JSON.parse(shot.stdout);
       expect(body.ok).toBe(false);
@@ -340,16 +293,7 @@ export default createSlide([
 `,
       );
       const shot = await run(
-        [
-          "snapshot",
-          "--browser",
-          browser!,
-          "--json",
-          "-o",
-          "shots",
-          "--slides",
-          "3,2",
-        ],
+        ["snapshot", "--json", "-o", "shots", "--slides", "3,2"],
         dir,
       );
       expect(shot.stderr).toBe("");
@@ -392,10 +336,7 @@ export default createSlide([
 ]);
 `,
       );
-      const shot = await run(
-        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
-        dir,
-      );
+      const shot = await run(["snapshot", "--json", "-o", "shots"], dir);
       expect(shot.stderr).toBe("");
       expect(shot.code).toBe(0);
       const { problems, warnings } = JSON.parse(shot.stdout).data;
@@ -442,10 +383,7 @@ export default createSlide([
 ]);
 `,
       );
-      const shot = await run(
-        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
-        dir,
-      );
+      const shot = await run(["snapshot", "--json", "-o", "shots"], dir);
       expect(shot.stderr).toBe("");
       expect(shot.code).toBe(0);
       const { warnings } = JSON.parse(shot.stdout).data;
@@ -484,10 +422,7 @@ export default createSlide([
 ]);
 `,
       );
-      const shot = await run(
-        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
-        dir,
-      );
+      const shot = await run(["snapshot", "--json", "-o", "shots"], dir);
       expect(shot.stderr).toBe("");
       expect(shot.code).toBe(0);
       const body = JSON.parse(shot.stdout);
@@ -536,10 +471,7 @@ export default createSlide([
 ]);
 `,
       );
-      const shot = await run(
-        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
-        dir,
-      );
+      const shot = await run(["snapshot", "--json", "-o", "shots"], dir);
       expect(shot.stderr).toBe("");
       expect(shot.code).toBe(0);
       const body = JSON.parse(shot.stdout);
@@ -656,10 +588,7 @@ export default createSlide([
 ]);
 `,
       );
-      const shot = await run(
-        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
-        dir,
-      );
+      const shot = await run(["snapshot", "--json", "-o", "shots"], dir);
       expect(shot.stderr).toBe("");
       expect(shot.code).toBe(0);
       const withStep = await readFile(join(dir, "shots/1.png"));
@@ -705,10 +634,7 @@ export default createSlide([
 ]);
 `,
       );
-      const shot = await run(
-        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
-        dir,
-      );
+      const shot = await run(["snapshot", "--json", "-o", "shots"], dir);
       expect(shot.stderr).toBe("");
       const { problems } = JSON.parse(shot.stdout).data;
       expect(
