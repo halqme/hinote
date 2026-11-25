@@ -119,3 +119,101 @@ export function contrastWarningsForTheme(
   }
   return warnings;
 }
+
+// The contrast a drawing on the slide asks for, written by a component as
+// `data-hinote-contrast` (ContrastCheck in @hinote/types), such as the colors
+// a deck passes to <Qr>.
+export type MarkupContrast = {
+  name: string;
+  fg: string[];
+  bg?: string;
+  min: number;
+  dark?: boolean;
+};
+
+function isMarkupContrast(value: unknown): value is MarkupContrast {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    typeof value.name === "string" &&
+    "fg" in value &&
+    Array.isArray(value.fg) &&
+    value.fg.every((c) => typeof c === "string") &&
+    (!("bg" in value) || typeof value.bg === "string") &&
+    "min" in value &&
+    typeof value.min === "number" &&
+    (!("dark" in value) || typeof value.dark === "boolean")
+  );
+}
+
+const NAMED: Record<string, string> = { white: "#ffffff", black: "#000000" };
+
+// A color as the slide draws it: theme variables and currentColor (the
+// theme's text color) read from the slide's theme.
+function resolveColor(value: string, theme: Theme): Rgb | undefined {
+  const text = value.trim();
+  if (text.toLowerCase() === "currentcolor")
+    return resolveColor(theme.colors?.fg ?? "", theme);
+  const variable = /^var\(\s*--hinote-color-([a-z0-9-]+)\s*\)$/i.exec(text);
+  if (variable) {
+    const token = theme.colors?.[variable[1]!];
+    return token === undefined ? undefined : resolveColor(token, theme);
+  }
+  return parseCssColor(NAMED[text.toLowerCase()] ?? text);
+}
+
+export function markupContrastWarnings(
+  html: string,
+  theme: Theme,
+): { code: "contrast"; message: string; hint: string }[] {
+  const warnings: { code: "contrast"; message: string; hint: string }[] = [];
+  for (const [, json] of html.matchAll(/\sdata-hinote-contrast="([^"]*)"/g)) {
+    let check: unknown;
+    try {
+      check = JSON.parse(
+        json!
+          .replaceAll("&quot;", '"')
+          .replaceAll("&#39;", "'")
+          .replaceAll("&lt;", "<")
+          .replaceAll("&gt;", ">")
+          .replaceAll("&amp;", "&"),
+      );
+    } catch {
+      continue;
+    }
+    if (!isMarkupContrast(check)) continue;
+    const bgValue = check.bg ?? "var(--hinote-color-bg)";
+    const bg =
+      bgValue.trim() === "transparent"
+        ? resolveColor("var(--hinote-color-bg)", theme)
+        : resolveColor(bgValue, theme);
+    for (const fgValue of check.fg) {
+      const fg = resolveColor(fgValue, theme);
+      const unknown = [...(fg ? [] : [fgValue]), ...(bg ? [] : [bgValue])];
+      if (unknown.length > 0) {
+        warnings.push({
+          code: "contrast",
+          message: `${check.name}: cannot tell the contrast of ${unknown.map((v) => `"${v}"`).join(" and ")}.`,
+          hint: "Write the color as #rgb, #rrggbb, rgb(), white, black, or var(--hinote-color-<name>) so hinote check can compare it.",
+        });
+        continue;
+      }
+      const ratio = contrastRatio(fg!, bg!);
+      const name = `${check.name}: ${fgValue} on ${check.bg ?? "the slide's background"}`;
+      if (ratio < check.min)
+        warnings.push({
+          code: "contrast",
+          message: `${name} is ${formatRatio(ratio)}:1 (need ${check.min}:1).`,
+          hint: "Make one of the two colors darker or lighter until the pair reaches it.",
+        });
+      else if (check.dark && relativeLuminance(fg!) > relativeLuminance(bg!))
+        warnings.push({
+          code: "contrast",
+          message: `${name} is light on dark, which some scanners cannot read.`,
+          hint: "Make the drawn color the darker one of the two.",
+        });
+    }
+  }
+  return warnings;
+}

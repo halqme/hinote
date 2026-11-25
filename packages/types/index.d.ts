@@ -99,6 +99,8 @@ export type HinoteClient = {
 //   (<Steps>); hinote.observe reports them.
 // - `data-hinote-morph="name"` moves the element into the one with the same
 //   name on the slide shown next (<Morph>).
+// - `data-hinote-contrast` holds a ContrastCheck as JSON: colors the deck
+//   chose for a drawing that must stay apart, which hinote check compares.
 export type SlideMarkup = {
   "data-hinote-src": `file:${string}`;
   "data-hinote-script": string;
@@ -106,4 +108,20 @@ export type SlideMarkup = {
   "data-hinote-effect": "up" | "down" | "left" | "right" | "zoom";
   "data-hinote-steps": `auto:${number}`;
   "data-hinote-morph": string;
+  "data-hinote-contrast": string;
+};
+
+// Colors drawn on one background that `hinote check` compares, such as the
+// ones a deck passes to <Qr>. `bg` defaults to the slide's background, and a
+// color may be any CSS color or `var(--hinote-color-<name>)`; currentColor
+// is the theme's text color. check warns when a color in `fg` is below `min`
+// against `bg`, when `dark` is set and a color in `fg` is the lighter one,
+// and when it cannot tell what a color is.
+export type ContrastCheck = {
+  // What the warning names, such as `<Qr value="https://example.com">`.
+  name: string;
+  fg: string[];
+  bg?: string;
+  min: number;
+  dark?: boolean;
 };

@@ -6,7 +6,11 @@ import { text as readText } from "node:stream/consumers";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { decode, referencedPaths, remoteUrls } from "../build/assets.ts";
-import { contrastWarningsForTheme, type ContrastWarning } from "./contrast.ts";
+import {
+  contrastWarningsForTheme,
+  markupContrastWarnings,
+  type ContrastWarning,
+} from "./contrast.ts";
 import {
   type Deck,
   defaultTheme,
@@ -190,7 +194,14 @@ export async function describeSlides(deck: Deck): Promise<SlideInfo[]> {
     const body = result.html.slice(result.html.indexOf('<div id="deck"'));
     info.title ??= firstHeading(body);
     info.steps = stepsIn(body).size;
-    const warnings = markupWarnings(body);
+    const theme = mergeTheme(
+      mergeTheme(defaultTheme, deck.config.theme),
+      slide.options.theme,
+    );
+    const warnings = [
+      ...markupWarnings(body),
+      ...markupContrastWarnings(body, theme),
+    ];
     if (warnings.length > 0) info.warnings = warnings;
     info.files = referencedPaths(result.html);
     const remote = remoteUrls(result.html);
@@ -400,7 +411,9 @@ A component's own error keeps its code, such as math from @hinote/katex.
 Warnings keep exit 0:
 
   contrast       fg, muted, or accent reach less than 7:1 against bg or surface
-                 (#rgb, #rrggbb, and rgb() values; var() and color-mix() are skipped)
+                 (#rgb, #rrggbb, and rgb() values; var() and color-mix() are skipped),
+                 or colors a deck passes to a component, such as <Qr>, are too
+                 close, light on dark, or not a color check can read
   step-in-list   A <Step> inside a list without as="li"
   remote-file    A slide loads a file from the network, which a built page shows only online
 
@@ -428,9 +441,10 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
       >();
       for (const slide of slides)
         for (const warning of slide.warnings ?? []) {
-          const seen = markup.get(warning.code) ?? { warning, slides: [] };
+          const key = `${warning.code}\0${warning.message}`;
+          const seen = markup.get(key) ?? { warning, slides: [] };
           seen.slides.push(slide.number);
-          markup.set(warning.code, seen);
+          markup.set(key, seen);
         }
       for (const { warning, slides: numbers } of markup.values())
         warnings.push({ ...warning, slides: numbers });

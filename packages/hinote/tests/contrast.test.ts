@@ -3,6 +3,7 @@ import {
   CONTRAST_MIN,
   contrastRatio,
   contrastWarningsForTheme,
+  markupContrastWarnings,
   parseCssColor,
 } from "../src/cli/contrast.ts";
 import { themes } from "@hinote/core";
@@ -78,4 +79,84 @@ test("unparseable colors produce no contrast warnings", () => {
       }),
     ),
   ).toEqual([]);
+});
+
+function drawing(check: object): string {
+  const json = JSON.stringify(check).replaceAll('"', "&quot;");
+  return `<svg data-hinote-contrast="${json}"></svg>`;
+}
+
+const ink = defaultTheme;
+const paper = mergeTheme(defaultTheme, themes.paper);
+
+test("a drawing's colors that are far apart pass", () => {
+  const html = drawing({
+    name: "<Qr>",
+    fg: ["#000"],
+    bg: "white",
+    min: 4.5,
+    dark: true,
+  });
+  expect(markupContrastWarnings(html, ink)).toEqual([]);
+  // currentColor is the theme's text, on the slide's background.
+  expect(
+    markupContrastWarnings(
+      drawing({ name: "<Qr>", fg: ["currentColor"], min: 4.5 }),
+      paper,
+    ),
+  ).toEqual([]);
+});
+
+test("a drawing's colors too close warn with the ratio", () => {
+  const html = drawing({ name: "<Qr>", fg: ["#999"], bg: "#fff", min: 4.5 });
+  expect(markupContrastWarnings(html, ink)).toEqual([
+    {
+      code: "contrast",
+      message: "<Qr>: #999 on #fff is 2.85:1 (need 4.5:1).",
+      hint: expect.any(String),
+    },
+  ]);
+});
+
+test("a color on the slide is compared with the slide's theme", () => {
+  // Black on ink's dark background, from a theme variable or a color.
+  for (const fg of ["#000", "var(--hinote-color-bg)"])
+    expect(
+      markupContrastWarnings(
+        drawing({ name: "<Qr>", fg: [fg], min: 4.5 }),
+        ink,
+      ),
+    ).toHaveLength(1);
+  expect(
+    markupContrastWarnings(
+      drawing({ name: "<Qr>", fg: ["#000"], min: 4.5 }),
+      paper,
+    ),
+  ).toEqual([]);
+});
+
+test("a drawing that must be dark warns when it is light on dark", () => {
+  const html = drawing({
+    name: "<Qr>",
+    fg: ["#fff"],
+    bg: "#000",
+    min: 4.5,
+    dark: true,
+  });
+  expect(markupContrastWarnings(html, ink)[0]?.message).toContain(
+    "light on dark",
+  );
+});
+
+test("a color check cannot read warns instead of passing", () => {
+  const html = drawing({
+    name: "<Qr>",
+    fg: ["hsl(0 0% 0%)"],
+    bg: "#fff",
+    min: 4.5,
+  });
+  expect(markupContrastWarnings(html, ink)[0]).toMatchObject({
+    message: '<Qr>: cannot tell the contrast of "hsl(0 0% 0%)".',
+    hint: expect.stringContaining("#rrggbb"),
+  });
 });

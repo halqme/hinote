@@ -934,6 +934,33 @@ export default createSlide([
   }
 });
 
+test("check warns on colors a component was given that are too close", async () => {
+  const dir = await tempDir();
+  try {
+    await writeFile(
+      join(dir, "deck.tsx"),
+      deckSource(`const weak = JSON.stringify({ name: "<Qr>", fg: ["#999"], bg: "#fff", min: 4.5 })
+export default createSlide([
+  createSlide(() => <h1>fine</h1>),
+  createSlide(() => <svg data-hinote-contrast={weak} />),
+  createSlide(() => <svg data-hinote-contrast={weak} />),
+])`),
+    );
+    const result = await run(["check", "--json"], dir);
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout).data.warnings).toEqual([
+      {
+        code: "contrast",
+        message: "<Qr>: #999 on #fff is 2.85:1 (need 4.5:1).",
+        slides: [2, 3],
+        hint: expect.any(String),
+      },
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("check warns on weak theme contrast and keeps exit 0", async () => {
   const dir = await tempDir();
   try {
