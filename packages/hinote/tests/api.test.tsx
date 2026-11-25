@@ -357,24 +357,151 @@ describe("transition", () => {
 });
 
 describe("Morph", () => {
-  test("names its element so the page can pair it across slides", async () => {
+  test("names the element it wraps, an HTML element or a component's, and adds none of its own", async () => {
+    async function Late() {
+      await Promise.resolve();
+      return <p>late</p>;
+    }
     const html = await deckOf(
       createSlide(() => (
-        <Morph name="title" as="h1">
-          x
+        <section>
+          <Morph name="title">
+            <h1 class="big">x</h1>
+          </Morph>
+          <Morph name="card">
+            <Card>
+              <h3>Plan</h3>
+            </Card>
+          </Morph>
+          <Morph name="late">
+            <Late />
+          </Morph>
+        </section>
+      )),
+    ).render();
+    expect(html).toContain('<h1 data-hinote-morph="title" class="big">x</h1>');
+    expect(html).toMatch(/<div data-hinote-morph="card" class="hinote-card"/);
+    expect(html).toContain('<p data-hinote-morph="late">late</p>');
+  });
+
+  // A Grid lines up the rows of its Cards; a Morph around one must not hide it.
+  test("a Grid counts the rows of a Card inside a Morph", async () => {
+    const html = await deckOf(
+      createSlide(() => (
+        <Grid>
+          <Morph name="plan">
+            <Card>
+              <span>i</span>
+              <h3>Plan</h3>
+              <p>text</p>
+            </Card>
+          </Morph>
+          <Card>
+            <h3>Other</h3>
+          </Card>
+        </Grid>
+      )),
+    ).render();
+    expect(html).toContain("--hinote-grid-rows:3");
+  });
+
+  test("a step inside a Morph is numbered with the slide's others", async () => {
+    const html = await deckOf(
+      createSlide(() => (
+        <div>
+          <Step>first</Step>
+          <Morph name="later">
+            <Step>second</Step>
+          </Morph>
+        </div>
+      )),
+    ).render();
+    expect(html).toContain(
+      '<div data-hinote-morph="later" data-hinote-step="2">second</div>',
+    );
+  });
+
+  test("a Grid inside a Morph is named itself and keeps its Cards' rows", async () => {
+    const html = await deckOf(
+      createSlide(() => (
+        <Morph name="grid">
+          <Grid>
+            <Card>
+              <h3>a</h3>
+              <p>b</p>
+            </Card>
+            <Card>
+              <h3>c</h3>
+            </Card>
+          </Grid>
         </Morph>
       )),
-      createSlide(() => <Morph name="title">y</Morph>),
     ).render();
-    expect(html).toContain('<h1 data-hinote-morph="title">x</h1>');
-    expect(html).toContain('<div data-hinote-morph="title">y</div>');
+    expect(html).toMatch(
+      /<div data-hinote-morph="grid" class="hinote-grid" style="--hinote-grid-rows:2"/,
+    );
+  });
+
+  // Only one element can move into one twin; naming the first of several
+  // would leave the rest behind and hide the Cards from their Grid.
+  test("refuses several elements in one Morph, also when a component renders them", async () => {
+    function Pair() {
+      return (
+        <>
+          <Card>a</Card>
+          <Card>b</Card>
+        </>
+      );
+    }
+    for (const inside of [
+      <>
+        <Card>a</Card>
+        <Card>b</Card>
+      </>,
+      <Pair />,
+      <>
+        <p>a</p> and text
+      </>,
+    ]) {
+      const slide = createSlide(() => (
+        <Grid>
+          <Morph name="pair">{inside}</Morph>
+        </Grid>
+      ));
+      await expect(deckOf(slide).render()).rejects.toThrow(
+        /<Morph name="pair"> needs one element inside/,
+      );
+    }
+    // Whatever one element holds, it is still one: void, self-closed, and
+    // raw-text elements included.
+    const one = createSlide(() => (
+      <Morph name="one">
+        <figure>
+          <img src="a.png" />
+          <svg>
+            <path d="M0 0" />
+          </svg>
+          <script
+            type="module"
+            dangerouslySetInnerHTML={{ __html: "if (1 < 2) '</p><p>';" }}
+          />
+        </figure>
+      </Morph>
+    ));
+    expect(await deckOf(one).render()).toContain(
+      '<figure data-hinote-morph="one">',
+    );
   });
 
   test("refuses a name used twice on one slide, naming the slide", async () => {
     const twice = createSlide(() => (
       <>
-        <Morph name="a">1</Morph>
-        <Morph name="a">2</Morph>
+        <Morph name="a">
+          <p>1</p>
+        </Morph>
+        <Morph name="a">
+          <p>2</p>
+        </Morph>
       </>
     ));
     await expect(deckOf(textSlide("x"), twice).render()).rejects.toThrow(
@@ -382,9 +509,19 @@ describe("Morph", () => {
     );
   });
 
-  test("rejects a name that is not letters, digits, _, or -", async () => {
-    const bad = createSlide(() => <Morph name="a b">x</Morph>);
+  test("rejects a name that is not letters, digits, _, or -, and contents that are not an element", async () => {
+    const bad = createSlide(() => (
+      <Morph name="a b">
+        <p>x</p>
+      </Morph>
+    ));
     await expect(deckOf(bad).render()).rejects.toThrow(HinoteError);
+    for (const inside of ["just text", undefined]) {
+      const slide = createSlide(() => <Morph name="t">{inside}</Morph>);
+      await expect(deckOf(slide).render()).rejects.toThrow(
+        /needs one element inside/,
+      );
+    }
   });
 });
 

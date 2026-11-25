@@ -1,5 +1,6 @@
 import type { Child } from "hono/jsx";
 import { HinoteError } from "../errors.ts";
+import { Morph, type MorphProps } from "./morph.tsx";
 
 // Where items sit across the row or column (align-items).
 export type Align =
@@ -190,12 +191,20 @@ export function Grid(props: GridProps) {
   );
 }
 
-// The rows a Card child of Grid takes: one per child, plus its footer.
+// The rows a Card child of Grid takes: one per child, plus its footer. A
+// <Morph> around a Card adds no element, so the Card inside it counts.
 // Anything else, including a component that wraps a Card, counts as none; that
 // Card still spans its own rows.
 function cardRows(child: Child): number {
   if (typeof child !== "object" || child === null || !("tag" in child))
     return 0;
+  if (child.tag === Morph) {
+    const { children }: Pick<MorphProps, "children"> = child.props;
+    const inner = childList(children);
+    return inner.length === 1 && inner[0] !== undefined
+      ? cardRows(inner[0])
+      : 0;
+  }
   if (child.tag !== Card) return 0;
   const props = child.props as CardProps;
   return (

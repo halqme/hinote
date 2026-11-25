@@ -10,7 +10,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 - `<D2>` no longer paints its theme's background, which was white with the default theme and could not be changed from deck CSS: the slide shows through the diagram. `background` keeps the theme's.
 - A relative path through `node_modules` may name a file of an installed package, such as a font, even when the package manager links it from a store outside the deck directory (Bun, pnpm). Other links that lead out of the deck directory are still refused.
-- `<Morph name="title">` moves and resizes an element into the one with the same name on the next slide, with the View Transitions API. Pairs morph whatever the slide's transition, and the rest of the slide follows the transition.
+- `<Morph name="title">` around any element, an HTML element or a component such as `<Card>` or `<Code>`, moves and resizes it into the element of the same name on the next slide, with the View Transitions API. It adds no element of its own. Pairs morph whatever the slide's transition, and the rest of the slide follows the transition.
 - Slide transitions add `"slide-up"`, `"zoom"`, and `"wipe"`, and take their own timing as `{ name, duration, easing }`.
 - `<Step effect>` moves a step into place as it fades in: `"up"`, `"down"`, `"left"`, `"right"`, or `"zoom"`. Steps no longer fade under reduced motion.
 - `hinote skills get talk` is a guide to planning a talk before and while writing the deck: how many slides the time allows, the order of the story, what goes on one slide, layout, color, and steps. `--ref delivery` covers rehearsal, the day of the talk, and questions.

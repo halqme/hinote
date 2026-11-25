@@ -192,15 +192,23 @@ describe("morphing between slides", () => {
   const morphDeck = createSlide({ transition: "none" }, [
     createSlide(() => (
       <>
-        <Morph name="title">big</Morph>
-        <Morph name="logo">only here</Morph>
+        <Morph name="title">
+          <h1>big</h1>
+        </Morph>
+        <Morph name="logo">
+          <p>only here</p>
+        </Morph>
       </>
     )),
     createSlide(() => (
       <>
-        <Morph name="title">small</Morph>
+        <Morph name="title">
+          <h2>small</h2>
+        </Morph>
         <Step>
-          <Morph name="logo">later</Morph>
+          <Morph name="logo">
+            <p>later</p>
+          </Morph>
         </Step>
       </>
     )),
