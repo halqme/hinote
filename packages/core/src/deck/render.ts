@@ -9,7 +9,7 @@ export type Page = "view" | "presenter" | "static";
 // "server" and "broadcast" sync with the presenter; "reload" only hears that
 // `hinote dev` reloaded the deck. Without one, a page syncs with nothing.
 export type Sync = "server" | "broadcast" | "reload";
-import type { Theme } from "@hinote/types";
+import type { ContentsEntry, Theme } from "@hinote/types";
 import type { Slide } from "./slide.ts";
 import { numberSteps } from "../components/step.tsx";
 import { servedPath, slideHash } from "../client/location.ts";
@@ -41,6 +41,7 @@ import {
 // Every Card spans the band's largest row count, so a footer in the last track lines up.
 // Flow puts an arrow between boxes; the arrow is ::before content deck CSS can replace.
 // Table widths are a --hinote-column-width variable per <col>; the width rule is here.
+// Contents lists name then title on one line, nested sections indented, the current one in accent.
 const SLIDE_CSS = `
 *{box-sizing:border-box}
 .slide{display:flex;flex-direction:column;padding:var(--hinote-space-safe);background:var(--hinote-color-bg);color:var(--hinote-color-fg);font-size:var(--hinote-text-body)}
@@ -64,6 +65,12 @@ const SLIDE_CSS = `
 .hinote-table thead th{font-weight:700;border-bottom-width:2px}
 .hinote-table tr.is-emphasis{background:var(--hinote-color-surface);font-weight:700}
 .hinote-table tr.is-emphasis>:first-child{box-shadow:inset 4px 0 0 var(--hinote-color-accent)}
+.hinote-contents ol{display:flex;flex-direction:column;gap:calc(var(--hinote-space-unit) * 1.5);margin:0;padding:0;list-style:none}
+.hinote-contents ol ol{margin-top:calc(var(--hinote-space-unit) * 1.5);padding-left:calc(var(--hinote-space-unit) * 4);font-size:.85em}
+.hinote-contents-entry{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 calc(var(--hinote-space-unit) * 2);color:inherit;text-decoration:none}
+.hinote-contents-name{font-weight:700}
+.hinote-contents-title{color:var(--hinote-color-muted)}
+.hinote-contents-item.is-current>.hinote-contents-entry .hinote-contents-name{color:var(--hinote-color-accent)}
 :where(.slide) :is(h1,h2,h3,p){margin:0}
 :where(.slide) h1{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h1);line-height:1.1}
 :where(.slide) h2{font-family:var(--hinote-font-heading);font-size:var(--hinote-text-h2);line-height:1.2}
@@ -396,6 +403,9 @@ export async function renderDeck(input: {
   // Slide ids of the whole deck and their flattened index, for <Link to>.
   // Rendering one slide alone still resolves links to the others.
   targets?: ReadonlyMap<string, number>;
+  // The sections of the whole deck as each slide sees them, so one slide
+  // rendered alone still lists every section.
+  contents: (slide: Slide) => readonly ContentsEntry[];
 }): Promise<string> {
   const theme = mergeTheme(
     defaultTheme,
@@ -431,6 +441,7 @@ ${FRAME_CSS}`;
           await slide.render({
             title: slide.options.title,
             sections: slide.sections ?? [],
+            contents: input.contents(slide),
           }),
         ),
       ),

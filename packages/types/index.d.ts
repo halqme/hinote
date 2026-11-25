@@ -22,6 +22,22 @@ export type SlideContext = {
   title?: string;
   // The `section` of each deck around this slide, outermost first.
   sections: readonly string[];
+  // The sections of the whole deck, in order, for a table of contents.
+  contents: readonly ContentsEntry[];
+};
+
+// One section of the deck: a run of slides from a nested deck with a `section`.
+export type ContentsEntry = {
+  // The deck's `section`.
+  name: string;
+  // The title and id of the section's first slide. <Link to> takes the id,
+  // so an entry links only when that slide has one.
+  title?: string;
+  id?: string;
+  // The slide being rendered is in this section.
+  current: boolean;
+  // Sections of the decks nested inside this one.
+  sections: readonly ContentsEntry[];
 };
 
 // An error hinote reports as its own: the message, a stable `code` to match

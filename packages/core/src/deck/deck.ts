@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { streamSSE } from "hono/streaming";
 import { validator } from "hono/validator";
+import { contentsAt, outline } from "./contents.ts";
 import { parseCss, type CssInput, type CssSource } from "./css.ts";
 import { HinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
@@ -347,10 +348,12 @@ export class Deck extends Hono {
       this.config.document?.pageNumber === true
         ? slides.map((slide) => this.slides.indexOf(slide) + 1)
         : undefined;
+    const sections = outline(this.slides);
     return renderDeck({
       ...options,
       slides,
       targets: this.#targets(),
+      contents: (slide) => contentsAt(sections, this.slides.indexOf(slide)),
       theme: this.config.theme,
       title: this.config.document?.title,
       lang: this.config.document?.lang,

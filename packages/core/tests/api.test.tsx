@@ -4,6 +4,7 @@ import {
   Card,
   Center,
   Column,
+  Contents,
   Flow,
   Grid,
   Link,
@@ -187,6 +188,54 @@ describe("createSlide", () => {
     // One slide rendered alone, as check and inspect do, still resolves.
     const [first] = await deck.renderEach();
     expect(first && "html" in first && href(first.html)).toBe("/3");
+  });
+
+  test("Contents lists the deck's sections, links each to its first slide, and marks the current one", async () => {
+    const toc = createSlide({ title: "Contents" }, (slide) => (
+      <Contents slide={slide} />
+    ));
+    const deck = createSlide([
+      toc,
+      createSlide({ section: "Method" }, [
+        createSlide({ id: "method", title: "How we measured" }, () => <p>m</p>),
+        createSlide({ section: "Setup" }, [createSlide(() => <p>s</p>)]),
+      ]),
+      createSlide({ section: "Results" }, [
+        createSlide({ title: "What we found" }, (slide) => (
+          <Contents slide={slide} depth={1} />
+        )),
+      ]),
+    ]);
+    const [first, , , last] = (await deck.render()).split("<section").slice(1);
+    // Linked by the first slide's id, with its title beside the name.
+    expect(first).toMatch(
+      /<a href="\/2" data-hinote-to="method" class="hinote-contents-entry"><span class="hinote-contents-name">Method<\/span><span class="hinote-contents-title">How we measured<\/span><\/a>/,
+    );
+    // A first slide without an id gives the name without a link.
+    expect(first).toContain(
+      '<span class="hinote-contents-entry"><span class="hinote-contents-name">Setup</span></span>',
+    );
+    expect(first).not.toContain("is-current");
+    // On a slide inside a section, that section is current, and depth stops nesting.
+    expect(last).toMatch(
+      /<li class="hinote-contents-item is-current" aria-current="true"><span class="hinote-contents-entry"><span class="hinote-contents-name">Results/,
+    );
+    expect(last).not.toContain("Setup");
+    // Rendered alone, a slide still lists the whole deck.
+    const alone = (await deck.renderEach())[3];
+    expect(alone && "html" in alone && alone.html).toContain("Method");
+    const flat = createSlide((slide) => <Contents slide={slide} depth={0} />);
+    await expect(deckOf(flat).render()).rejects.toThrow("<Contents depth>");
+  });
+
+  test("two nested decks with one section next to each other are one entry", async () => {
+    const deck = createSlide([
+      createSlide({ section: "Part" }, [textSlide("a")]),
+      createSlide({ section: "Part" }, [textSlide("b")]),
+      createSlide((slide) => <Contents slide={slide} />),
+    ]);
+    const html = await deck.render();
+    expect(html.match(/hinote-contents-name">Part</g)).toHaveLength(1);
   });
 
   test("a duplicate slide id, an unknown target, or a malformed id is an error", async () => {

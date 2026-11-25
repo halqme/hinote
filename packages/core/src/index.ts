@@ -19,13 +19,15 @@ export type {
   Justify,
   LayoutProps,
 } from "./components/layout.tsx";
+export { Contents } from "./components/contents.tsx";
+export type { ContentsProps } from "./components/contents.tsx";
 export { Link } from "./components/link.tsx";
 export type { LinkProps } from "./components/link.tsx";
 export { Table } from "./components/table.tsx";
 export type { TableProps } from "./components/table.tsx";
 export { createSlide } from "./deck/create.ts";
 export type { SlideInput } from "./deck/create.ts";
-export type { SlideContext, Theme } from "@hinote/types";
+export type { ContentsEntry, SlideContext, Theme } from "@hinote/types";
 export type { Slide, SlideOptions, SlideRender } from "./deck/slide.ts";
 export { Script } from "./components/script.tsx";
 export type { ScriptProps } from "./components/script.tsx";
