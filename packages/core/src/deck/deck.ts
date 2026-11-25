@@ -8,6 +8,7 @@ import { HinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
 import { syncHub } from "./hub.ts";
 import { parseServedPath } from "../client/location.ts";
+import { citationOrder, numberCitations } from "../components/cite.tsx";
 import { renderDeck, type Page, type Sync } from "./render.ts";
 import type { Slide } from "./slide.ts";
 import type { Theme } from "@hinote/types";
@@ -317,7 +318,13 @@ export class Deck extends Hono {
         results.push({ error });
       }
     }
-    return results;
+    // Citations are numbered for the whole deck, as a link resolves to it.
+    const order = citationOrder(
+      results.flatMap((result) => ("html" in result ? [result.html] : [])),
+    );
+    return results.map((result) =>
+      "html" in result ? { html: numberCitations(result.html, order) } : result,
+    );
   }
 
   // Where each slide id is in the whole deck. Two slides with one id would

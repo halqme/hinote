@@ -16,6 +16,11 @@ import { servedPath, slideHash } from "../client/location.ts";
 import { transitionData, type Transition } from "./transition.ts";
 import { repeatedMorph } from "../components/morph.tsx";
 import { gatherScripts } from "../components/script.tsx";
+import {
+  citationOrder,
+  listedSources,
+  numberCitations,
+} from "../components/cite.tsx";
 import { elementHtml } from "../components/html.ts";
 import {
   defaultTheme,
@@ -97,6 +102,10 @@ const SLIDE_CSS = `
 :where(.slide:lang(ja)) :is(code,pre){word-break:normal}
 :where(.slide) pre.highlights{margin:0;padding:1em 1.25em;border:1px solid var(--hinote-color-border);border-radius:var(--hinote-radius);background:var(--hinote-color-surface);font-size:var(--hinote-text-code);line-height:1.5;text-align:left;white-space:pre;overflow:hidden}
 :where(.slide) a{color:var(--hinote-color-accent)}
+.hinote-cite{white-space:nowrap}
+.hinote-references{list-style:none;padding-left:0}
+.hinote-references>li{padding-left:2.5em;text-indent:-2.5em}
+.hinote-references>li::before{content:"[" attr(value) "]";display:inline-block;width:2.5em;text-indent:0}
 :where(.slide) .hinote-page{position:absolute;right:calc(var(--hinote-space-unit) * 4);bottom:calc(var(--hinote-space-unit) * 3);margin:0;color:var(--hinote-color-muted);font-size:var(--hinote-text-small);font-variant-numeric:tabular-nums}
 `.trim();
 
@@ -439,15 +448,8 @@ export async function renderDeck(input: {
 ${author.css}
 ${FRAME_CSS}`;
   // Slides render one after another, so an error names the first broken slide.
-  const slides = [];
+  const rendered: string[] = [];
   for (const [index, slide] of input.slides.entries()) {
-    const className = [
-      "slide",
-      index === 0 ? "is-active" : "",
-      slide.options.class,
-    ]
-      .filter(Boolean)
-      .join(" ");
     const html = linkSlides(
       numberSteps(
         await elementHtml(
@@ -481,6 +483,31 @@ ${FRAME_CSS}`;
         `Slide ${index + 1} has two <Morph name="${twice}">, so the page cannot tell which one moves.`,
         { hint: "Give each <Morph> on a slide its own name." },
       );
+    rendered.push(html);
+  }
+  const order = citationOrder(rendered);
+  const listed = listedSources(rendered);
+  // Only a page with <References> can tell a misspelled name: a slide
+  // rendered by itself may cite what another slide lists.
+  if (listed.size > 0)
+    for (const [index, html] of rendered.entries()) {
+      const missing = citationOrder([html]).find((name) => !listed.has(name));
+      if (missing !== undefined)
+        throw new HinoteError(
+          `Slide ${index + 1} cites "${missing}", but <References> has no source by that name.`,
+          { hint: `Add "${missing}" to <References sources>.` },
+        );
+    }
+  const slides = [];
+  for (const [index, slide] of input.slides.entries()) {
+    const html = numberCitations(rendered[index] ?? "", order);
+    const className = [
+      "slide",
+      index === 0 ? "is-active" : "",
+      slide.options.class,
+    ]
+      .filter(Boolean)
+      .join(" ");
     const pageNumber = input.pageNumbers?.[index];
     const pageHtml =
       pageNumber !== undefined && slide.options.pageNumber !== false

@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import {
   Card,
   Center,
+  Cite,
   Column,
   Contents,
   Flow,
@@ -10,6 +11,7 @@ import {
   Link,
   Morph,
   Progress,
+  References,
   Row,
   SectionBar,
   SectionDots,
@@ -292,6 +294,66 @@ describe("createSlide", () => {
     ]);
     const html = await deck.render();
     expect(html.match(/hinote-contents-name">Part</g)).toHaveLength(1);
+  });
+
+  test("Cite numbers sources across the deck, and References lists the cited ones in that order", async () => {
+    const sources = {
+      knuth: "Knuth, Structured Programming with go to Statements, 1974.",
+      unused: "Never cited.",
+      vaswani: (
+        <>
+          Vaswani et al., <i>Attention Is All You Need</i>, 2017.
+        </>
+      ),
+    };
+    const deck = createSlide([
+      createSlide(() => (
+        <p>
+          Attention <Cite source="vaswani" />
+        </p>
+      )),
+      createSlide({ section: "Method" }, [
+        createSlide(() => (
+          <p>
+            Both <Cite source={["knuth", "vaswani"]} />, again{" "}
+            <Cite source="vaswani" />
+          </p>
+        )),
+      ]),
+      createSlide(() => <References sources={sources} />),
+    ]);
+    const cites = (html: string) =>
+      [...html.matchAll(/class="hinote-cite">([^<]*)</g)].map(([, n]) => n);
+    const listed = (html: string) =>
+      [...html.matchAll(/<li data-hinote-source="(\w+)" value="(\d+)">/g)].map(
+        ([, name, n]) => `${n} ${name}`,
+      );
+
+    const html = await deck.render();
+    expect(cites(html)).toEqual(["[1]", "[1, 2]", "[1]"]);
+    expect(listed(html)).toEqual(["1 vaswani", "2 knuth"]);
+    expect(html).toContain("<i>Attention Is All You Need</i>");
+    expect(html).toContain('<li data-hinote-source="unused" hidden="">');
+
+    // Each slide rendered alone, as check and inspect do, keeps the deck's numbers.
+    const each = await deck.renderEach();
+    const pages = each.map((result) => ("html" in result ? result.html : ""));
+    expect(pages.flatMap(cites)).toEqual(["[1]", "[1, 2]", "[1]"]);
+    expect(listed(pages[2] ?? "")).toEqual(["1 vaswani", "2 knuth"]);
+  });
+
+  test("citing a source References does not list, or a malformed name, is an error", async () => {
+    const deck = createSlide([
+      createSlide(() => <Cite source="nowhere" />),
+      createSlide(() => <References sources={{ knuth: "Knuth." }} />),
+    ]);
+    await expect(deck.render()).rejects.toThrow('Slide 1 cites "nowhere"');
+    await expect(
+      deckOf(createSlide(() => <Cite source="two words" />)).render(),
+    ).rejects.toThrow(HinoteError);
+    await expect(
+      deckOf(createSlide(() => <Cite source={[]} />)).render(),
+    ).rejects.toThrow(HinoteError);
   });
 
   test("a duplicate slide id, an unknown target, or a malformed id is an error", async () => {
