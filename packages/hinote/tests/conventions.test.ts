@@ -98,6 +98,44 @@ export default createSlide(() => <p>hinote.send</p>);`),
   expect(client).toEqual([]);
 });
 
+// JSX in a prop after a closed sibling once sent the check into a loop it
+// never left, depending on how the prop's text ended.
+test("JSX in a prop is read as JSX whatever its text ends with", () => {
+  for (const footer of [
+    "<p>2020</p>",
+    "<p>x2020</p>",
+    "<p>凡例</p>",
+    "<p>{n}</p>",
+    "<span can>{n}</span>",
+  ]) {
+    const problems = problemsInSource(
+      source(`const n = 1;
+export default createSlide([
+  createSlide(() => (
+    <div>
+      <p>lead</p>
+      <section title={${footer}}>
+        <p>body</p>
+      </section>
+    </div>
+  )),
+]);`),
+      "deck.tsx",
+    );
+    expect(problems).toEqual([]);
+  }
+
+  const handler = problemsInSource(
+    source(`export default createSlide(() => (
+  <div><p>lead</p><section title={<button onClick={() => {}}>2020</button>} /></div>
+));`),
+    "deck.tsx",
+  );
+  expect(handler.map((problem) => problem.message)).toEqual([
+    "deck.tsx:3: <button onClick> is on a slide, where it never runs.",
+  ]);
+});
+
 // Both are inert on a slide, which renders once on the server; a client file
 // is where they belong, and a component's own on* prop is its business.
 test("an event handler or a state hook on a slide is reported, and not in a client file", () => {

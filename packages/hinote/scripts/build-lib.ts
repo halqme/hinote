@@ -34,4 +34,25 @@ await writeFile(
   `${dist}/client/script.js`,
   `export default ${JSON.stringify(clientScript)};\n`,
 );
+// The source checks parse with Babel, which the package does not depend on:
+// tsc leaves `export { parse } from "@babel/parser"` as it is, so the parser
+// is bundled in its place, with its license. Tree shaking keeps nearly all of
+// it, because Babel picks its syntax plugins by name at runtime.
+const babel = fileURLToPath(
+  new URL("../node_modules/@babel/parser/", import.meta.url),
+);
+const license = await readFile(`${babel}LICENSE`, "utf8");
+const parser = await Bun.build({
+  entrypoints: [`${root}src/cli/parse.ts`],
+  target: "node",
+  format: "esm",
+  minify: true,
+  banner: `/*! @babel/parser\n${license.replaceAll("*/", "* /")}*/`,
+});
+const [output] = parser.outputs;
+if (!parser.success || !output) {
+  for (const log of parser.logs) console.error(log.message);
+  process.exit(1);
+}
+await writeFile(`${dist}/cli/parse.js`, await output.text());
 console.log(dist);

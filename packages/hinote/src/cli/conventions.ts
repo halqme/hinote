@@ -4,7 +4,7 @@
 // `createSlide` to build new slides from data.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
-import { tokenize, type Attr, type Tok } from "../build/lex.ts";
+import { parse } from "./parse.ts";
 
 export type SourceProblem = {
   code: string;
@@ -28,193 +28,199 @@ function isClientFile(file: string): boolean {
   return /\.client\.tsx?$/.test(file);
 }
 
-const OPENERS = new Set(["(", "{", "["]);
-const CLOSERS = new Set([")", "}", "]"]);
+// A node of Babel's syntax tree, read only through the fields used here.
+type Node = {
+  type: string;
+  start?: number | null;
+  loc?: { start: { line: number } } | null;
+  [key: string]: unknown;
+};
 
-// How a token changes the bracket depth. Source that parses is balanced, so
-// one count for all three kinds says when a scan is back at its own level.
-function nest(v: string | undefined): number {
-  if (v === undefined) return 0;
-  return OPENERS.has(v) ? 1 : CLOSERS.has(v) ? -1 : 0;
+function isNode(value: unknown): value is Node {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    typeof value.type === "string"
+  );
 }
 
-function matching(
-  tokens: Tok[],
-  open: number,
-  from: string,
-  to: string,
-): number {
-  let depth = 0;
-  for (let i = open; i < tokens.length; i++) {
-    if (tokens[i]?.v === from) depth++;
-    else if (tokens[i]?.v === to) {
-      depth--;
-      if (depth === 0) return i;
-    }
+function child(node: Node, field: string): Node | undefined {
+  const value = node[field];
+  return isNode(value) ? value : undefined;
+}
+
+function list(node: Node, field: string): Node[] {
+  const value = node[field];
+  return Array.isArray(value) ? value.filter(isNode) : [];
+}
+
+function text(node: Node | undefined, field: string): string | undefined {
+  const value = node?.[field];
+  return typeof value === "string" ? value : undefined;
+}
+
+// Fields that hold no code a check looks at: positions, comments, and types.
+const NOT_CODE = new Set([
+  "loc",
+  "range",
+  "extra",
+  "leadingComments",
+  "trailingComments",
+  "innerComments",
+  "typeAnnotation",
+  "typeParameters",
+  "typeArguments",
+  "superTypeArguments",
+  "returnType",
+]);
+
+// Visits `node` and what it contains, in source order. `visit` returns
+// whether to go inside the node.
+function walk(
+  node: Node,
+  visit: (node: Node, parent?: Node, key?: string) => boolean,
+  parent?: Node,
+  key?: string,
+): void {
+  if (!visit(node, parent, key)) return;
+  for (const [field, value] of Object.entries(node)) {
+    if (NOT_CODE.has(field)) continue;
+    if (Array.isArray(value)) {
+      for (const item of value)
+        if (isNode(item)) walk(item, visit, node, field);
+    } else if (isNode(value)) walk(value, visit, node, field);
   }
-  return tokens.length - 1;
 }
 
-function createSlideNames(tokens: Tok[]): Set<string> {
+function lineOf(node: Node): number {
+  return node.loc?.start.line ?? 0;
+}
+
+function bySource<T extends { at: number }>(items: T[]): T[] {
+  return items.sort((a, b) => a.at - b.at);
+}
+
+const FUNCTIONS = new Set([
+  "ArrowFunctionExpression",
+  "FunctionExpression",
+  "FunctionDeclaration",
+  "ObjectMethod",
+  "ClassMethod",
+]);
+
+function isMember(node: Node): boolean {
+  return (
+    node.type === "MemberExpression" || node.type === "OptionalMemberExpression"
+  );
+}
+
+function isCall(node: Node): boolean {
+  return (
+    node.type === "CallExpression" || node.type === "OptionalCallExpression"
+  );
+}
+
+function identifier(node: Node | undefined): string | undefined {
+  return node?.type === "Identifier" ? text(node, "name") : undefined;
+}
+
+// The local names `createSlide` is imported as.
+function createSlideNames(program: Node): Set<string> {
   const names = new Set<string>();
-  for (let i = 0; i < tokens.length; i++) {
-    if (tokens[i]?.v !== "import" && tokens[i]?.v !== "export") continue;
-    const brace = tokens.findIndex((tok, at) => at > i && tok.v === "{");
-    const from = tokens.findIndex((tok, at) => at > i && tok.v === "from");
-    if (brace < 0 || from < 0 || brace > from) continue;
-    for (let j = brace + 1; j < from; j++) {
-      const tok = tokens[j];
-      if (tok?.k !== "id") continue;
-      if (tok.v === "as") continue;
-      const next = tokens[j + 1];
-      const alias = next?.v === "as" ? tokens[j + 2] : undefined;
-      if (tok.v === "createSlide")
-        names.add(alias?.k === "id" ? alias.v : tok.v);
+  for (const statement of list(program, "body")) {
+    if (statement.type !== "ImportDeclaration") continue;
+    for (const specifier of list(statement, "specifiers")) {
+      if (specifier.type !== "ImportSpecifier") continue;
+      const imported = child(specifier, "imported");
+      const name = identifier(imported) ?? text(imported, "value");
+      const local = identifier(child(specifier, "local"));
+      if (name === "createSlide" && local) names.add(local);
     }
-    i = from;
   }
   return names;
 }
 
 const FLAT = new Set(["map", "flat", "flatMap"]);
 
-function callContainsSlide(
-  tokens: Tok[],
-  open: number,
-  close: number,
-): boolean {
-  for (let i = open + 1; i < close; i++) {
-    const tok = tokens[i];
-    if (tok?.v === "createSlide" || tok?.k === "jsx") return true;
-  }
-  return false;
-}
+type Flat = { name: string; line: number; at: number };
 
-// A `.map` / `.flat` / `.flatMap` whose callback does not build a new slide.
-function forbiddenFlat(tokens: Tok[], dot: number): string | undefined {
-  const name = tokens[dot + 1];
-  const open = tokens[dot + 2];
-  if (name?.k !== "id" || !FLAT.has(name.v) || open?.v !== "(")
-    return undefined;
-  const close = matching(tokens, dot + 2, "(", ")");
-  if (name.v !== "flat" && callContainsSlide(tokens, dot + 2, close))
-    return undefined;
-  return name.v;
-}
-
-function isFunctionExpr(tokens: Tok[], start: number, end: number): boolean {
-  let i = start;
-  if (tokens[i]?.v === "async") i++;
-  if (tokens[i]?.k === "id" && tokens[i + 1]?.v === "=>") return true;
-  if (tokens[i]?.v === "function") return true;
-  if (tokens[i]?.v !== "(") return false;
-  const close = matching(tokens, i, "(", ")");
-  return close < end && tokens[close + 1]?.v === "=>";
-}
-
-function splitArgs(
-  tokens: Tok[],
-  open: number,
-): { start: number; end: number }[] {
-  const close = matching(tokens, open, "(", ")");
-  const args: { start: number; end: number }[] = [];
-  let start = open + 1;
-  let depth = 0;
-  for (let i = open + 1; i < close; i++) {
-    const v = tokens[i]?.v;
-    depth += nest(v);
-    if (v === "," && depth === 0) {
-      args.push({ start, end: i });
-      start = i + 1;
-    }
-  }
-  if (start < close) args.push({ start, end: close });
-  return args;
-}
-
-function skipFunction(tokens: Tok[], arrow: number): number {
-  const body = arrow + 1;
-  const tok = tokens[body];
-  if (tok?.v === "{") return matching(tokens, body, "{", "}");
-  // A concise body ends at the next comma or closer of the surrounding call.
-  let depth = 0;
-  for (let i = body; i < tokens.length; i++) {
-    const v = tokens[i]?.v;
-    if (depth === 0 && (v === "," || (v !== undefined && CLOSERS.has(v))))
-      return i - 1;
-    depth += nest(v);
-  }
-  return tokens.length - 1;
-}
-
-function flatsIn(
-  tokens: Tok[],
-  start: number,
-  end: number,
-): { name: string; line: number }[] {
-  const found: { name: string; line: number }[] = [];
-  for (let i = start; i < end; i++) {
-    const tok = tokens[i];
-    if (tok?.v === "=>") {
-      i = skipFunction(tokens, i);
-      continue;
-    }
-    if (tok?.v === "function") {
-      const brace = tokens.findIndex((item, at) => at > i && item.v === "{");
-      if (brace >= 0) i = matching(tokens, brace, "{", "}");
-      continue;
-    }
-    if (tok?.v === "." || tok?.v === "?.") {
-      const name = forbiddenFlat(tokens, i);
-      if (name) found.push({ name, line: tokens[i + 1]?.line ?? tok.line });
-    }
-  }
+function buildsSlide(node: Node, names: Set<string>): boolean {
+  let found = false;
+  walk(node, (inner) => {
+    if (found) return false;
+    if (inner.type === "JSXElement" || inner.type === "JSXFragment")
+      found = true;
+    else if (names.has(identifier(inner) ?? "")) found = true;
+    return !found;
+  });
   return found;
 }
 
-// Tokens that end a top-level declaration's initializer.
-const STATEMENT_START = new Set([
-  ";",
-  "const",
-  "let",
-  "var",
-  "import",
-  "export",
-  "function",
-  "class",
-]);
+// A `.map` / `.flat` / `.flatMap` whose callback does not build a new slide.
+function forbiddenFlat(call: Node, names: Set<string>): Flat | undefined {
+  const callee = child(call, "callee");
+  if (!callee || !isMember(callee) || callee.computed) return undefined;
+  const property = child(callee, "property");
+  const name = identifier(property);
+  if (!property || !name || !FLAT.has(name)) return undefined;
+  if (
+    name !== "flat" &&
+    list(call, "arguments").some((arg) => buildsSlide(arg, names))
+  )
+    return undefined;
+  return { name, line: lineOf(property), at: property.start ?? 0 };
+}
 
-function bindings(tokens: Tok[]): Map<string, { line: number; name: string }> {
-  const bound = new Map<string, { line: number; name: string }>();
-  let depth = 0;
-  for (let i = 0; i < tokens.length; i++) {
-    const v = tokens[i]?.v;
-    depth += nest(v);
-    if (depth !== 0) continue;
-    if (v !== "const" && v !== "let" && v !== "var") continue;
-    const id = tokens[i + 1];
-    if (id?.k !== "id" || tokens[i + 2]?.v !== "=") continue;
-    let end = i + 3;
-    let inner = 0;
-    for (let j = i + 3; j < tokens.length; j++) {
-      const n = tokens[j]?.v;
-      if (inner === 0 && n !== undefined && STATEMENT_START.has(n)) {
-        end = j;
-        break;
-      }
-      inner += nest(n);
-      end = j + 1;
+// The flattening calls in `node`, leaving out function bodies, which run
+// later or not at all.
+function flatsIn(node: Node, names: Set<string>): Flat[] {
+  const found: Flat[] = [];
+  walk(node, (inner) => {
+    if (FUNCTIONS.has(inner.type)) return false;
+    const flat = isCall(inner) ? forbiddenFlat(inner, names) : undefined;
+    if (flat) found.push(flat);
+    return true;
+  });
+  return bySource(found);
+}
+
+// Top-level bindings whose value is built by flattening.
+function bindings(program: Node, names: Set<string>): Map<string, Flat> {
+  const bound = new Map<string, Flat>();
+  for (const statement of list(program, "body")) {
+    const declaration =
+      statement.type === "ExportNamedDeclaration"
+        ? child(statement, "declaration")
+        : statement;
+    if (declaration?.type !== "VariableDeclaration") continue;
+    for (const declarator of list(declaration, "declarations")) {
+      const id = identifier(child(declarator, "id"));
+      const init = child(declarator, "init");
+      if (!id || !init) continue;
+      const flat = flatsIn(init, names)[0];
+      if (flat) bound.set(id, flat);
     }
-    const flat = flatsIn(tokens, i + 3, end)[0];
-    if (flat) bound.set(id.v, flat);
-    i = Math.max(i, end - 1);
   }
   return bound;
 }
 
+// An identifier read as a value: not a property name, not a callee, and not
+// the object of a member access.
+function isValueRead(parent: Node | undefined, key: string | undefined) {
+  if (!parent) return true;
+  if (isMember(parent))
+    return key === "property" ? Boolean(parent.computed) : key !== "object";
+  if (isCall(parent) || parent.type === "NewExpression")
+    return key !== "callee";
+  if (parent.type === "ObjectProperty" && key === "key")
+    return Boolean(parent.computed);
+  return true;
+}
+
 function browserProblems(
   source: string,
-  tokens: Tok[],
+  program: Node,
   file: string,
 ): SourceProblem[] {
   if (isClientFile(file)) return [];
@@ -242,81 +248,107 @@ function browserProblems(
         hint: BROWSER_HINT,
       });
   }
-  for (let i = 0; i < tokens.length; i++) {
-    const tok = tokens[i];
-    const next = tokens[i + 1];
-    const prev = tokens[i - 1];
-    const uses =
-      (tok?.k === "id" && tok.v === "hinote" && next?.v === ".") ||
-      (prev?.v === "." &&
-        prev.k === "punct" &&
-        tokens[i - 2]?.v === "window" &&
-        tok?.v === "hinote");
-    if (tok && uses)
-      problems.push({
-        code: "browser-global",
-        message: `${file}:${tok.line}: hinote is used outside a *.client.tsx file.`,
-        hint: BROWSER_HINT,
-      });
-  }
+  // `hinote.x` and `window.hinote`.
+  const uses: { line: number; at: number }[] = [];
+  walk(program, (node) => {
+    if (!isMember(node)) return true;
+    const object = child(node, "object");
+    const property = child(node, "property");
+    if (object && identifier(object) === "hinote")
+      uses.push({ line: lineOf(object), at: object.start ?? 0 });
+    else if (
+      property &&
+      identifier(object) === "window" &&
+      !node.computed &&
+      identifier(property) === "hinote"
+    )
+      uses.push({ line: lineOf(property), at: property.start ?? 0 });
+    return true;
+  });
+  for (const use of bySource(uses))
+    problems.push({
+      code: "browser-global",
+      message: `${file}:${use.line}: hinote is used outside a *.client.tsx file.`,
+      hint: BROWSER_HINT,
+    });
   return problems;
 }
 
-function flattenProblems(tokens: Tok[], file: string): SourceProblem[] {
-  const names = createSlideNames(tokens);
+function flattenProblems(program: Node, file: string): SourceProblem[] {
+  const names = createSlideNames(program);
   if (names.size === 0) return [];
-  const bound = bindings(tokens);
+  const bound = bindings(program, names);
   const problems: SourceProblem[] = [];
-  for (let i = 0; i < tokens.length; i++) {
-    const tok = tokens[i];
-    if (tok?.k !== "id" || !names.has(tok.v) || tokens[i + 1]?.v !== "(")
-      continue;
-    const args = splitArgs(tokens, i + 1);
-    const slots =
-      args.length >= 2 ? args.slice(1) : args.length === 1 ? args : [];
+  walk(program, (call) => {
+    if (!isCall(call) || !names.has(identifier(child(call, "callee")) ?? ""))
+      return true;
+    const args = list(call, "arguments");
+    const slots = args.length >= 2 ? args.slice(1) : args;
     for (const arg of slots) {
-      if (isFunctionExpr(tokens, arg.start, arg.end)) continue;
-      if (tokens[arg.start]?.v === "{") continue;
-      for (const flat of flatsIn(tokens, arg.start, arg.end))
+      if (FUNCTIONS.has(arg.type) || arg.type === "ObjectExpression") continue;
+      for (const flat of flatsIn(arg, names))
         problems.push({
           code: "flattened-deck",
           message: `${file}:${flat.line}: createSlide receives an array built with .${flat.name}().`,
           hint: FLAT_HINT,
         });
-      for (let j = arg.start; j < arg.end; j++) {
-        const id = tokens[j];
-        if (id?.k !== "id") continue;
-        if (tokens[j + 1]?.v === "." || tokens[j + 1]?.v === "(") continue;
-        const hit = bound.get(id.v);
-        if (!hit) continue;
+      const reads: { name: string; flat: Flat; line: number; at: number }[] =
+        [];
+      walk(arg, (node, parent, key) => {
+        if (FUNCTIONS.has(node.type)) return false;
+        const name = identifier(node);
+        const flat = name === undefined ? undefined : bound.get(name);
+        if (name && flat && isValueRead(parent, key))
+          reads.push({ name, flat, line: lineOf(node), at: node.start ?? 0 });
+        return true;
+      });
+      for (const read of bySource(reads))
         problems.push({
           code: "flattened-deck",
-          message: `${file}:${id.line}: createSlide receives "${id.v}", built with .${hit.name}().`,
+          message: `${file}:${read.line}: createSlide receives "${read.name}", built with .${read.flat.name}().`,
           hint: FLAT_HINT,
         });
-      }
     }
-    i = matching(tokens, i + 1, "(", ")");
-  }
+    // A createSlide call inside is part of this deck, already read above.
+    return false;
+  });
   return problems;
+}
+
+function jsxName(node: Node | undefined): string {
+  if (node?.type === "JSXIdentifier") return text(node, "name") ?? "";
+  if (node?.type === "JSXNamespacedName")
+    return `${jsxName(child(node, "namespace"))}:${jsxName(child(node, "name"))}`;
+  if (node?.type === "JSXMemberExpression")
+    return `${jsxName(child(node, "object"))}.${jsxName(child(node, "property"))}`;
+  return "";
 }
 
 // Behavior written on a slide: an event handler on an HTML element, or a
 // hook that would change the page. Both are silently inert on the server.
 function serverOnlyProblems(
   source: string,
-  attrs: Attr[],
+  program: Node,
   file: string,
 ): SourceProblem[] {
   if (isClientFile(file)) return [];
   const problems: SourceProblem[] = [];
-  for (const attr of attrs)
-    if (/^[a-z]/.test(attr.tag) && /^on[A-Z]/.test(attr.name))
-      problems.push({
-        code: "server-handler",
-        message: `${file}:${attr.line}: <${attr.tag} ${attr.name}> is on a slide, where it never runs.`,
-        hint: HANDLER_HINT,
-      });
+  walk(program, (node) => {
+    if (node.type !== "JSXOpeningElement") return true;
+    const tag = jsxName(child(node, "name"));
+    if (!/^[a-z]/.test(tag)) return true;
+    for (const attr of list(node, "attributes")) {
+      if (attr.type !== "JSXAttribute") continue;
+      const name = jsxName(child(attr, "name"));
+      if (/^on[A-Z]/.test(name))
+        problems.push({
+          code: "server-handler",
+          message: `${file}:${lineOf(attr)}: <${tag} ${name}> is on a slide, where it never runs.`,
+          hint: HANDLER_HINT,
+        });
+    }
+    return true;
+  });
   for (const match of source.matchAll(
     /import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*["'](hono\/jsx(?:\/dom)?|react)["']/g,
   )) {
@@ -341,16 +373,32 @@ function serverOnlyProblems(
   return problems;
 }
 
+// A file that does not parse has nothing to check here: bundling the deck
+// reports the syntax error.
+function parseProgram(source: string, file: string): Node | undefined {
+  try {
+    const { program } = parse(source, {
+      sourceType: "module",
+      errorRecovery: true,
+      // A .ts file has no JSX: `<T>(x) => x` is a generic, not a tag.
+      plugins: /\.[cm]?ts$/.test(file) ? ["typescript"] : ["typescript", "jsx"],
+    });
+    return isNode(program) ? program : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function problemsInSource(
   source: string,
   file: string,
 ): SourceProblem[] {
-  const attrs: Attr[] = [];
-  const tokens = tokenize(source, attrs);
+  const program = parseProgram(source, file);
+  if (!program) return [];
   return [
-    ...flattenProblems(tokens, file),
-    ...browserProblems(source, tokens, file),
-    ...serverOnlyProblems(source, attrs, file),
+    ...flattenProblems(program, file),
+    ...browserProblems(source, program, file),
+    ...serverOnlyProblems(source, program, file),
   ];
 }
 

@@ -40,7 +40,7 @@ export function fixImportMeta(
   values: Record<string, string>,
   jsx: boolean,
 ): string {
-  const tokens = tokenize(source, [], jsx);
+  const tokens = tokenize(source, jsx);
   let result = "";
   let from = 0;
   for (let i = 0; i + 4 < tokens.length; i++) {

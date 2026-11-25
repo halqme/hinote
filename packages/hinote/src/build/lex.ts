@@ -1,7 +1,7 @@
 // A scanner for the parts of TypeScript and JSX source that are code:
 // identifiers and punctuation, with strings, comments, template text, regular
 // expressions, and JSX text left out. It is not a parser; it knows enough to
-// tell code from text for the source checks and for rewriting import.meta.
+// tell code from text for rewriting import.meta.
 
 // `at` is where the token starts in the source.
 export type Tok = {
@@ -10,15 +10,12 @@ export type Tok = {
   line: number;
   at: number;
 };
-// An attribute written on a JSX element, kept apart from the tokens.
-export type Attr = { tag: string; name: string; line: number };
 
 // Comments and strings are not code. JSX text is not either: a slide may
 // mention hinote.send as words. `<` after an identifier is a comparison or a
 // generic, not a tag (`a < b`, `Box<T>`).
 export function tokenize(
   source: string,
-  attrs: Attr[] = [],
   // A .ts file has no JSX: `<T>(x) => x` is a generic, not a tag.
   jsx = true,
 ): Tok[] {
@@ -88,16 +85,6 @@ export function tokenize(
       }
       if (source[i] === '"' || source[i] === "'") {
         skipString(source[i] ?? '"');
-        continue;
-      }
-      if (/[A-Za-z_]/.test(source[i] ?? "")) {
-        const at = line;
-        let attr = "";
-        while (i < source.length && /[\w:-]/.test(source[i] ?? "")) {
-          attr += source[i];
-          bump(1);
-        }
-        attrs.push({ tag: name, name: attr, line: at });
         continue;
       }
       bump(1);
