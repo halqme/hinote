@@ -939,7 +939,11 @@ describe("sync over the deck server", () => {
   }
 
   const send = (deck: ReturnType<typeof presenterDeckOf>, body: string) =>
-    deck.request("/_hinote/sync", { method: "POST", body });
+    deck.request("/_hinote/sync", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+    });
 
   test("relays a message to the other pages, not back to the sender", async () => {
     const deck = presenterDeckOf(textSlide("x"));
@@ -1005,6 +1009,12 @@ describe("sync over the deck server", () => {
   test("refuses bodies that are not sync messages", async () => {
     const deck = presenterDeckOf(textSlide("x"));
     expect((await send(deck, "nope")).status).toBe(400);
+    // The page sends JSON; a form or a plain text body is not a message.
+    const plain = await deck.request("/_hinote/sync", {
+      method: "POST",
+      body: JSON.stringify({ channel: "", from: "a", message: {} }),
+    });
+    expect(plain.status).toBe(400);
     expect((await send(deck, JSON.stringify({ message: {} }))).status).toBe(
       400,
     );

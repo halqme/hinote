@@ -1,5 +1,7 @@
 import { Hono, type Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { streamSSE } from "hono/streaming";
+import { validator } from "hono/validator";
 import { parseCss, type CssInput, type CssSource } from "./css.ts";
 import { HinoteError } from "../errors.ts";
 import { syncHub } from "./hub.ts";
@@ -47,6 +49,22 @@ const CANVAS_HEIGHT = 1080;
 const PING_MS = 5000;
 // Sync messages are small JSON objects; anything larger is not from a hinote page.
 const MAX_MESSAGE_BYTES = 4096;
+
+type SyncPost = { channel: string; from: string; message: object };
+
+function isSyncPost(body: unknown): body is SyncPost {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    "channel" in body &&
+    typeof body.channel === "string" &&
+    "from" in body &&
+    typeof body.from === "string" &&
+    "message" in body &&
+    typeof body.message === "object" &&
+    body.message !== null
+  );
+}
 
 const ASPECT = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/;
 // A short language tag: "ja", "en", "ja-JP", "zh-Hans". Not free text.
@@ -183,12 +201,7 @@ export class Deck extends Hono {
         this.#pages.set(key, html);
         html.catch(() => this.#pages.delete(key));
       }
-      return new Response(await html, {
-        headers: {
-          "content-type": "text/html; charset=utf-8",
-          "cache-control": "no-store",
-        },
-      });
+      return c.html(await html, 200, { "cache-control": "no-store" });
     };
     // Every slide serves the same page; the client reads the slide from the path.
     this.get("/", page("view"));
@@ -217,32 +230,24 @@ export class Deck extends Hono {
       });
     });
 
-    this.post("/_hinote/sync", async (c) => {
-      if (!this.presenter) return c.notFound();
-      const text = await c.req.text();
-      if (text.length > MAX_MESSAGE_BYTES) return c.body(null, 413);
-      let body: unknown;
-      try {
-        body = JSON.parse(text);
-      } catch {
-        return c.body(null, 400);
-      }
-      if (!body || typeof body !== "object") return c.body(null, 400);
-      const { channel, from, message } = body as {
-        channel?: unknown;
-        from?: unknown;
-        message?: unknown;
-      };
-      if (
-        typeof channel !== "string" ||
-        typeof from !== "string" ||
-        !message ||
-        typeof message !== "object"
-      )
-        return c.body(null, 400);
-      syncHub().broadcast(channel, message, from);
-      return c.body(null, 204);
-    });
+    // A JSON body of at most MAX_MESSAGE_BYTES. Without the JSON content type
+    // the body is not read, so the message is refused.
+    this.post(
+      "/_hinote/sync",
+      (c, next) => (this.presenter ? next() : c.notFound()),
+      bodyLimit({
+        maxSize: MAX_MESSAGE_BYTES,
+        onError: (c) => c.body(null, 413),
+      }),
+      validator("json", (body: unknown, c) =>
+        isSyncPost(body) ? body : c.body(null, 400),
+      ),
+      (c) => {
+        const { channel, from, message } = c.req.valid("json");
+        syncHub().broadcast(channel, message, from);
+        return c.body(null, 204);
+      },
+    );
   }
 
   get canvas(): Canvas {
