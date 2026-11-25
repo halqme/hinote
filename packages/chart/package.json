@@ -33,6 +33,7 @@
     "prepack": "bun scripts/build.ts"
   },
   "dependencies": {
+    "@hinote/shared": "workspace:^",
     "@tanstack/charts": "~1.5.0",
     "hono": "catalog:"
   },

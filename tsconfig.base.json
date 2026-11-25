@@ -37,6 +37,7 @@
       "@hinote/core": ["./packages/core/src/index.ts"],
       "@hinote/core/client": ["./packages/core/src/client-global.ts"],
       "@hinote/core/internal": ["./packages/core/src/internal.ts"],
+      "@hinote/shared": ["./packages/shared/src/index.ts"],
       "@hinote/types": ["./packages/types/index.d.ts"]
     }
   }

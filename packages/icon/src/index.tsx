@@ -1,4 +1,4 @@
-import type { HinoteErrorLike } from "@hinote/types";
+import { PackageError } from "@hinote/shared";
 import type { IconifyJSON } from "@iconify/types";
 import {
   getIconData,
@@ -22,18 +22,6 @@ export type IconProps = {
   class?: string;
   style?: string;
 };
-
-// hinote reports an error with this name as its own, message and all.
-class IconError extends Error implements HinoteErrorLike {
-  override readonly name = "HinoteError";
-  readonly code = "icon";
-  constructor(
-    message: string,
-    readonly hint?: string,
-  ) {
-    super(message);
-  }
-}
 
 // Sets passed to addCollection, by prefix.
 const collections = new Map<string, IconifyJSON>();
@@ -120,10 +108,11 @@ export async function Icon(props: IconProps) {
   const tag = `<Icon name="${props.name}">`;
   const names = typeof props.name === "string" ? iconNames(props.name) : [];
   if (names.length === 0)
-    throw new IconError(
+    throw new PackageError(
       typeof props.name === "string"
         ? `${tag} is not an icon name.`
         : "<Icon> needs the icon's name as `name`.",
+      "icon",
       'Write the set\'s prefix, a colon, and the icon, as icones.js.org shows it: name="mdi:home". The UnoCSS class name="i-mdi-home" works too.',
     );
 
@@ -138,12 +127,14 @@ export async function Icon(props: IconProps) {
   }
   if (!data) {
     if (lacking)
-      throw new IconError(
+      throw new PackageError(
         `${tag}: the set "${lacking.prefix}" has no icon "${lacking.name}".`,
+        "icon",
         `Find its name at https://icones.js.org/collection/${lacking.prefix}`,
       );
-    throw new IconError(
+    throw new PackageError(
       `${tag} needs the icon set ${names.map((n) => `"${n.prefix}"`).join(" or ")}, which is not installed in the deck.`,
+      "icon",
       `Install it in the deck: bun add @iconify-json/${names[0]!.prefix}` +
         ((await fileReader())
           ? ""

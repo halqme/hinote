@@ -33,6 +33,7 @@
     "prepack": "bun ../../scripts/build-package.ts"
   },
   "dependencies": {
+    "@hinote/shared": "workspace:^",
     "beautiful-mermaid": "^1.1.3",
     "hono": "catalog:"
   },

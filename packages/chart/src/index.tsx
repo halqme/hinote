@@ -1,4 +1,4 @@
-import type { HinoteErrorLike } from "@hinote/types";
+import { PackageError } from "@hinote/shared";
 import { createChartRuntime, renderChartSvg } from "@tanstack/charts";
 import { raw } from "hono/html";
 import { sceneJson, type Scene } from "./scene.ts";
@@ -55,19 +55,16 @@ const WIDTH = 1600;
 const HEIGHT = 720;
 const SCALE = 2.5;
 
-// hinote reports an error with this name as its own, message and all.
-class ChartError extends Error implements HinoteErrorLike {
-  override readonly name = "HinoteError";
-  readonly code = "chart";
-}
-
 // The code that animates every chart on the page, bundled with its
 // dependencies. The HTML parser ends a script at "</script".
 const CLIENT = clientScript.replace(/<\/script/gi, "\\u003c/script");
 
 function positive(name: string, value: number): number {
   if (!(value > 0) || !Number.isFinite(value))
-    throw new ChartError(`<Chart ${name}> must be a positive number.`);
+    throw new PackageError(
+      `<Chart ${name}> must be a positive number.`,
+      "chart",
+    );
   return value;
 }
 
@@ -90,7 +87,10 @@ function scenesOf(
     return charts.map((chart) => runtime.render(chart, { width, height }));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new ChartError(`<Chart> could not draw its chart: ${message}`);
+    throw new PackageError(
+      `<Chart> could not draw its chart: ${message}`,
+      "chart",
+    );
   } finally {
     runtime.destroy();
   }
@@ -102,14 +102,18 @@ function scenesOf(
 // the last step, which is what the slide shows with every step out.
 export function Chart(props: ChartProps) {
   if (typeof props.label !== "string" || props.label === "")
-    throw new ChartError("<Chart> needs a label that says what it shows.");
+    throw new PackageError(
+      "<Chart> needs a label that says what it shows.",
+      "chart",
+    );
   const inputs = props.steps ?? (props.chart ? [props.chart] : []);
   if (
     inputs.length === 0 ||
     !inputs.every((item) => isSpec(item) || typeof item === "object")
   )
-    throw new ChartError(
+    throw new PackageError(
       "<Chart> needs chart={bars(rows, { x, y })}, a chart from defineChart, or steps={[...]}.",
+      "chart",
     );
   const width = positive("width", props.width ?? WIDTH);
   const height = positive("height", props.height ?? HEIGHT);

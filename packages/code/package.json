@@ -36,6 +36,7 @@
     "prepack": "bun ../../scripts/build-package.ts"
   },
   "dependencies": {
+    "@hinote/shared": "workspace:^",
     "@pierre/highlights": "^0.5.2",
     "hono": "catalog:"
   },

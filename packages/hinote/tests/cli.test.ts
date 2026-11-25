@@ -1161,9 +1161,10 @@ test("skills has a guide for each package, and says when the deck has another ve
   try {
     const list = JSON.parse((await run(["skills", "--json"], dir)).stdout);
     const names = list.data.map((s: { name: string }) => s.name);
-    // Every @hinote/* component package has its guide here.
+    // Every @hinote/* component package has its guide here; @hinote/shared is
+    // for the packages, not decks.
     const packages = (await readdir(resolve(repo, ".."))).filter(
-      (name) => !["hinote", "types"].includes(name),
+      (name) => !["hinote", "shared", "types"].includes(name),
     );
     expect(packages.length).toBeGreaterThan(0);
     for (const name of packages) expect(names).toContain(name);

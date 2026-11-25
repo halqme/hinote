@@ -1,5 +1,7 @@
-import type { HinoteErrorLike } from "@hinote/types";
+import { PackageError, dedent } from "@hinote/shared";
 import { raw } from "hono/html";
+
+export { dedent } from "@hinote/shared";
 
 export type MermaidProps = {
   // Mermaid source. Children work too: <Mermaid>{`graph LR; a --> b`}</Mermaid>.
@@ -12,12 +14,6 @@ export type MermaidProps = {
   scale?: number;
   class?: string;
 };
-
-// hinote reports an error with this name as its own, message and all.
-class MermaidError extends Error implements HinoteErrorLike {
-  override readonly name = "HinoteError";
-  readonly code = "mermaid";
-}
 
 // The diagrams beautiful-mermaid draws, by the first word of the source.
 const SUPPORTED = new Map([
@@ -34,20 +30,6 @@ const SUPPORTED = new Map([
 
 const SUPPORTED_LIST =
   "graph or flowchart, stateDiagram, sequenceDiagram, classDiagram, erDiagram, and xychart";
-
-// Source written inside a template literal carries the indentation of the JSX
-// around it. Drop blank lines at both ends and the indentation every line shares.
-export function dedent(source: string): string {
-  const lines = source.replace(/\t/g, "  ").split("\n");
-  while (lines.length > 0 && lines[0]?.trim() === "") lines.shift();
-  while (lines.length > 0 && lines.at(-1)?.trim() === "") lines.pop();
-  const indent = Math.min(
-    ...lines
-      .filter((line) => line.trim() !== "")
-      .map((line) => line.length - line.trimStart().length),
-  );
-  return lines.map((line) => line.slice(indent)).join("\n");
-}
 
 // The first word of the first line that is not a comment, such as "graph".
 function header(code: string): string {
@@ -125,18 +107,23 @@ export async function Mermaid(props: MermaidProps) {
     props.code ??
     (Array.isArray(props.children) ? props.children.join("") : props.children);
   if (typeof source !== "string" || source.trim() === "")
-    throw new MermaidError(
+    throw new PackageError(
       "<Mermaid> needs its source as `code` or as text children.",
+      "mermaid",
     );
   const code = dedent(source);
   const kind = header(code);
   if (!SUPPORTED.has(kind))
-    throw new MermaidError(
+    throw new PackageError(
       `<Mermaid> cannot draw "${kind}". It draws ${SUPPORTED_LIST}.`,
+      "mermaid",
     );
   const scale = props.scale ?? 2.5;
   if (!(scale > 0))
-    throw new MermaidError("<Mermaid scale> must be a positive number.");
+    throw new PackageError(
+      "<Mermaid scale> must be a positive number.",
+      "mermaid",
+    );
   // Loaded on the first diagram, so a deck that imports this package but
   // draws nothing never loads the layout engine.
   const { renderMermaidSVG } = await import("beautiful-mermaid");
@@ -145,7 +132,10 @@ export async function Mermaid(props: MermaidProps) {
     svg = renderMermaidSVG(code, { ...COLORS, transparent: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new MermaidError(`<Mermaid> is not valid Mermaid: ${message}`);
+    throw new PackageError(
+      `<Mermaid> is not valid Mermaid: ${message}`,
+      "mermaid",
+    );
   }
   const name = `hinote-mermaid-${salt(JSON.stringify([code, scale]))}`;
   const className = props.class ? ` ${escapeAttribute(props.class)}` : "";

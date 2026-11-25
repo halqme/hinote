@@ -1,0 +1,35 @@
+{
+  "name": "@hinote/shared",
+  "version": "0.5.2",
+  "description": "Code the @hinote/* packages share, such as dedent and their error",
+  "license": "MIT",
+  "author": "HALQME",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halqme/hinote.git",
+    "directory": "packages/shared"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts",
+    "test": "bun test",
+    "typecheck": "bun check",
+    "prepack": "bun ../../scripts/build-package.ts"
+  },
+  "dependencies": {
+    "@hinote/types": "workspace:^"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
+}

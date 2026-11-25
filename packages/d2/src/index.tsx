@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
-import type { HinoteErrorLike } from "@hinote/types";
+import { PackageError, dedent } from "@hinote/shared";
 import type { D2 as D2Compiler } from "@terrastruct/d2";
 import { raw } from "hono/html";
+
+export { dedent } from "@hinote/shared";
 
 export type D2Props = {
   // D2 source. Children work too: <D2>{`a -> b`}</D2>. A template literal
@@ -24,26 +26,6 @@ export type D2Props = {
   scale?: number;
   class?: string;
 };
-
-// hinote reports an error with this name as its own, message and all.
-class D2Error extends Error implements HinoteErrorLike {
-  override readonly name = "HinoteError";
-  readonly code = "d2";
-}
-
-// Source written inside a template literal carries the indentation of the JSX
-// around it. Drop blank lines at both ends and the indentation every line shares.
-export function dedent(source: string): string {
-  const lines = source.replace(/\t/g, "  ").split("\n");
-  while (lines.length > 0 && lines[0]?.trim() === "") lines.shift();
-  while (lines.length > 0 && lines.at(-1)?.trim() === "") lines.pop();
-  const indent = Math.min(
-    ...lines
-      .filter((line) => line.trim() !== "")
-      .map((line) => line.length - line.trimStart().length),
-  );
-  return lines.map((line) => line.slice(indent)).join("\n");
-}
 
 // The compiler is WebAssembly in a worker thread. It starts on the first <D2>,
 // so a deck that imports this package but draws nothing never loads it.
@@ -111,7 +93,10 @@ export async function D2(props: D2Props) {
     props.code ??
     (Array.isArray(props.children) ? props.children.join("") : props.children);
   if (typeof source !== "string")
-    throw new D2Error("<D2> needs its source as `code` or as text children.");
+    throw new PackageError(
+      "<D2> needs its source as `code` or as text children.",
+      "d2",
+    );
   const code = dedent(source);
   const d2 = await start();
   const svg = await serially(async () => {
@@ -124,7 +109,10 @@ export async function D2(props: D2Props) {
           options: { layout: props.layout ?? "dagre" },
         })
         .catch((error: unknown) => {
-          throw new D2Error(`<D2> is not valid D2: ${describe(error)}`);
+          throw new PackageError(
+            `<D2> is not valid D2: ${describe(error)}`,
+            "d2",
+          );
         });
       return await d2.render(compiled.diagram, {
         ...compiled.renderOptions,

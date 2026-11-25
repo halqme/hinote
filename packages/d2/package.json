@@ -33,6 +33,7 @@
     "prepack": "bun ../../scripts/build-package.ts"
   },
   "dependencies": {
+    "@hinote/shared": "workspace:^",
     "@terrastruct/d2": "^0.1.33",
     "hono": "catalog:"
   },
