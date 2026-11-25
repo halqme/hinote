@@ -1311,6 +1311,13 @@ test("static paths cannot escape the deck directory", async () => {
     expect(await (await app.request("http://local/ok.txt")).text()).toBe("ok");
     expect((await app.request("http://local/missing-file")).status).toBe(404);
     expect((await app.request("http://local/leak.txt")).status).toBe(404);
+
+    // A name is decoded once, whatever characters it has.
+    for (const name of ["#1.txt", "a%41.txt", "a b?.txt", "凡例.txt"]) {
+      await writeFile(join(root, name), name);
+      const url = `http://local/${encodeURIComponent(name)}`;
+      expect(await (await app.request(url)).text()).toBe(name);
+    }
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

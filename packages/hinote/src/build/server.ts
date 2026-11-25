@@ -35,7 +35,9 @@ export function createDevApp(current: () => FetchApp, rootDir: string) {
   app.all("*", async (c) => {
     const response = await current().fetch(c.req.raw);
     if (response.status !== 404 || c.req.method !== "GET") return response;
-    const file = resolveInside(rootDir, new URL(c.req.url).pathname);
+    // c.req.path decodes like decodeURI: %25 and reserved characters such as
+    // %23 stay encoded, so resolveInside's own decoding still decodes once.
+    const file = resolveInside(rootDir, c.req.path);
     if (!file) return response;
     // A type Hono does not know is a download.
     return c.body(new Uint8Array(await readFile(file)), 200, {
