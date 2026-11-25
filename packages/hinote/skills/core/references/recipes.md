@@ -25,6 +25,26 @@ createSlide(
 
 The slide keeps its `spacing.safe` padding, so the title sits where it does on every other slide. The photo pulls out to the edges with a negative margin of the same size, and `data-hinote-bleed` tells `snapshot` the bleed is intended.
 
+## A headline, its lead, and the body
+
+```tsx
+<Column gap={4}>
+  <h2>Size does not explain the gap</h2>
+  <p>Small and large teams ship at the same pace.</p>
+  <Row gap={4}>...</Row>
+</Column>
+```
+
+Write it once as a component of the deck, so the headline sits in the same place on every slide. When a step in the lead comments on steps in the body, give each of them `at`: a step without `at` counts on from the steps before it in the HTML, and the lead comes first.
+
+```tsx
+<Step as="p" at={3}>April went from 160 to 310 visits.</Step>
+<ul>
+  <Step as="li" at={1}>March</Step>
+  <Step as="li" at={2}>April</Step>
+</ul>
+```
+
 ## Two columns
 
 ```tsx
