@@ -1,4 +1,5 @@
-import type { ContrastCheck, HinoteErrorLike } from "@hinote/types";
+import type { ContrastCheck } from "@hinote/types";
+import { PackageError } from "@hinote/shared";
 import { raw } from "hono/html";
 import { QrCodeDataType, encode } from "uqr";
 
@@ -37,15 +38,9 @@ export type QrProps = {
   style?: string;
 };
 
-// hinote reports an error with this name as its own, message and all.
-class QrError extends Error implements HinoteErrorLike {
-  override readonly name = "HinoteError";
-  readonly code = "qr";
-  constructor(
-    message: string,
-    readonly hint?: string,
-  ) {
-    super(message);
+class QrError extends PackageError {
+  constructor(message: string, hint?: string) {
+    super(message, "qr", hint);
   }
 }
 

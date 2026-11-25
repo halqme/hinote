@@ -123,6 +123,7 @@
       "name": "@hinote/qr",
       "version": "0.5.2",
       "dependencies": {
+        "@hinote/shared": "workspace:^",
         "hono": "catalog:",
         "uqr": "^0.1.3",
       },
