@@ -1,0 +1,22 @@
+{
+  "name": "hinote-showcase",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "hinote dev",
+    "build": "hinote build",
+    "check": "hinote check",
+    "snapshot": "hinote snapshot"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
+    "@hinote/chart": "workspace:*",
+    "@hinote/code": "workspace:*",
+    "@hinote/d2": "workspace:*",
+    "@hinote/katex": "workspace:*",
+    "hinote": "workspace:*",
+    "hono": "catalog:"
+  }
+}

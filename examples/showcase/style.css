@@ -1,0 +1,311 @@
+/* CSS for every slide. Selectors match inside a slide; & is the slide itself. */
+
+/* Fonts from the @fontsource packages (SIL Open Font License). */
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: normal;
+  font-weight: 400;
+  src: url("./node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: italic;
+  font-weight: 400;
+  src: url("./node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "Geist Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  src: url("./node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2")
+    format("woff2-variations");
+}
+
+@font-face {
+  font-family: "Geist Mono Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  src: url("./node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2")
+    format("woff2-variations");
+}
+
+& {
+  font-weight: 380;
+  letter-spacing: -0.005em;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.98;
+}
+
+em {
+  font-style: italic;
+  color: var(--hinote-color-accent);
+}
+
+strong {
+  font-weight: 600;
+  color: var(--hinote-color-fg);
+}
+
+/* ---------- Wordmark ---------- */
+
+.brand {
+  width: fit-content;
+  font-family: var(--hinote-font-heading);
+  font-style: italic;
+  font-size: 2.75rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.brand.is-quiet {
+  color: var(--hinote-color-muted);
+}
+
+/* ---------- Cover and last page ---------- */
+
+&.cover {
+  justify-content: flex-end;
+}
+
+.cover-body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--hinote-space-unit) * 5);
+}
+
+&.cover .brand {
+  font-size: 23rem;
+  line-height: 0.8;
+  letter-spacing: -0.045em;
+  padding-bottom: calc(var(--hinote-space-unit) * 3);
+  border-bottom: 1px solid var(--hinote-color-fg);
+  width: 100%;
+}
+
+.dateline {
+  font-family: var(--hinote-font-mono);
+  font-size: var(--hinote-text-small);
+  color: var(--hinote-color-muted);
+}
+
+.cover-line {
+  max-width: 30ch;
+  font-family: var(--hinote-font-heading);
+  font-size: var(--hinote-text-h3);
+  line-height: 1.1;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--hinote-space-unit) * 1.5);
+  font-size: var(--hinote-text-code);
+}
+
+.shell code::before {
+  content: "$ ";
+  color: var(--hinote-color-accent);
+}
+
+/* ---------- Content pages ---------- */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--hinote-space-unit) * 6);
+  height: 100%;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: calc(var(--hinote-space-unit) * 1) 0
+    calc(var(--hinote-space-unit) * 2);
+  border-bottom: 1px solid var(--hinote-color-fg);
+}
+
+.section {
+  font-family: var(--hinote-font-mono);
+  font-size: var(--hinote-text-small);
+  color: var(--hinote-color-muted);
+}
+
+.spread {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 640px 1fr;
+  gap: calc(var(--hinote-space-unit) * 10);
+  align-items: center;
+}
+
+.spread.is-wide {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: calc(var(--hinote-space-unit) * 5);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--hinote-space-unit) * 4);
+}
+
+.spread.is-wide .text {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: calc(var(--hinote-space-unit) * 10);
+}
+
+.spread.is-wide .text h2 {
+  max-width: 20ch;
+}
+
+.standfirst {
+  max-width: 26ch;
+  color: var(--hinote-color-muted);
+  line-height: 1.4;
+}
+
+.spread.is-wide .standfirst {
+  max-width: 24ch;
+}
+
+.figure {
+  margin: 0;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.figure > pre.highlights {
+  align-self: stretch;
+  border: none;
+  border-radius: var(--hinote-radius);
+  padding: calc(var(--hinote-space-unit) * 5);
+}
+
+.formula {
+  font-size: 2.6em;
+}
+
+/* ---------- Morph cards ---------- */
+
+.morph-title {
+  width: fit-content;
+}
+
+.morph-title.is-small {
+  font-size: var(--hinote-text-h3);
+}
+
+.cards {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(var(--hinote-space-unit) * 3);
+}
+
+.cards.is-focus {
+  grid-template-columns: 2fr 1fr;
+  flex: 1;
+}
+
+.cards-side {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: calc(var(--hinote-space-unit) * 3);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: calc(var(--hinote-space-unit) * 1.5);
+  min-height: 340px;
+  padding: calc(var(--hinote-space-unit) * 5);
+  border: 1px solid var(--hinote-color-border);
+  background: var(--hinote-color-surface);
+}
+
+.card h3 {
+  font-size: var(--hinote-text-h2);
+}
+
+.card p {
+  color: var(--hinote-color-muted);
+}
+
+.card-no {
+  margin-bottom: auto;
+  font-family: var(--hinote-font-heading);
+  font-style: italic;
+  font-size: var(--hinote-text-h3);
+  color: var(--hinote-color-accent);
+}
+
+.card.is-big {
+  border-color: var(--hinote-color-fg);
+}
+
+.card.is-big h3 {
+  font-size: 11rem;
+}
+
+.cards-side .card {
+  min-height: 0;
+}
+
+.cards-side .card p {
+  display: none;
+}
+
+/* ---------- Step effects ---------- */
+
+.effects {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(var(--hinote-space-unit) * 3);
+}
+
+.effect {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 3 / 4;
+  padding: calc(var(--hinote-space-unit) * 4);
+  border: 1px solid var(--hinote-color-border);
+  background: var(--hinote-color-surface);
+}
+
+.effect-name {
+  font-family: var(--hinote-font-heading);
+  font-style: italic;
+  font-size: var(--hinote-text-h1);
+  line-height: 1;
+  color: var(--hinote-color-accent);
+}
+
+.effect code {
+  font-size: var(--hinote-text-small);
+  color: var(--hinote-color-muted);
+}
