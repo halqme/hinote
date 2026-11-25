@@ -26,13 +26,16 @@ import style from "./style.css" with { type: "text" };
 import title from "./slides/title.tsx";
 import agenda from "./slides/agenda.tsx";
 
-export default createSlide({ title: "Talk", aspect: "16:9", css: style }, [
-  title,
-  agenda,
-  createSlide({ transition: "fade" }, [
-    /* a nested deck: its slides, in order */
-  ]),
-]);
+export default createSlide(
+  { document: { title: "Talk", aspect: "16:9" }, css: style },
+  [
+    title,
+    agenda,
+    createSlide({ transition: "fade" }, [
+      /* a nested deck: its slides, in order */
+    ]),
+  ],
+);
 ```
 
 ```tsx
@@ -50,7 +53,7 @@ export default createSlide({ notes: "Say why before how." }, () => (
 ));
 ```
 
-- `createSlide(render)` or `createSlide(options, render)` is one slide; `createSlide([...])` or `createSlide(options, [...])` is a deck. Decks nest and are flattened in order. Pass a nested deck in the array as it is. Do not `.map`, `.flat()`, or `.flatMap()` it into slides yourself. A `.map` that builds new slides with `createSlide`, or that draws rows inside a render function, is fine. Slide numbers in URLs and in `check` count from 1 across the flattened deck. `pageNumber: true` on the top-level deck paints that same count on each slide (`3 / 12`). A slide's `pageNumber: false` hides its own.
+- `createSlide(render)` or `createSlide(options, render)` is one slide; `createSlide([...])` or `createSlide(options, [...])` is a deck. Decks nest and are flattened in order. Pass a nested deck in the array as it is. Do not `.map`, `.flat()`, or `.flatMap()` it into slides yourself. A `.map` that builds new slides with `createSlide`, or that draws rows inside a render function, is fine. Slide numbers in URLs and in `check` count from 1 across the flattened deck. `document: { pageNumber: true }` on the top-level deck paints that same count on each slide (`3 / 12`). A slide's `pageNumber: false` hides its own.
 - The canvas is 1080 px tall; 16:9 is 1920 x 1080 and 4:3 is 1440 x 1080. Size text and images for that canvas, not for a browser window.
 - JSX is `hono/jsx`: write `class`, `style` as a string or object, and plain HTML elements. React hooks and event handlers do nothing on a slide.
 - Render functions may be `async` (read a file, fetch data).

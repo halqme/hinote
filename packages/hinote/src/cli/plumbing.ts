@@ -312,8 +312,8 @@ export const inspect: Command = {
     const slides = await describeSlides(deck);
     const data = {
       file,
-      title: deck.config.title ?? slides.find((s) => s.title)?.title,
-      aspect: deck.config.aspect ?? "16:9",
+      title: deck.config.document?.title ?? slides.find((s) => s.title)?.title,
+      aspect: deck.config.document?.aspect ?? "16:9",
       canvas: deck.canvas,
       presenter: deck.presenter,
       slides,

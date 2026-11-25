@@ -30,7 +30,7 @@ class FakeChannel {
   close() {}
 }
 
-const deck = createSlide({ presenter: true }, [
+const deck = createSlide({ document: { presenter: true } }, [
   createSlide({ notes: "first notes" }, () => <p>one</p>),
   createSlide({ notes: "second notes" }, () => (
     <ul>
@@ -356,7 +356,7 @@ describe("window.hinote", () => {
 
 describe("the presenter view", () => {
   test("notes show their structure, plain notes read as before, and HTML stays text", async () => {
-    const noted = createSlide({ presenter: true }, [
+    const noted = createSlide({ document: { presenter: true } }, [
       createSlide(
         {
           notes:
@@ -456,7 +456,7 @@ describe("the presenter view", () => {
   });
 
   test("shows progress in the side column, the next slide under it, and titles only in the overview", async () => {
-    const titled = createSlide({ presenter: true }, [
+    const titled = createSlide({ document: { presenter: true } }, [
       createSlide({ title: "Open", notes: "Say this." }, () => <p>a</p>),
       createSlide({ title: "Method" }, () => (
         <ul>
@@ -517,7 +517,7 @@ describe("the presenter view", () => {
   });
 
   test("notes are shown when a slide has them, and not when it does not", async () => {
-    const noted = createSlide({ presenter: true }, [
+    const noted = createSlide({ document: { presenter: true } }, [
       createSlide({ notes: "# Claim\n\nSay this." }, () => <p>a</p>),
       createSlide(() => <p>b</p>),
     ]);
@@ -539,7 +539,7 @@ describe("the presenter view", () => {
   });
 
   test("the audience page carries neither speaker notes nor slide titles", async () => {
-    const titled = createSlide({ presenter: true }, [
+    const titled = createSlide({ document: { presenter: true } }, [
       createSlide({ title: "Open", notes: "secret" }, () => <p>a</p>),
     ]);
     await open("view", "http://localhost/1", undefined, false, titled);

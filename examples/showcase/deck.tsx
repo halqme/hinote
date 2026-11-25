@@ -8,11 +8,9 @@ import end from "./slides/end.tsx";
 // Settings and order. The section decks are the same list the contents page links.
 export default createSlide(
   {
-    title: "hinote showcase",
-    lang: "en",
+    document: { title: "hinote showcase", lang: "en", pageNumber: true },
     theme,
     css: style,
-    pageNumber: true,
   },
   [cover, contents, ...sectionDecks, end],
 );

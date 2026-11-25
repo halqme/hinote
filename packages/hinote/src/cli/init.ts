@@ -37,11 +37,10 @@ const compare = createSlide({ title: "Compare" }, () => (
   </Column>
 ));
 
-export default createSlide({ aspect: "16:9", transition: "fade", css: style }, [
-  title,
-  points,
-  compare,
-]);
+export default createSlide(
+  { document: { aspect: "16:9" }, transition: "fade", css: style },
+  [title, points, compare],
+);
 `;
 
 const STYLE = `/* CSS for every slide. Selectors match inside a slide; & is the slide itself. */

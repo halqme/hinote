@@ -160,7 +160,7 @@ export const dev: Command = {
 
 With --json it prints one {"event", "data"} line per event: listening (the URLs), notice (a warning about serving the network), reloaded, and reload-failed (the error).
 
---host 0.0.0.0 serves the network too. Every file in the deck directory can then be fetched, and the presenter view stays off unless the deck sets presenter: true.`,
+--host 0.0.0.0 serves the network too. Every file in the deck directory can then be fetched, and the presenter view stays off unless the deck sets document: { presenter: true }.`,
   flags: {
     port: {
       type: "number",
@@ -188,7 +188,7 @@ With --json it prints one {"event", "data"} line per event: listening (the URLs)
     const host = stringFlag(args, "host") ?? "127.0.0.1";
     // The presenter view, sync, and pointer are for presenting from this
     // machine. On localhost dev turns them on; on the network only a deck that
-    // says presenter: true gets them, since anyone who can reach the server
+    // says document: { presenter: true } gets them, since anyone who can reach the server
     // could read the notes and drive the slides.
     const prepare = (loaded: Deck) => {
       loaded.live = true;
@@ -225,7 +225,7 @@ With --json it prints one {"event", "data"} line per event: listening (the URLs)
       );
       if (!deck.presenter)
         notice(
-          "The presenter view, sync, and pointer are off on the network. Set presenter: true on the deck to turn them on.",
+          "The presenter view, sync, and pointer are off on the network. Set document: { presenter: true } on the deck to turn them on.",
         );
     }
 
@@ -324,7 +324,7 @@ export const prerender: Command = {
   summary: "Write every page a static host serves",
   args: DECK_ARG,
   maxArgs: 1,
-  description: `Writes index.html at / and at /3/ for every slide, plus the files the slides refer to, for GitHub Pages, Cloudflare Pages, Netlify, or any static host. With presenter: true on the deck it also writes /presenter/ and /presenter/3/, which sync with the audience pages in the same browser. Anyone can open those and read the notes.`,
+  description: `Writes index.html at / and at /3/ for every slide, plus the files the slides refer to, for GitHub Pages, Cloudflare Pages, Netlify, or any static host. With document: { presenter: true } on the deck it also writes /presenter/ and /presenter/3/, which sync with the audience pages in the same browser. Anyone can open those and read the notes.`,
   flags: {
     output: OUTPUT_FLAG("The directory to write.", "dist"),
     base: {

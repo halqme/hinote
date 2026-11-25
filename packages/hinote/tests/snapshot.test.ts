@@ -140,7 +140,7 @@ test.skipIf(!browser)(
       await writeFile(
         join(dir, "deck.tsx"),
         `import { createSlide, Step } from ${JSON.stringify(api)}
-export default createSlide({ pageNumber: true }, [
+export default createSlide({ document: { pageNumber: true } }, [
   createSlide(() => (
     <div
       style={{

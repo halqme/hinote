@@ -3,9 +3,9 @@
 | Goal                              | Command                         | Result                                                                                  |
 | --------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------- |
 | Present from this machine         | `hinote dev`                    | `/` for the audience, `/presenter` with timer, progress, next preview, notes, laser     |
-| Present to devices on the network | `hinote dev --host 0.0.0.0`     | Presenter off unless the deck sets `presenter: true`                                    |
+| Present to devices on the network | `hinote dev --host 0.0.0.0`     | Presenter off unless the deck sets `document: { presenter: true }`                      |
 | Hand out one file                 | `hinote build`                  | `dist/index.html` with previous and next under the slide; with `--embed`, only the HTML |
-| Host on a static site             | `hinote prerender --base /repo` | `/`, `/3/`, and with `presenter: true`, `/presenter/`                                   |
+| Host on a static site             | `hinote prerender --base /repo` | `/`, `/3/`, and with `document: { presenter: true }`, `/presenter/`                     |
 | Mount in a server                 | `hinote assets`                 | `public/` with only the files slides load                                               |
 
 The pipeline, step by step (each runs alone):
@@ -50,13 +50,13 @@ A server or app that never runs the CLI can depend on `@hinote/core` instead of 
 - Keys: arrows, Page Up/Down, Space, Enter, Backspace, Home, End.
 - The presenter sends the pointer. Pages sync through the deck (SSE at `/_hinote/events`, POST to `/_hinote/sync`), so other devices that reach the server follow; a window opened later jumps to the presenter.
 - `dev` reloads the deck and open pages when a file in the deck directory changes. A deck that fails to load is reported, and the last good one keeps serving. It serves files inside the deck directory and refuses paths outside it.
-- The presenter view, sync, and pointer are on only when `dev` serves this machine. With `--host 0.0.0.0`, or in a server of your own, they stay off until the deck sets `presenter: true`; until then `/presenter` and the sync endpoints answer 404 and no other page carries the notes. Anyone who reaches a deck with the presenter on can read the notes and move the slides.
+- The presenter view, sync, and pointer are on only when `dev` serves this machine. With `--host 0.0.0.0`, or in a server of your own, they stay off until the deck sets `document: { presenter: true }`; until then `/presenter` and the sync endpoints answer 404 and no other page carries the notes. Anyone who reaches a deck with the presenter on can read the notes and move the slides.
 - To make a PDF, print any page and save as PDF: one page per slide at canvas size, every step shown.
 
 ## Output of each command
 
 - `build`: the audience view only (no presenter, pointer, or sync), with previous and next icons over the slide. They stay hidden until the pointer moves. The position is in the hash (`#3`). Files the slides refer to by relative path (`src`, `href`, `srcset`, CSS `url()`) are copied beside it with their paths; files outside the deck directory, absolute paths, and other sites are left as they are.
-- `prerender`: `index.html` at `/` and `/3/` for each slide, plus those files. With `presenter: true` also `/presenter/` and `/presenter/3/`, synced between windows of one browser with `BroadcastChannel`; anyone can open them and read the notes. `--base /repo` for a site under a path, such as a GitHub Pages project site.
+- `prerender`: `index.html` at `/` and `/3/` for each slide, plus those files. With `document: { presenter: true }` also `/presenter/` and `/presenter/3/`, synced between windows of one browser with `BroadcastChannel`; anyone can open them and read the notes. `--base /repo` for a site under a path, such as a GitHub Pages project site.
 - `snapshot`: hinote drives a Chromium over the Chrome DevTools Protocol: Google Chrome, Chromium, or Edge where installed, else the newest build in the caches of Playwright (Vitest's browser mode included), Puppeteer, or agent-browser. `HINOTE_CHROME` names the binary instead. With none, `npx playwright install chromium` downloads one. As root, hinote adds `--no-sandbox`. Extra Chromium flags go in `HINOTE_CHROME_FLAGS`; when Chrome dies on start, the error's `hint` has the tail of its stderr.
 - The CLI bundles with Rolldown, which comes with hinote, on Bun and Node alike. It serves with `Bun.serve` on Bun and `node:http` on Node.
 

@@ -239,7 +239,7 @@ test.skipIf(!browser)(
   "Japanese decks break slide text at phrases, other decks and code do not",
   async () => {
     const page = (lang?: string) =>
-      createSlide(lang ? { lang } : {}, [
+      createSlide(lang ? { document: { lang } } : {}, [
         createSlide(() => (
           <div>
             <p>どうかよろしくお願いします</p>

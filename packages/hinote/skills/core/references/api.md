@@ -45,7 +45,16 @@ export default createSlide({ section: "実験1-1" }, [results]);
 
 Notes are plain text with a small part of Markdown: `#` headings, `-` / `*` / `+` and `1.` lists, blank lines between paragraphs, and `**strong**`, `*em*`, and `` `code` `` inside a line. Notes without any of that look as before, line breaks included. HTML in a note is shown as text and never runs. `inspect --json` returns the note string as written.
 
-Deck options: `title`, `section` (a name its slides receive in `sections`), `theme`, `transition`, `css`, and, on the top-level deck only, `lang` (a language tag such as `"ja"` or `"ja-JP"`; `<html>` has no `lang` when it is omitted; when its primary subtag is `ja`, slide text breaks between phrases with `word-break: auto-phrase`, while `pre` and `code` keep normal breaking), `aspect` (`"16:9"` default, `"4:3"`, or any `"W:H"`), `presenter` (`true` serves the presenter view and sync outside `hinote dev`), and `pageNumber` (`true` paints `n / total` from the flattened order). An unknown option is an error.
+Deck options: `section` (a name its slides receive in `sections`), `theme`, `transition`, and `css`, which a nested deck lends to its slides and a slide's own win over, and `document`, which only the top-level deck, the one `deck.tsx` exports, may set. A nested deck that sets `document` is an error (`deck-option`).
+
+```tsx
+export default createSlide(
+  { document: { title: "Talk", lang: "ja", pageNumber: true }, theme, css },
+  [cover, results],
+);
+```
+
+`document` holds what the page has once: `title` (the page title; the first slide title when omitted), `lang` (a language tag such as `"ja"` or `"ja-JP"`; `<html>` has no `lang` when it is omitted; when its primary subtag is `ja`, slide text breaks between phrases with `word-break: auto-phrase`, while `pre` and `code` keep normal breaking), `aspect` (`"16:9"` default, `"4:3"`, or any `"W:H"`), `presenter` (`true` serves the presenter view and sync outside `hinote dev`), and `pageNumber` (`true` paints `n / total` from the flattened order). An unknown option, in the deck or in `document`, is an error.
 
 ## Components
 

@@ -4,6 +4,7 @@ import { streamSSE } from "hono/streaming";
 import { validator } from "hono/validator";
 import { parseCss, type CssInput, type CssSource } from "./css.ts";
 import { HinoteError } from "../errors.ts";
+import { isPlainObject } from "../guards.ts";
 import { syncHub } from "./hub.ts";
 import { parseServedPath } from "../client/location.ts";
 import { renderDeck, type Page, type Sync } from "./render.ts";
@@ -14,32 +15,38 @@ import { parseTransition, type Transition } from "./transition.ts";
 
 export type Aspect = "16:9" | "4:3" | `${number}:${number}`;
 
-export type DeckOptions = {
+// What the HTML document has once: only the top-level deck, the one deck.tsx
+// exports, may set it.
+export type DocumentOptions = {
   // Document title. Defaults to the first slide title.
   title?: string;
-  // Document language, such as "ja" or "ja-JP". Only the top-level deck may
-  // set it. `<html>` has no `lang` when this is omitted.
+  // Document language, such as "ja" or "ja-JP". `<html>` has no `lang` when
+  // this is omitted.
   lang?: string;
+  // Canvas ratio, "16:9" by default.
+  aspect?: Aspect;
+  // The presenter view, sync, and the pointer. They are for presenting from
+  // this machine, so they are off unless a deck turns them on; `hinote dev`
+  // turns them on for itself when it serves localhost.
+  presenter?: boolean;
+  // `n / total` on each slide, counted after nested decks are flattened. A
+  // slide can hide its own with `pageNumber: false`.
+  pageNumber?: boolean;
+};
+
+export type DeckOptions = {
+  // Set once, on the top-level deck.
+  document?: DocumentOptions;
   // A name for this deck's part of the talk. Each slide's render function
   // receives it in `sections`.
   section?: string;
+  // The rest apply to this deck's slides. A nested deck's win over the decks
+  // around it, and a slide's own win over both.
   theme?: Theme;
-  // Canvas ratio, "16:9" by default. Only the top-level deck may set it.
-  aspect?: Aspect;
-  // How slides enter, "none" by default. A slide can set its own.
+  // How slides enter, "none" by default.
   transition?: Transition;
-  // CSS for every slide in this deck. A nested deck's CSS and a slide's own
-  // CSS win over it, whatever their selectors.
+  // CSS for every slide in this deck, whatever its selectors.
   css?: CssInput;
-  // The presenter view, sync, and the pointer. They are for presenting from
-  // this machine, so they are off unless a deck turns them on; `hinote dev`
-  // turns them on for itself when it serves localhost. Only the top-level
-  // deck may set it.
-  presenter?: boolean;
-  // `n / total` on each slide, counted after nested decks are flattened.
-  // Only the top-level deck may set it. A slide can hide its own with
-  // `pageNumber: false`.
-  pageNumber?: boolean;
 };
 
 export type Canvas = { width: number; height: number };
@@ -89,13 +96,17 @@ export function parseAspect(aspect: string): Canvas {
 }
 
 const OPTION_KEYS = new Set([
-  "title",
-  "lang",
+  "document",
   "section",
   "theme",
-  "aspect",
   "transition",
   "css",
+]);
+
+const DOCUMENT_KEYS = new Set([
+  "title",
+  "lang",
+  "aspect",
   "presenter",
   "pageNumber",
 ]);
@@ -103,6 +114,51 @@ const OPTION_KEYS = new Set([
 type ParsedDeckOptions = Omit<DeckOptions, "css"> & {
   css?: readonly CssSource[];
 };
+
+function parseDocument(value: unknown): DocumentOptions {
+  if (!isPlainObject(value))
+    throw new HinoteError('Deck option "document" must be an object.');
+  for (const key of Object.keys(value)) {
+    if (!DOCUMENT_KEYS.has(key))
+      throw new HinoteError(`Unknown document option "${key}".`);
+  }
+  const options: DocumentOptions = {};
+  if (value.title !== undefined) {
+    if (typeof value.title !== "string")
+      throw new HinoteError('Document option "title" must be a string.');
+    options.title = value.title;
+  }
+  if (value.lang !== undefined) {
+    if (typeof value.lang !== "string")
+      throw new HinoteError('Document option "lang" must be a string.');
+    if (!LANGUAGE.test(value.lang))
+      throw new HinoteError(
+        'Document option "lang" must be a language tag like "ja" or "ja-JP".',
+      );
+    options.lang = value.lang;
+  }
+  if (value.aspect !== undefined) {
+    if (typeof value.aspect !== "string")
+      throw new HinoteError('Document option "aspect" must be a string.');
+    parseAspect(value.aspect);
+    if (isAspect(value.aspect)) options.aspect = value.aspect;
+  }
+  if (value.presenter !== undefined) {
+    if (typeof value.presenter !== "boolean")
+      throw new HinoteError(
+        'Document option "presenter" must be true or false.',
+      );
+    options.presenter = value.presenter;
+  }
+  if (value.pageNumber !== undefined) {
+    if (typeof value.pageNumber !== "boolean")
+      throw new HinoteError(
+        'Document option "pageNumber" must be true or false.',
+      );
+    options.pageNumber = value.pageNumber;
+  }
+  return options;
+}
 
 export function parseDeckOptions(
   value: Record<string, unknown>,
@@ -112,30 +168,12 @@ export function parseDeckOptions(
       throw new HinoteError(`Unknown deck option "${key}".`);
   }
   const options: ParsedDeckOptions = {};
-  if (value.title !== undefined) {
-    if (typeof value.title !== "string")
-      throw new HinoteError('Deck option "title" must be a string.');
-    options.title = value.title;
-  }
-  if (value.lang !== undefined) {
-    if (typeof value.lang !== "string")
-      throw new HinoteError('Deck option "lang" must be a string.');
-    if (!LANGUAGE.test(value.lang))
-      throw new HinoteError(
-        'Deck option "lang" must be a language tag like "ja" or "ja-JP".',
-      );
-    options.lang = value.lang;
-  }
+  if (value.document !== undefined)
+    options.document = parseDocument(value.document);
   if (value.section !== undefined) {
     if (typeof value.section !== "string")
       throw new HinoteError('Deck option "section" must be a string.');
     options.section = value.section;
-  }
-  if (value.aspect !== undefined) {
-    if (typeof value.aspect !== "string")
-      throw new HinoteError('Deck option "aspect" must be a string.');
-    parseAspect(value.aspect);
-    if (isAspect(value.aspect)) options.aspect = value.aspect;
   }
   if (value.theme !== undefined)
     options.theme = parseTheme(value.theme, "deck theme");
@@ -146,16 +184,6 @@ export function parseDeckOptions(
     );
   if (value.css !== undefined)
     options.css = parseCss(value.css, 'Deck option "css"');
-  if (value.presenter !== undefined) {
-    if (typeof value.presenter !== "boolean")
-      throw new HinoteError('Deck option "presenter" must be true or false.');
-    options.presenter = value.presenter;
-  }
-  if (value.pageNumber !== undefined) {
-    if (typeof value.pageNumber !== "boolean")
-      throw new HinoteError('Deck option "pageNumber" must be true or false.');
-    options.pageNumber = value.pageNumber;
-  }
   return options;
 }
 
@@ -178,7 +206,7 @@ export class Deck extends Hono {
     super();
     this.slides = slides;
     this.config = options;
-    this.presenter = options.presenter === true;
+    this.presenter = options.document?.presenter === true;
     // A deck built while pages are open is an edited deck (`bun --hot`, `hinote dev`).
     syncHub().reloadAll();
 
@@ -262,7 +290,7 @@ export class Deck extends Hono {
   }
 
   get canvas(): Canvas {
-    return parseAspect(this.config.aspect ?? "16:9");
+    return parseAspect(this.config.document?.aspect ?? "16:9");
   }
 
   // Renders the whole deck as one HTML document.
@@ -316,7 +344,7 @@ export class Deck extends Hono {
   ) {
     // Numbers come from the whole deck, so rendering one slide still says "2 / 12".
     const pageNumbers =
-      this.config.pageNumber === true
+      this.config.document?.pageNumber === true
         ? slides.map((slide) => this.slides.indexOf(slide) + 1)
         : undefined;
     return renderDeck({
@@ -324,8 +352,8 @@ export class Deck extends Hono {
       slides,
       targets: this.#targets(),
       theme: this.config.theme,
-      title: this.config.title,
-      lang: this.config.lang,
+      title: this.config.document?.title,
+      lang: this.config.document?.lang,
       canvas: this.canvas,
       transition: this.config.transition,
       css: this.config.css,

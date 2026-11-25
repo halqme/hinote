@@ -330,7 +330,7 @@ test("prerender writes every page a static host needs, under a base path", async
     await writeFile(join(dir, "logo.svg"), "<svg/>");
     await writeFile(
       join(dir, "deck.tsx"),
-      deckSource(`export default createSlide({ presenter: true }, [
+      deckSource(`export default createSlide({ document: { presenter: true } }, [
   createSlide(() => <img src="./logo.svg" />),
   createSlide(() => <p>two</p>),
 ])`),
@@ -363,7 +363,7 @@ test("prerender writes every page a static host needs, under a base path", async
     ).not.toContain('id="hinote-panel"');
     expect(await readFile(join(dir, "site/logo.svg"), "utf8")).toBe("<svg/>");
 
-    // Without presenter: true, the site has the audience view only, with no sync.
+    // Without document: { presenter: true }, the site has the audience view only, with no sync.
     await writeFile(
       join(dir, "plain.tsx"),
       deckSource(
@@ -715,10 +715,10 @@ test("dev on the network keeps the presenter off unless the deck turns it on", a
     expect(off.html).toContain("lan");
     expect(off.presenter).toBe(404);
     expect(off.out).toContain("to the network");
-    expect(off.out).toContain("presenter: true");
+    expect(off.out).toContain("document: { presenter: true }");
 
     const on = await start(
-      `export default createSlide({ presenter: true }, [createSlide(() => <p>lan</p>)])`,
+      `export default createSlide({ document: { presenter: true } }, [createSlide(() => <p>lan</p>)])`,
     );
     expect(on.presenter).toBe(200);
     expect(on.out).toContain("/presenter");
@@ -1054,7 +1054,7 @@ test("inspect reports each slide's title, steps, notes, and files", async () => 
     await writeFile(
       join(dir, "deck.tsx"),
       deckSource(`import { Step } from ${JSON.stringify(api)}
-export default createSlide({ aspect: "4:3" }, [
+export default createSlide({ document: { aspect: "4:3" } }, [
   createSlide({ title: "Opening", notes: "smile" }, () => <h1>ignored</h1>),
   createSlide(() => <div><h2>Agenda <em>today</em></h2><Step>a</Step><Step>b</Step><Step at={1}>c</Step></div>),
   createSlide(() => <img src="./pic.png" />),

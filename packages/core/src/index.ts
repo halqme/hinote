@@ -2,7 +2,12 @@
 // `with { type: "text" }` CSS imports to the app.
 // oxlint-disable-next-line typescript/triple-slash-reference
 /// <reference path="./css-module.d.ts" preserve="true" />
-export type { Aspect, Deck, DeckOptions } from "./deck/deck.ts";
+export type {
+  Aspect,
+  Deck,
+  DeckOptions,
+  DocumentOptions,
+} from "./deck/deck.ts";
 export type { CssInput, CssSource } from "./deck/css.ts";
 export { Card, Center, Column, Flow, Grid, Row } from "./components/layout.tsx";
 export type {

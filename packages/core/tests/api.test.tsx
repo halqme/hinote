@@ -28,7 +28,7 @@ function deckOf(...slides: ReturnType<typeof textSlide>[]) {
 
 // A deck with the presenter view, sync, and pointer turned on.
 function presenterDeckOf(...slides: ReturnType<typeof textSlide>[]) {
-  return createSlide({ presenter: true }, slides);
+  return createSlide({ document: { presenter: true } }, slides);
 }
 
 describe("createSlide", () => {
@@ -61,7 +61,7 @@ describe("createSlide", () => {
   });
 
   test("a deck title wins over slide titles", async () => {
-    const deck = createSlide({ title: "全体" }, [
+    const deck = createSlide({ document: { title: "全体" } }, [
       createSlide({ title: "一枚目" }, () => <p>x</p>),
     ]);
     expect(await deck.render()).toContain("<title>全体</title>");
@@ -118,14 +118,18 @@ describe("createSlide", () => {
   });
 
   test("a top-level lang is on every page, and a deck without one has no lang", async () => {
-    const deck = createSlide({ lang: "ja" }, [textSlide("x")]);
+    const deck = createSlide({ document: { lang: "ja" } }, [textSlide("x")]);
     for (const page of ["view", "presenter", "static"] as const)
       expect(await deck.render(page)).toMatch(/<html\b[^>]*\blang="ja"/);
     expect(
-      await createSlide({ lang: "ja-JP" }, [textSlide("x")]).render(),
+      await createSlide({ document: { lang: "ja-JP" } }, [
+        textSlide("x"),
+      ]).render(),
     ).toMatch(/<html\b[^>]*\blang="ja-JP"/);
     expect(
-      await createSlide({ lang: "zh-Hans" }, [textSlide("x")]).render(),
+      await createSlide({ document: { lang: "zh-Hans" } }, [
+        textSlide("x"),
+      ]).render(),
     ).toMatch(/<html\b[^>]*\blang="zh-Hans"/);
     expect(await deckOf(textSlide("こんにちは")).render()).not.toMatch(
       /<html\b[^>]*\slang=/,
@@ -133,19 +137,19 @@ describe("createSlide", () => {
   });
 
   test("lang must be a language tag, on the top-level deck only", () => {
-    expect(() => createSlide({ lang: "" }, [textSlide("x")])).toThrow(
-      HinoteError,
-    );
-    expect(() => createSlide({ lang: "ja_JP" }, [textSlide("x")])).toThrow(
-      HinoteError,
-    );
     expect(() =>
-      createSlide({ lang: 'ja"><script>' }, [textSlide("x")]),
+      createSlide({ document: { lang: "" } }, [textSlide("x")]),
     ).toThrow(HinoteError);
-    expect(() => createSlide({ lang: 1 } as never, [textSlide("x")])).toThrow(
-      HinoteError,
-    );
-    const inner = createSlide({ lang: "en" }, [textSlide("x")]);
+    expect(() =>
+      createSlide({ document: { lang: "ja_JP" } }, [textSlide("x")]),
+    ).toThrow(HinoteError);
+    expect(() =>
+      createSlide({ document: { lang: 'ja"><script>' } }, [textSlide("x")]),
+    ).toThrow(HinoteError);
+    expect(() =>
+      createSlide({ document: { lang: 1 } } as never, [textSlide("x")]),
+    ).toThrow(HinoteError);
+    const inner = createSlide({ document: { lang: "en" } }, [textSlide("x")]);
     expect(() => createSlide([inner])).toThrow(HinoteError);
     expect(() => createSlide({ lang: "ja" } as never, () => <p>x</p>)).toThrow(
       HinoteError,
@@ -203,27 +207,33 @@ describe("createSlide", () => {
     ).rejects.toThrow(HinoteError);
   });
 
-  test("only the top-level deck may set title, aspect, presenter, or pageNumber", () => {
-    const inner = createSlide({ aspect: "4:3" }, [textSlide("x")]);
+  test("only the top-level deck may set document", () => {
+    const inner = createSlide({ document: { aspect: "4:3" } }, [
+      textSlide("x"),
+    ]);
     expect(() => createSlide([inner])).toThrow(HinoteError);
-    const titled = createSlide({ title: "t" }, [textSlide("x")]);
+    const titled = createSlide({ document: { title: "t" } }, [textSlide("x")]);
     expect(() => createSlide([titled])).toThrow(HinoteError);
-    const presenting = createSlide({ presenter: true }, [textSlide("x")]);
+    const presenting = createSlide({ document: { presenter: true } }, [
+      textSlide("x"),
+    ]);
     expect(() => createSlide([presenting])).toThrow(HinoteError);
-    const numbered = createSlide({ pageNumber: true }, [textSlide("x")]);
+    const numbered = createSlide({ document: { pageNumber: true } }, [
+      textSlide("x"),
+    ]);
     expect(() => createSlide([numbered])).toThrow(HinoteError);
     // The error names what was set and where it belongs.
     expect(() => createSlide([inner])).toThrow(
       expect.objectContaining({
         code: "deck-option",
-        message: expect.stringContaining('"aspect"'),
+        message: expect.stringContaining('"document"'),
         hint: expect.stringContaining("outermost createSlide"),
       }),
     );
   });
 
   test("page numbers are the flattened position, and one slide can hide its own", async () => {
-    const deck = createSlide({ pageNumber: true }, [
+    const deck = createSlide({ document: { pageNumber: true } }, [
       createSlide({ pageNumber: false }, () => <p>title</p>),
       createSlide([textSlide("b")]),
       textSlide("c"),
@@ -239,7 +249,9 @@ describe("createSlide", () => {
       '<p class="hinote-page">',
     );
     expect(() =>
-      createSlide({ pageNumber: "yes" } as never, [textSlide("x")]),
+      createSlide({ document: { pageNumber: "yes" } } as never, [
+        textSlide("x"),
+      ]),
     ).toThrow(HinoteError);
     expect(() =>
       createSlide({ pageNumber: "yes" } as never, () => <p>x</p>),
@@ -277,9 +289,10 @@ describe("createSlide", () => {
 
 describe("canvas", () => {
   async function canvasOf(aspect?: string) {
-    const deck = createSlide(aspect ? { aspect: aspect as "16:9" } : {}, [
-      textSlide("x"),
-    ]);
+    const deck = createSlide(
+      aspect ? { document: { aspect: aspect as "16:9" } } : {},
+      [textSlide("x")],
+    );
     const html = await deck.render();
     const width = Number(/data-width="(\d+)"/.exec(html)?.[1]);
     const height = Number(/data-height="(\d+)"/.exec(html)?.[1]);
