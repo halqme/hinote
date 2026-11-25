@@ -60,9 +60,9 @@ export default createSlide({ notes: "Say why before how." }, () => (
 A deck that passes `check` and `snapshot` can still say nothing. Before you finish:
 
 - One message per slide, and the title states it as a claim ("Size does not explain it", not "Relation to size").
-- Every word is one a first-time reader already knows, and means only one thing. A slide is right when someone reading it cold gets exactly what you meant. Short space pushes you to invent words or to fall back on short, broad ones; write the plain phrase instead, and if it does not fit, split the slide rather than the words. `--ref design` has examples.
+- Every word is one a first-time reader already knows, and means only one thing. A slide is right when someone reading it cold gets exactly what you meant. Short space pushes you to invent words or to fall back on short, broad ones; write the plain phrase instead, and if it does not fit, cut something else from the slide rather than shortening the words. `--ref design` has examples.
 - Every number sits next to what it is compared with.
-- One emphasis per slide. Spread a dense slide over time with `<Step>` instead of shrinking it.
+- One emphasis per slide. Cut a dense slide down rather than shrinking its text or splitting it in two. `<Step>` is a last resort: someone who misses a step is left with a slide that makes no sense, so use as few as you can.
 - Lay out with `Row`, `Column`, `Grid`, and `Card` and a numeric `gap`; do not write `px` for spacing.
 
 `--ref design` has the reasons, the sources, and a checklist.
