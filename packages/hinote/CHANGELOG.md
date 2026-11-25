@@ -4,6 +4,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 ## Unreleased
 
+- `hinote skills get talk` is a guide to planning a talk before and while writing the deck: how many slides the time allows, the order of the story, what goes on one slide, layout, color, and steps. `--ref delivery` covers rehearsal, the day of the talk, and questions.
 - The CLI bundles decks and `<Script>` files with Rolldown on Bun and Node alike, and hinote installs it. On Node it serves with `node:http`. `esbuild` and `@hono/node-server` are no longer peer dependencies, `hinote init` no longer adds them, and the CLI no longer hands a run to Bun when they are missing. A deck that installed them for hinote can remove them.
 - `hinote check` no longer hangs on JSX written in a prop after a sibling element, such as `<p>lead</p><Card footer={<p>2020</p>}>`. The source checks read the file with the parser Rolldown comes with.
 - `hinote build` floats previous and next icons over the slide. They reveal a step before moving on, and stay hidden until the pointer moves. The audience page (`/`) enters full screen from the fullscreen icon or `F`. The icon switches to leave full screen, and stays hidden until the pointer moves. The presenter has neither.

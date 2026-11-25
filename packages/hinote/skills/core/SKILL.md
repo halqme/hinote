@@ -67,6 +67,8 @@ A deck that passes `check` and `snapshot` can still say nothing. Before you fini
 
 `--ref design` has the reasons, the sources, and a checklist.
 
+`hinote skills get talk` comes before all of this: how many slides the time allows, how the story runs, what a slide should hold, and rehearsal.
+
 ## Rules that are easy to get wrong
 
 - Import CSS as text: `import style from "./style.css" with { type: "text" }`.
