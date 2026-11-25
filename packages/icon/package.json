@@ -1,0 +1,48 @@
+{
+  "name": "@hinote/icon",
+  "version": "0.5.2",
+  "description": "<Icon> for hinote: any Iconify icon, named as icones.js.org shows it, drawn as inline SVG",
+  "keywords": [
+    "hinote",
+    "hono",
+    "icon",
+    "iconify",
+    "slides"
+  ],
+  "license": "MIT",
+  "author": "HALQME",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halqme/hinote.git",
+    "directory": "packages/icon"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts",
+    "test": "bun test",
+    "typecheck": "bun check",
+    "prepack": "bun ../../scripts/build-package.ts"
+  },
+  "dependencies": {
+    "@iconify/types": "^2.0.0",
+    "@iconify/utils": "^3.1.7",
+    "hono": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "devDependencies": {
+    "@iconify-json/flat-color-icons": "^1.2.3",
+    "@iconify-json/lucide": "^1.2.159"
+  }
+}
