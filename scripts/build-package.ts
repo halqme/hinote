@@ -3,7 +3,9 @@
 //   bun ../../scripts/build-package.ts [outDir]
 // Each file in src/ becomes one file in dist/, with its declarations, and
 // `./x.ts` imports become `./x.js`. Nothing is bundled, so a deck's bundler
-// keeps only the modules the deck imports.
+// keeps only the modules the deck imports. That includes other packages:
+// a devDependency such as rolldown, which bundles browser code from source,
+// stays an import rather than being copied into dist/.
 import { join, resolve } from "node:path";
 import { build } from "tsdown";
 
@@ -13,6 +15,7 @@ export async function buildPackage(dir: string, outDir = join(dir, "dist")) {
     cwd: dir,
     entry: ["src/**/*.{ts,tsx}", "!src/**/*.d.ts"],
     unbundle: true,
+    deps: { neverBundle: true },
     format: "esm",
     platform: "node",
     outDir: resolve(outDir),
