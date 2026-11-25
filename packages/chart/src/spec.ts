@@ -13,11 +13,9 @@ import { scalePoint } from "@tanstack/charts/scales/point";
 
 // Any chart defineChart makes. The datum type is the author's; this package
 // only draws it.
-// oxlint-disable-next-line typescript/no-explicit-any
 export type AnyChart = DomChartDefinition<any>;
 
 type Value = string | number;
-// oxlint-disable-next-line typescript/no-explicit-any
 type Row = Record<string, any>;
 type KeyOf<R, V> = {
   [K in keyof R & string]: R[K] extends V ? K : never;

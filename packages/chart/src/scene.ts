@@ -9,7 +9,6 @@
 // @tanstack/charts to a minor version and its tests check a round trip.
 import type { ChartScene } from "@tanstack/charts";
 
-// oxlint-disable-next-line typescript/no-explicit-any
 export type Scene = ChartScene<any>;
 
 type Tick = { value: unknown; position: number };
