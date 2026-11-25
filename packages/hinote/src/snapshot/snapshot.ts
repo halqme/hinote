@@ -19,6 +19,7 @@ import type { Canvas } from "../deck/deck.ts";
 import { HinoteError, UsageError } from "../errors.ts";
 import { loadDeckFile } from "../build/load.ts";
 import { serve } from "../build/runtime.ts";
+import { inlineScripts } from "../build/scripts.ts";
 import { createDevApp } from "../build/server.ts";
 
 const STAGE = ".hinote-stage";
@@ -53,6 +54,9 @@ export async function takeSnapshots(
   const directory = resolve(outDir);
   await mkdir(directory, { recursive: true });
   const canvas = deck.canvas;
+  // <Script> runs as it does in dev and build, so what it inserts at load is
+  // in the picture and the layout report.
+  deck.transform = inlineScripts;
   const app = createDevApp(() => deck, dirname(entry));
   const server = await serve({
     port: 0,
@@ -128,7 +132,8 @@ async function photograph(
 }
 
 // True once the URL's slide is the one on screen and the stage is the canvas,
-// in CSS pixels. The client fits the stage to the window; pinning the scale
+// in CSS pixels. The runtime is a classic script and marks the slide before
+// <Script> modules run; the page is complete only after they have. The client fits the stage to the window; pinning the scale
 // keeps the picture the size the slide was written for.
 function ready(index: number, { width, height }: Canvas): string {
   return `(() => {
@@ -137,6 +142,7 @@ function ready(index: number, { width, height }: Canvas): string {
     const stage = document.querySelector(${JSON.stringify(STAGE)});
     const slide = document.querySelectorAll("#deck .slide")[${index}];
     if (!stage || !slide || !slide.classList.contains("is-active")) return false;
+    if (document.readyState !== "complete") return false;
     if (document.fonts && document.fonts.status !== "loaded") return false;
     for (const image of slide.querySelectorAll("img"))
       if (!image.complete) return false;

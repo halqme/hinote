@@ -674,3 +674,58 @@ export default createSlide([
   },
   60_000,
 );
+
+test.skipIf(!browser)(
+  "what a Script inserts at load is in the PNG and the layout report",
+  async () => {
+    const dir = await tempDir();
+    try {
+      await writeFile(
+        join(dir, "insert.client.ts"),
+        `const slide = document.querySelectorAll("#deck .slide")[0]!;
+const marker = document.createElement("div");
+marker.style.cssText = "width:200px;height:200px;background:#ff00aa";
+const edge = document.createElement("div");
+edge.textContent = "past the edge";
+edge.style.cssText = "position:absolute;left:1900px;top:400px;width:80px";
+slide.append(marker, edge);
+`,
+      );
+      await writeFile(
+        join(dir, "deck.tsx"),
+        `import { createSlide, Script } from ${JSON.stringify(api)}
+export default createSlide([
+  createSlide(() => (
+    <div>
+      <p>filled in by a script</p>
+      <Script src={new URL("./insert.client.ts", import.meta.url)} />
+    </div>
+  )),
+  createSlide(() => <p>no script here</p>),
+]);
+`,
+      );
+      const shot = await run(
+        ["snapshot", "--browser", browser!, "--json", "-o", "shots"],
+        dir,
+      );
+      expect(shot.stderr).toBe("");
+      const { problems } = JSON.parse(shot.stdout).data;
+      expect(
+        problems.some(
+          (p: { code: string; slides: number[] }) =>
+            p.code === "overflow" && p.slides.join() === "1",
+        ),
+      ).toBe(true);
+      expect(
+        nearMagentaCount(await readFile(join(dir, "shots/1.png"))),
+      ).toBeGreaterThan(10_000);
+      expect(nearMagentaCount(await readFile(join(dir, "shots/2.png")))).toBe(
+        0,
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  },
+  60_000,
+);
