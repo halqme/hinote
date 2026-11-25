@@ -9,7 +9,7 @@ The package and its guide are in [`packages/hinote`](packages/hinote/README.md).
 | [`hinote`](packages/hinote)           | The CLI, with `@hinote/core` re-exported.                 |
 | [`@hinote/core`](packages/core)       | The library alone, for a server or bundler of your own.   |
 | [`@hinote/chart`](packages/chart)     | `<Chart>`, TanStack Charts drawn and animated by step.    |
-| [`@hinote/code`](packages/code)       | `<Code>`, syntax highlighting with `@pierre/highlights`.  |
+| [`@hinote/code`](packages/code)       | `<Code>`, highlighted code, lines picked out by step.     |
 | [`@hinote/d2`](packages/d2)           | `<D2>`, D2 diagrams as SVG.                               |
 | [`@hinote/icon`](packages/icon)       | `<Icon>`, any Iconify icon as SVG, named as on icones.    |
 | [`@hinote/katex`](packages/katex)     | `<Math>`, LaTeX as MathML with KaTeX.                     |
