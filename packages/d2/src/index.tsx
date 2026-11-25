@@ -13,6 +13,10 @@ export type D2Props = {
   theme?: number;
   // Hand-drawn look.
   sketch?: boolean;
+  // Keep the theme's background behind the diagram. Without it the slide's
+  // background shows through, which suits a theme whose colors match the
+  // slide; a dark theme on a light slide wants its own background back.
+  background?: boolean;
   // "elk" lays out larger or nested diagrams more evenly than the default.
   layout?: "dagre" | "elk";
   // Size of the SVG relative to D2's own, whose labels are 16px. The default 2
@@ -144,7 +148,18 @@ export async function D2(props: D2Props) {
     }
   });
   const className = props.class ? ` ${escapeAttribute(props.class)}` : "";
-  return raw(`<div class="hinote-d2${className}">${svg}</div>`);
+  const drawn = props.background ? svg : withoutBackground(svg);
+  return raw(`<div class="hinote-d2${className}">${drawn}</div>`);
+}
+
+// D2 paints its theme's background (white for the default theme) as the first
+// shape of the diagram, with its own unlayered style that deck CSS cannot
+// override, so it is left out of the SVG instead.
+const BACKGROUND =
+  /(<svg class="d2-\d+ d2-svg"[^>]*>)<rect [^>]*class=" fill-N7"[^>]*\/>/;
+
+function withoutBackground(svg: string): string {
+  return svg.replace(BACKGROUND, "$1");
 }
 
 function escapeAttribute(value: string): string {

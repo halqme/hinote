@@ -27,6 +27,22 @@ test("draws D2 as an inline SVG at twice D2's size", async () => {
   expect(html).toContain(">request<");
 });
 
+// The first shape inside D2's own <svg>: the theme's background when D2 paints one.
+const firstShape = (html: string) =>
+  /<svg class="d2-\d+ d2-svg"[^>]*>(<[a-z]+[^>]*>)/.exec(html)?.[1] ?? "";
+
+test("the slide shows through the diagram unless background asks for the theme's", async () => {
+  for (const sketch of [false, true]) {
+    const plain = await render(() => <D2 code="a -> b" sketch={sketch} />);
+    expect(firstShape(plain)).not.toContain("fill-N7");
+    expect(plain).toContain(">a<");
+    const kept = await render(() => (
+      <D2 code="a -> b" sketch={sketch} theme={200} background />
+    ));
+    expect(firstShape(kept)).toMatch(/^<rect [^>]*class=" fill-N7"/);
+  }
+});
+
 // Every slide is on one page, so ids inside two SVGs must differ, and the same
 // deck must render the same each time.
 test("gives each diagram its own ids, the same on every render", async () => {

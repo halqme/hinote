@@ -4,6 +4,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 ## Unreleased
 
+- `<D2>` no longer paints its theme's background, which was white with the default theme and could not be changed from deck CSS: the slide shows through the diagram. `background` keeps the theme's.
 - `<Morph name="title">` moves and resizes an element into the one with the same name on the next slide, with the View Transitions API. Pairs morph whatever the slide's transition, and the rest of the slide follows the transition.
 - Slide transitions add `"slide-up"`, `"zoom"`, and `"wipe"`, and take their own timing as `{ name, duration, easing }`.
 - `<Step effect>` moves a step into place as it fades in: `"up"`, `"down"`, `"left"`, `"right"`, or `"zoom"`. Steps no longer fade under reduced motion.
