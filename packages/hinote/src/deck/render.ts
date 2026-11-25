@@ -16,6 +16,7 @@ import { numberSteps } from "../components/step.tsx";
 import { servedPath, slideHash } from "../client/location.ts";
 import { transitionData, type Transition } from "./transition.ts";
 import { repeatedMorph } from "../components/morph.tsx";
+import { gatherScripts } from "../components/script.tsx";
 import {
   defaultTheme,
   mergeTheme,
@@ -547,5 +548,5 @@ ${FRAME_CSS}`;
       jsx("script", { dangerouslySetInnerHTML: { __html: SCRIPT } }),
     ),
   );
-  return `<!doctype html>${await elementHtml(document)}`;
+  return `<!doctype html>${gatherScripts(await elementHtml(document))}`;
 }

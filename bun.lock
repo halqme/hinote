@@ -36,6 +36,9 @@
         "@tanstack/charts": "~1.5.0",
         "hono": "catalog:",
       },
+      "devDependencies": {
+        "rolldown": "1.3.3",
+      },
     },
     "packages/code": {
       "name": "@hinote/code",

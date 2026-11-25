@@ -2,6 +2,7 @@ import type { HinoteErrorLike } from "@hinote/types";
 import { createChartRuntime, renderChartSvg } from "@tanstack/charts";
 import { raw } from "hono/html";
 import { sceneJson, type Scene } from "./scene.ts";
+import clientScript from "./script.ts";
 import {
   defineAll,
   isSpec,
@@ -60,9 +61,9 @@ class ChartError extends Error implements HinoteErrorLike {
   readonly code = "chart";
 }
 
-// The page script, by its built name: the CLI finds client.ts from src/ and
-// client.js in dist/.
-const CLIENT = new URL("./client.js", import.meta.url);
+// The code that animates every chart on the page, bundled with its
+// dependencies. The HTML parser ends a script at "</script".
+const CLIENT = clientScript.replace(/<\/script/gi, "\\u003c/script");
 
 function positive(name: string, value: number): number {
   if (!(value > 0) || !Number.isFinite(value))
@@ -134,12 +135,12 @@ export function Chart(props: ChartProps) {
     props.animate === false
       ? ""
       : `<script type="application/json">${json}</script>`;
-  // The CLI bundles the client into the page once, however many charts use
-  // it (the markup <Script> writes, from @hinote/types).
+  // hinote keeps one of these for the page, however many charts carry it
+  // (the markup from @hinote/types), so charts animate in any server.
   const script =
     props.animate === false
       ? ""
-      : `<script type="module" data-hinote-src="${escapeAttribute(CLIENT.href)}"></script>`;
+      : `<script type="module" data-hinote-script="@hinote/chart">${CLIENT}</script>`;
   return raw(
     `<div class="hinote-chart${className}" data-hinote-chart="${id}"${steps} style="width:${width}px;height:${height}px;--ts-chart-1:var(--hinote-color-accent)">${svg}${data}</div>${script}`,
   );

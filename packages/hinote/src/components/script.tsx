@@ -35,3 +35,23 @@ export function Script(props: ScriptProps) {
     );
   return jsx("script", { type: "module", src: props.src });
 }
+
+// A package can put browser code it built itself into a slide as
+// `<script type="module" data-hinote-script="name">`, such as the code that
+// animates @hinote/chart. However many slides carry one, the page runs it
+// once: the first of each name moves to the end of <body>, after the
+// runtime that defines window.hinote, and the rest are dropped.
+const PACKAGED =
+  /<script type="module" data-hinote-script="([^"]+)">([\s\S]*?)<\/script>/g;
+
+export function gatherScripts(html: string): string {
+  const scripts = new Map<string, string>();
+  const page = html.replace(PACKAGED, (whole, name: string) => {
+    if (!scripts.has(name)) scripts.set(name, whole);
+    return "";
+  });
+  if (scripts.size === 0) return html;
+  const end = page.lastIndexOf("</body>");
+  const tail = [...scripts.values()].join("");
+  return end < 0 ? page + tail : page.slice(0, end) + tail + page.slice(end);
+}

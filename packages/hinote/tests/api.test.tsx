@@ -533,6 +533,16 @@ describe("Script", () => {
     }
   });
 
+  test("a script a package put in several slides runs once, at the end of the page", async () => {
+    const packaged =
+      '<script type="module" data-hinote-script="pkg">window.n=(window.n||0)+1</script>';
+    const slide = () =>
+      createSlide(() => <div dangerouslySetInnerHTML={{ __html: packaged }} />);
+    const html = await deckOf(slide(), slide()).render();
+    expect(html.split(packaged)).toHaveLength(2);
+    expect(html.endsWith(`${packaged}</body></html>`)).toBe(true);
+  });
+
   test("rejects a URL that is not a file and an empty src", async () => {
     for (const src of [new URL("https://example.com/x.js"), ""]) {
       const slide = createSlide(() => <Script src={src} />);

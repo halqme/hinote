@@ -114,6 +114,6 @@ const target = 200;
 - The server computes each step's scene, the shapes of the chart, and draws the last as SVG: what the slide shows with every step out, in a printout, a snapshot, or a page without scripts. Each step after the first is a step of the slide, numbered with its `<Step>`s in document order.
 - The page animates between the scenes with `@tanstack/charts/motion`, only while the chart's slide is shown, and honors `prefers-reduced-motion`. Off its slide, and in the presenter's previews, it is the server's SVG.
 - Motion is TanStack's default. A definition's own motion settings, which are functions, stay on the server.
-- Animation needs the hinote CLI (`dev`, `build`, `prerender`), which bundles the script into the page. A deck mounted in your own server shows the charts without motion.
+- The package ships the animating code already bundled, so charts move with the hinote CLI and in a server of your own alike.
 - The page carries the motion renderer once, however many charts it has (about 24 KB gzipped), and each chart's scenes as JSON, some 10 to 30 KB for a small chart with a few steps.
 - Scenes are TanStack's own data, whose shape it does not promise between versions, so this package pins `@tanstack/charts` to `~1.5`.

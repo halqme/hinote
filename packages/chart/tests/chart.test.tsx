@@ -53,9 +53,34 @@ test("draws the chart on the server, enlarged, with its scenes and the script th
   expect(html).toContain('viewBox="0 0 320 160"');
   expect(html).toContain('aria-label="Sales"');
   expect(scenesIn(html)).toHaveLength(1);
-  expect(html).toMatch(
-    /<script type="module" data-hinote-src="[^"]+\/src\/client\.js"><\/script>/,
+  expect(chartScripts(html)).toHaveLength(1);
+});
+
+// The code that animates charts, as the page carries it.
+const chartScripts = (html: string) => [
+  ...html.matchAll(
+    /<script type="module" data-hinote-script="@hinote\/chart">([\s\S]*?)<\/script>/g,
+  ),
+];
+
+test("the page carries the animating code once, after hinote's runtime, with nothing left to bundle or import", async () => {
+  const chart = () => (
+    <Chart label="Sales" chart={bars(q1, { x: "month", y: "sales" })} />
   );
+  const html = await render(chart, chart, chart);
+  const scripts = chartScripts(html);
+  expect(scripts).toHaveLength(1);
+  const [script] = scripts;
+  const code = script?.[1] ?? "";
+  // After the inline runtime that defines window.hinote, at the end of <body>.
+  expect(html.indexOf(script?.[0] ?? "")).toBeGreaterThan(
+    html.lastIndexOf("<script>"),
+  );
+  expect(
+    html.slice(html.indexOf(script?.[0] ?? "")).replace(script?.[0] ?? "", ""),
+  ).toBe("</body></html>");
+  expect(code).not.toMatch(/\bimport\s*[{(*"']|\bfrom\s*["']/);
+  expect(html).not.toContain("data-hinote-src");
 });
 
 // The server draws the last chart: what the slide shows with every step out,
@@ -120,7 +145,7 @@ test("animate={false} leaves the SVG and adds no scenes or script", async () => 
   ));
   expect(html).toContain("<svg");
   expect(html).not.toContain(`<script type="application/json">`);
-  expect(html).not.toContain("data-hinote-src");
+  expect(chartScripts(html)).toHaveLength(0);
 });
 
 test("gives each chart its own ids, the same on every render", async () => {

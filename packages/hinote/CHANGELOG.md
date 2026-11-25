@@ -4,6 +4,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 ## Unreleased
 
+- `<Chart>` animates in a server of your own too: `@hinote/chart` ships its page code already bundled and puts it in the page, instead of leaving it for the CLI to bundle. A package can do the same with `<script type="module" data-hinote-script="name">`, which the page keeps once, at its end.
 - New package `@hinote/mermaid`: `<Mermaid>` draws a Mermaid flowchart, state, sequence, class, ER, or XY chart diagram as SVG while the slide renders, in the deck's colors and fonts, with no script in the page. It runs without a DOM, also on Cloudflare Workers.
 
 - `<D2>` no longer paints its theme's background, which was white with the default theme and could not be changed from deck CSS: the slide shows through the diagram. `background` keeps the theme's.

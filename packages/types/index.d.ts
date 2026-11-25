@@ -89,6 +89,9 @@ export type HinoteClient = {
 // write it without importing hinote:
 // - `<script type="module" data-hinote-src="file:///...">` is bundled and
 //   inlined once per page, after window.hinote exists (what <Script> writes).
+// - `<script type="module" data-hinote-script="name">code</script>` is code a
+//   package built itself. The page keeps the first of each name, at the end
+//   of <body> after window.hinote exists, in any server.
 // - `data-hinote-step="auto"` is a step, numbered in document order (<Step>).
 // - `data-hinote-effect` on a step moves it into place as it fades in.
 // - `data-hinote-steps="auto:N"` reserves the next N steps for the element
@@ -97,6 +100,7 @@ export type HinoteClient = {
 //   name on the slide shown next (<Morph>).
 export type SlideMarkup = {
   "data-hinote-src": `file:${string}`;
+  "data-hinote-script": string;
   "data-hinote-step": "auto" | `${number}`;
   "data-hinote-effect": "up" | "down" | "left" | "right" | "zoom";
   "data-hinote-steps": `auto:${number}`;
