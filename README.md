@@ -14,5 +14,6 @@ The package and its guide are in [`packages/hinote`](packages/hinote/README.md).
 | [`@hinote/icon`](packages/icon)       | `<Icon>`, any Iconify icon as SVG, named as on icones.    |
 | [`@hinote/katex`](packages/katex)     | `<Math>`, LaTeX as MathML with KaTeX.                     |
 | [`@hinote/mermaid`](packages/mermaid) | `<Mermaid>`, Mermaid diagrams as SVG in the deck's theme. |
+| [`@hinote/qr`](packages/qr)           | `<Qr>`, a QR code as SVG in the deck's colors.            |
 | [`@hinote/shared`](packages/shared)   | Code the `@hinote/*` packages share, not for decks.       |
 | [`@hinote/types`](packages/types)     | Types shared by `hinote` and the `@hinote/*` packages.    |

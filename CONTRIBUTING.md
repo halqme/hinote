@@ -10,6 +10,7 @@ The repository is a Bun workspace. Each package lives in `packages/`:
 - `packages/icon`: `@hinote/icon`, `<Icon>`, Iconify icons as inline SVG with `@iconify/utils`. The deck installs the icon sets, `@iconify-json/<prefix>`; the component finds them from where it is installed itself, which the CLI keeps as `import.meta.url` when it bundles the deck.
 - `packages/katex`: `@hinote/katex`, `<Math>`, LaTeX as MathML with KaTeX.
 - `packages/mermaid`: `@hinote/mermaid`, `<Mermaid>`, Mermaid diagrams drawn as SVG with `beautiful-mermaid`, which needs no DOM. Its colors are the deck's CSS variables, and the component scopes the renderer's `<style>` and ids to each diagram, since every slide is on one page.
+- `packages/qr`: `@hinote/qr`, `<Qr>`, QR codes as inline SVG in the deck's colors, encoded with `uqr`, which has no dependencies and needs nothing from Node.
 - `packages/shared`: `@hinote/shared`, the code the component packages share: `dedent` for source written inside JSX, and `PackageError`, the error with the name and fields hinote reports as its own. A component package imports it rather than copying it. A deck does not import it, so it has no guide.
 - `packages/types`: `@hinote/types`, the types shared by `hinote` and the `@hinote/*` packages, such as `Theme` and `SlideContext`. It is one hand-written `index.d.ts` with no JavaScript. `@hinote/core`, and so `hinote`, re-exports what it holds.
 

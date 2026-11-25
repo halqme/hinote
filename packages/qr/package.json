@@ -1,0 +1,46 @@
+{
+  "name": "@hinote/qr",
+  "version": "0.5.2",
+  "description": "<Qr> for hinote: a QR code drawn as inline SVG in the deck's colors",
+  "keywords": [
+    "hinote",
+    "hono",
+    "qr",
+    "qrcode",
+    "slides"
+  ],
+  "license": "MIT",
+  "author": "HALQME",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halqme/hinote.git",
+    "directory": "packages/qr"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts",
+    "test": "bun test",
+    "typecheck": "bun check",
+    "prepack": "bun ../../scripts/build-package.ts"
+  },
+  "dependencies": {
+    "hono": "catalog:",
+    "uqr": "^0.1.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "devDependencies": {
+    "jsqr": "^1.4.0"
+  }
+}

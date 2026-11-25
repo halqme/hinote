@@ -46,7 +46,7 @@ jobs:
       - name: Publish every package
         run: |
           mkdir -p "$RUNNER_TEMP/packs"
-          for dir in packages/types packages/shared packages/core packages/code packages/katex packages/d2 packages/icon packages/mermaid packages/chart packages/hinote; do
+          for dir in packages/types packages/shared packages/core packages/code packages/katex packages/d2 packages/icon packages/mermaid packages/qr packages/chart packages/hinote; do
             name=$(jq -r .name "$dir/package.json")
             version=$(jq -r .version "$dir/package.json")
             if npm view "${name}@${version}" version >/dev/null 2>&1; then
