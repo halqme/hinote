@@ -298,7 +298,7 @@ strong {
   flex-direction: column;
   justify-content: space-between;
   min-width: 0;
-  height: 420px;
+  height: 300px;
   padding: calc(var(--hinote-space-unit) * 4);
   border: 1px solid var(--hinote-color-border);
   background: var(--hinote-color-surface);
@@ -315,4 +315,143 @@ strong {
 .effect code {
   font-size: var(--hinote-text-small);
   color: var(--hinote-color-muted);
+}
+
+/* ---------- Contents ---------- */
+
+.toc-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: calc(var(--hinote-space-unit) * 4);
+  padding: calc(var(--hinote-space-unit) * 1.5) 0;
+  border-bottom: 1px solid var(--hinote-color-border);
+  color: inherit;
+  text-decoration: none;
+}
+
+.toc-name {
+  font-family: var(--hinote-font-heading);
+  font-style: italic;
+  font-size: var(--hinote-text-h3);
+  line-height: 1;
+}
+
+.toc-line {
+  max-width: 22ch;
+  color: var(--hinote-color-muted);
+  font-size: var(--hinote-text-small);
+  text-align: right;
+}
+
+/* ---------- Image row ---------- */
+
+/* The column is width 100% from hinote, which would sit beside the photo and
+   overflow. It takes the space the photo leaves. */
+.page > .hinote-row {
+  flex: 1;
+  min-height: 0;
+}
+
+.page > .hinote-row > .hinote-column {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.photo {
+  width: 640px;
+  height: 760px;
+  flex: none;
+  object-fit: cover;
+  border: 1px solid var(--hinote-color-border);
+}
+
+/* ---------- Flow, table, series ---------- */
+
+.figure > .hinote-flow,
+.figure > .hinote-table,
+.figure > .hinote-grid {
+  align-self: stretch;
+}
+
+.flow-name {
+  font-family: var(--hinote-font-heading);
+  font-style: italic;
+  font-size: var(--hinote-text-h2);
+  line-height: 1;
+}
+
+.flow-note {
+  color: var(--hinote-color-muted);
+}
+
+.hinote-table th {
+  font-family: var(--hinote-font-mono);
+  font-size: var(--hinote-text-small);
+  font-weight: 500;
+  color: var(--hinote-color-muted);
+}
+
+.series h3 {
+  font-size: var(--hinote-text-h3);
+  line-height: 1;
+}
+
+.series .hinote-card-footer {
+  font-family: var(--hinote-font-mono);
+}
+
+/* ---------- Counter ---------- */
+
+.counter {
+  font-family: var(--hinote-font-heading);
+  font-style: italic;
+  font-size: 14rem;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  color: var(--hinote-color-accent);
+}
+
+.plot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.plot-field {
+  box-sizing: border-box;
+  width: 100%;
+  height: 620px;
+  background: var(--hinote-color-surface);
+  border: 1px solid var(--hinote-color-border);
+}
+
+.plot-label {
+  margin: calc(var(--hinote-space-unit) * 2) 0 0;
+  font-family: var(--hinote-font-mono);
+  font-size: var(--hinote-text-small);
+  color: var(--hinote-color-muted);
+}
+
+.plot-actions {
+  display: flex;
+  gap: calc(var(--hinote-space-unit) * 2);
+  margin-top: calc(var(--hinote-space-unit) * 3);
+}
+
+.plot-actions button {
+  font-family: var(--hinote-font-mono);
+  font-size: var(--hinote-text-small);
+  color: var(--hinote-color-fg);
+  background: var(--hinote-color-surface);
+  border: 1px solid var(--hinote-color-border);
+  border-radius: var(--hinote-radius);
+  padding: 0.35em 0.9em;
+  cursor: pointer;
+}
+
+.plot-actions button[aria-disabled="true"] {
+  color: var(--hinote-color-muted);
+  cursor: default;
 }
