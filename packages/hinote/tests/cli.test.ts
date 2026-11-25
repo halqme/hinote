@@ -1305,12 +1305,30 @@ test("static paths cannot escape the deck directory", async () => {
       await realpathFile(join(root, "ok.txt")),
     );
 
+    // A package manager links packages into node_modules from a store outside
+    // the deck: those resolve, and a link there to anything else does not.
+    const store = join(dir, "node_modules", ".store", "font", "node_modules");
+    await mkdir(join(store, "font"), { recursive: true });
+    await writeFile(join(store, "font", "a.woff2"), "font");
+    await mkdir(join(root, "node_modules"));
+    await symlink(join(store, "font"), join(root, "node_modules", "font"));
+    await symlink(join(dir, "secret.txt"), join(root, "node_modules", "leak"));
+    expect(resolveInside(root, "/node_modules/font/a.woff2")).toBe(
+      await realpathFile(join(store, "font", "a.woff2")),
+    );
+    expect(resolveInside(root, "/node_modules/leak")).toBeNull();
+
     const deck = new Hono().get("/", (c) => c.text("deck"));
     const app = createDevApp(() => deck, root);
     expect(await (await app.request("http://local/")).text()).toBe("deck");
     expect(await (await app.request("http://local/ok.txt")).text()).toBe("ok");
     expect((await app.request("http://local/missing-file")).status).toBe(404);
     expect((await app.request("http://local/leak.txt")).status).toBe(404);
+    expect(
+      await (
+        await app.request("http://local/node_modules/font/a.woff2")
+      ).text(),
+    ).toBe("font");
 
     // A name is decoded once, whatever characters it has.
     for (const name of ["#1.txt", "a%41.txt", "a b?.txt", "凡例.txt"]) {

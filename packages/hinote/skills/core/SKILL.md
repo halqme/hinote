@@ -74,7 +74,7 @@ A deck that passes `check` and `snapshot` can still say nothing. Before you fini
 - Import CSS as text: `import style from "./style.css" with { type: "text" }`.
 - Start from a palette instead of writing one: `import { themes } from "hinote"`, then `theme: themes.ink` (dark, also the default), `themes.paper` (warm light), or `themes.slate` (cool light). Use CSS for layout, not for picking a palette.
 - CSS reaches only its own slides. Use `& { ... }` for the slide element itself; `:root`, `html`, and `body` do not match. Inner CSS (slide over nested deck over deck) wins regardless of selectors.
-- Relative paths (`<img src="./images/a.png">`, `url(bg.png)`) resolve from the deck file's directory and must stay inside it.
+- Relative paths (`<img src="./images/a.png">`, `url(bg.png)`) resolve from the deck file's directory and must stay inside it. A file in an installed package, such as `./node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2`, counts as inside even when the package manager links it from a store elsewhere.
 - A slide is HTML drawn on the server: anything that should happen in the browser (a click, a timer, state) goes in its own `*.client.tsx` file, added with `<Script src={new URL("./x.client.tsx", import.meta.url)} />`. Start that file with `/// <reference types="hinote/client" />`; the `hinote` global exists only there. `--ref client` has the rest.
 - Steps: `<Step>` or any element with `data-hinote-step="n"`. Same `at` reveals together.
 - The URL holds only the slide (`/3`, `/presenter/3`). There are no nested paths.

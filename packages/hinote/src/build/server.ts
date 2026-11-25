@@ -4,6 +4,16 @@ import { resolve, sep } from "node:path";
 import { Hono } from "hono";
 import { getMimeType } from "hono/utils/mime";
 
+const inside = (path: string, root: string) =>
+  path === root || path.startsWith(`${root}${sep}`);
+
+const throughNodeModules = (path: string) =>
+  path.split(sep).includes("node_modules");
+
+// The file a URL path names inside `root`, or null. A symbolic link that leads
+// out of `root` is refused, except where a package manager put it: a path
+// through node_modules may end in a package stored in another node_modules,
+// such as Bun's or pnpm's store at the workspace root.
 export function resolveInside(root: string, urlPath: string): string | null {
   let decoded: string;
   try {
@@ -16,12 +26,14 @@ export function resolveInside(root: string, urlPath: string): string | null {
   if (relative === "") return null;
   const rootReal = realpathSync(root);
   const target = resolve(rootReal, relative);
-  if (target !== rootReal && !target.startsWith(`${rootReal}${sep}`))
-    return null;
+  if (!inside(target, rootReal)) return null;
   if (!existsSync(target) || !statSync(target).isFile()) return null;
   const real = realpathSync(target);
-  if (real !== rootReal && !real.startsWith(`${rootReal}${sep}`)) return null;
-  return real;
+  if (inside(real, rootReal)) return real;
+  const linked =
+    throughNodeModules(target.slice(rootReal.length)) &&
+    throughNodeModules(real);
+  return linked ? real : null;
 }
 
 export type FetchApp = {
