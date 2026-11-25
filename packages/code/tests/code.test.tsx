@@ -106,6 +106,21 @@ test("a set of lines for each step, numbered with the slide's <Step>s", async ()
   );
 });
 
+test('"all" dims no line, to show the whole code before a step picks lines out', async () => {
+  const html = await render(() => (
+    <Code lang="ts" highlight={["all", 3]}>
+      {source}
+    </Code>
+  ));
+  const blocks = [...html.matchAll(/<pre[\s\S]*?<\/pre>/g)].map(([b]) => b);
+  expect(
+    blocks.map((block) => lines(block).map((line) => line.dimmed)),
+  ).toEqual([
+    [false, false, false],
+    [true, true, false],
+  ]);
+});
+
 test("rejects lines the source does not have as HinoteError", async () => {
   for (const highlight of [0, "4", "3-1", "1-", "one", []])
     await expect(

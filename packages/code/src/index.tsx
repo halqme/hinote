@@ -13,14 +13,14 @@ export type CodeProps = {
   children?: string | string[];
   // A theme from "@hinote/code/themes". Defaults to Pierre's dark theme.
   theme?: CodeTheme | ThemeFamily;
-  // Lines to highlight, from 1: `3`, `"1-3"`, or `"1-3,5"`. The other lines
-  // are dimmed. An array is one set for each step, the first shown before
+  // Lines to highlight, from 1: `3`, `"1-3"`, or `"1-3,5"`, or "all". The
+  // other lines are dimmed. An array is one set for each step, the first shown before
   // any: each after the first is a step of the slide, numbered with its <Step>s.
   highlight?: Lines | readonly Lines[];
   class?: string;
 };
 
-export type Lines = number | string;
+export type Lines = number | "all" | (string & {});
 
 // The highlighter compiles WebAssembly as soon as it loads, which some hosts
 // refuse. It loads on the first <Code>, so a deck without code runs anywhere
@@ -92,6 +92,8 @@ function highlightsOf(
       "error",
     );
   return sets.map((set) => {
+    if (set === "all")
+      return new Set(Array.from({ length: count }, (_, i) => i + 1));
     const lines = new Set<number>();
     for (const part of String(set).split(",")) {
       const match = /^\s*(\d+)\s*(?:-\s*(\d+)\s*)?$/.exec(part);
@@ -99,7 +101,7 @@ function highlightsOf(
       const to = Number(match?.[2] ?? match?.[1]);
       if (!match || from < 1 || to < from || to > count)
         throw new PackageError(
-          `<Code highlight> got ${JSON.stringify(set)}: lines are numbers from 1 to ${count}, such as 3, "1-3", or "1-3,5".`,
+          `<Code highlight> got ${JSON.stringify(set)}: lines are numbers from 1 to ${count}, such as 3, "1-3", or "1-3,5", or "all".`,
           "error",
         );
       for (let line = from; line <= to; line++) lines.add(line);
