@@ -9,7 +9,7 @@ import { isPlainObject } from "../guards.ts";
 import type { Plugin } from "rolldown";
 import { bundle } from "./runtime.ts";
 import { isDeck } from "../deck/create.ts";
-import { tokenize } from "./lex.ts";
+import { child, identifier, parseProgram, walk, type Node } from "./ast.ts";
 
 // Bundle the deck so hinote and hono resolve from this package. The bundle is a
 // second copy of hinote, so the deck is recognized by shape, not by class.
@@ -34,23 +34,29 @@ export function fixImportMeta(
   values: Record<string, string>,
   jsx: boolean,
 ): string {
-  const tokens = tokenize(source, jsx);
+  const program = parseProgram(source, jsx);
+  if (!program) return source;
+  const found: Node[] = [];
+  walk(program, (node) => {
+    const meta = child(node, "object");
+    const key = identifier(child(node, "property"));
+    if (
+      node.type === "MemberExpression" &&
+      !node.computed &&
+      meta?.type === "MetaProperty" &&
+      identifier(child(meta, "meta")) === "import" &&
+      key !== undefined &&
+      META_KEYS.has(key)
+    )
+      found.push(node);
+    return true;
+  });
   let result = "";
   let from = 0;
-  for (let i = 0; i + 4 < tokens.length; i++) {
-    const [meta0, dot1, meta2, dot3, key] = tokens.slice(i, i + 5);
-    if (
-      meta0?.v !== "import" ||
-      dot1?.v !== "." ||
-      meta2?.v !== "meta" ||
-      dot3?.v !== "." ||
-      key?.k !== "id" ||
-      !META_KEYS.has(key.v)
-    )
-      continue;
-    result += source.slice(from, meta0.at) + JSON.stringify(values[key.v]);
-    from = key.at + key.v.length;
-    i += 4;
+  for (const node of found.sort((a, b) => a.start - b.start)) {
+    const key = identifier(child(node, "property")) ?? "";
+    result += source.slice(from, node.start) + JSON.stringify(values[key]);
+    from = node.end;
   }
   return result + source.slice(from);
 }

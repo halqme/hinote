@@ -4,7 +4,15 @@
 // `createSlide` to build new slides from data.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
-import { parse } from "./parse.ts";
+import {
+  child,
+  identifier,
+  list,
+  parseProgram,
+  text,
+  walk,
+  type Node,
+} from "../build/ast.ts";
 
 export type SourceProblem = {
   code: string;
@@ -28,101 +36,23 @@ function isClientFile(file: string): boolean {
   return /\.client\.tsx?$/.test(file);
 }
 
-// A node of Babel's syntax tree, read only through the fields used here.
-type Node = {
-  type: string;
-  start?: number | null;
-  loc?: { start: { line: number } } | null;
-  [key: string]: unknown;
-};
-
-function isNode(value: unknown): value is Node {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "type" in value &&
-    typeof value.type === "string"
-  );
-}
-
-function child(node: Node, field: string): Node | undefined {
-  const value = node[field];
-  return isNode(value) ? value : undefined;
-}
-
-function list(node: Node, field: string): Node[] {
-  const value = node[field];
-  return Array.isArray(value) ? value.filter(isNode) : [];
-}
-
-function text(node: Node | undefined, field: string): string | undefined {
-  const value = node?.[field];
-  return typeof value === "string" ? value : undefined;
-}
-
-// Fields that hold no code a check looks at: positions, comments, and types.
-const NOT_CODE = new Set([
-  "loc",
-  "range",
-  "extra",
-  "leadingComments",
-  "trailingComments",
-  "innerComments",
-  "typeAnnotation",
-  "typeParameters",
-  "typeArguments",
-  "superTypeArguments",
-  "returnType",
-]);
-
-// Visits `node` and what it contains, in source order. `visit` returns
-// whether to go inside the node.
-function walk(
-  node: Node,
-  visit: (node: Node, parent?: Node, key?: string) => boolean,
-  parent?: Node,
-  key?: string,
-): void {
-  if (!visit(node, parent, key)) return;
-  for (const [field, value] of Object.entries(node)) {
-    if (NOT_CODE.has(field)) continue;
-    if (Array.isArray(value)) {
-      for (const item of value)
-        if (isNode(item)) walk(item, visit, node, field);
-    } else if (isNode(value)) walk(value, visit, node, field);
-  }
-}
-
-function lineOf(node: Node): number {
-  return node.loc?.start.line ?? 0;
-}
-
 function bySource<T extends { at: number }>(items: T[]): T[] {
   return items.sort((a, b) => a.at - b.at);
 }
 
+// A method is a FunctionExpression in its property or class member.
 const FUNCTIONS = new Set([
   "ArrowFunctionExpression",
   "FunctionExpression",
   "FunctionDeclaration",
-  "ObjectMethod",
-  "ClassMethod",
 ]);
 
 function isMember(node: Node): boolean {
-  return (
-    node.type === "MemberExpression" || node.type === "OptionalMemberExpression"
-  );
+  return node.type === "MemberExpression";
 }
 
 function isCall(node: Node): boolean {
-  return (
-    node.type === "CallExpression" || node.type === "OptionalCallExpression"
-  );
-}
-
-function identifier(node: Node | undefined): string | undefined {
-  return node?.type === "Identifier" ? text(node, "name") : undefined;
+  return node.type === "CallExpression";
 }
 
 // The local names `createSlide` is imported as.
@@ -169,7 +99,7 @@ function forbiddenFlat(call: Node, names: Set<string>): Flat | undefined {
     list(call, "arguments").some((arg) => buildsSlide(arg, names))
   )
     return undefined;
-  return { name, line: lineOf(property), at: property.start ?? 0 };
+  return { name, line: property.line, at: property.start };
 }
 
 // The flattening calls in `node`, leaving out function bodies, which run
@@ -213,7 +143,7 @@ function isValueRead(parent: Node | undefined, key: string | undefined) {
     return key === "property" ? Boolean(parent.computed) : key !== "object";
   if (isCall(parent) || parent.type === "NewExpression")
     return key !== "callee";
-  if (parent.type === "ObjectProperty" && key === "key")
+  if (parent.type === "Property" && key === "key")
     return Boolean(parent.computed);
   return true;
 }
@@ -255,14 +185,14 @@ function browserProblems(
     const object = child(node, "object");
     const property = child(node, "property");
     if (object && identifier(object) === "hinote")
-      uses.push({ line: lineOf(object), at: object.start ?? 0 });
+      uses.push({ line: object.line, at: object.start });
     else if (
       property &&
       identifier(object) === "window" &&
       !node.computed &&
       identifier(property) === "hinote"
     )
-      uses.push({ line: lineOf(property), at: property.start ?? 0 });
+      uses.push({ line: property.line, at: property.start });
     return true;
   });
   for (const use of bySource(uses))
@@ -299,7 +229,7 @@ function flattenProblems(program: Node, file: string): SourceProblem[] {
         const name = identifier(node);
         const flat = name === undefined ? undefined : bound.get(name);
         if (name && flat && isValueRead(parent, key))
-          reads.push({ name, flat, line: lineOf(node), at: node.start ?? 0 });
+          reads.push({ name, flat, line: node.line, at: node.start });
         return true;
       });
       for (const read of bySource(reads))
@@ -343,7 +273,7 @@ function serverOnlyProblems(
       if (/^on[A-Z]/.test(name))
         problems.push({
           code: "server-handler",
-          message: `${file}:${lineOf(attr)}: <${tag} ${name}> is on a slide, where it never runs.`,
+          message: `${file}:${attr.line}: <${tag} ${name}> is on a slide, where it never runs.`,
           hint: HANDLER_HINT,
         });
     }
@@ -373,27 +303,11 @@ function serverOnlyProblems(
   return problems;
 }
 
-// A file that does not parse has nothing to check here: bundling the deck
-// reports the syntax error.
-function parseProgram(source: string, file: string): Node | undefined {
-  try {
-    const { program } = parse(source, {
-      sourceType: "module",
-      errorRecovery: true,
-      // A .ts file has no JSX: `<T>(x) => x` is a generic, not a tag.
-      plugins: /\.[cm]?ts$/.test(file) ? ["typescript"] : ["typescript", "jsx"],
-    });
-    return isNode(program) ? program : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 export function problemsInSource(
   source: string,
   file: string,
 ): SourceProblem[] {
-  const program = parseProgram(source, file);
+  const program = parseProgram(source, !/\.[cm]?ts$/.test(file));
   if (!program) return [];
   return [
     ...flattenProblems(program, file),
