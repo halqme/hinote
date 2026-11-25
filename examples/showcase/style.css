@@ -127,13 +127,27 @@ strong {
   height: 100%;
 }
 
-.head {
+.head-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   padding: calc(var(--hinote-space-unit) * 1) 0
     calc(var(--hinote-space-unit) * 2);
-  border-bottom: 1px solid var(--hinote-color-fg);
+}
+
+.where {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--hinote-space-unit) * 2);
+}
+
+/* The rule under the head is a <Progress>: ink as far as the talk has gone. */
+.head-rule {
+  height: 2px;
+}
+
+.head-rule .hinote-progress-bar {
+  background: var(--hinote-color-fg);
 }
 
 .section {

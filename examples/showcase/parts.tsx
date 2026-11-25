@@ -1,4 +1,11 @@
-import { Center, Morph, createSlide, type SlideContext } from "hinote";
+import {
+  Center,
+  Morph,
+  Progress,
+  SectionDots,
+  createSlide,
+  type SlideContext,
+} from "hinote";
 import type { Child } from "hono/jsx";
 
 // A printed page: warm paper, ink, and one ultramarine. Headlines are set in
@@ -97,12 +104,19 @@ export const Brand = () => (
 );
 
 // The running head. The section name is what the nested deck passed in,
-// outermost first, so a slide does not repeat it.
+// outermost first, so a slide does not repeat it. The dots count the slides
+// of the section, and the rule under the head fills as the talk goes on.
 export function Head(props: { slide: SlideContext; brand?: boolean }) {
   return (
     <header class="head">
-      {props.brand ? <Brand /> : <span class="brand is-quiet">hinote</span>}
-      <span class="section">{props.slide.sections.join(" — ")}</span>
+      <div class="head-row">
+        {props.brand ? <Brand /> : <span class="brand is-quiet">hinote</span>}
+        <span class="where">
+          <span class="section">{props.slide.sections.join(" — ")}</span>
+          <SectionDots slide={props.slide} />
+        </span>
+      </div>
+      <Progress slide={props.slide} class="head-rule" />
     </header>
   );
 }
