@@ -201,6 +201,14 @@ function presenterView(
   },
 ): PresenterView {
   const { go } = actions;
+  // Previews copy each slide as the server drew it. The page's scripts have
+  // not run yet, and once they do they change the live slide, such as a chart
+  // that redraws itself to grow in, which a copy would catch half drawn.
+  const drawn = slides.map((slide) => slide.cloneNode(true));
+  const original = (index: number) => {
+    const copy = drawn[index];
+    return copy instanceof HTMLElement ? copy : undefined;
+  };
   const nextEl = document.getElementById("hinote-next");
   const timerEl = document.getElementById("hinote-timer");
   const clockEl = document.getElementById("hinote-clock");
@@ -240,7 +248,7 @@ function presenterView(
     item.className = "hinote-overview-item";
     const box = document.createElement("div");
     box.className = "hinote-thumb";
-    fillThumb(box, slide, steps[index] ?? 0);
+    fillThumb(box, original(index) ?? slide, steps[index] ?? 0);
     const label = document.createElement("span");
     label.className = "hinote-overview-label";
     const title = slide.dataset.title?.trim();
@@ -300,7 +308,7 @@ function presenterView(
         item.classList.toggle("is-current", index === position.slide);
       const next = nextPosition(position, steps);
       if (!nextEl) return;
-      const slide = next && slides[next.slide];
+      const slide = next && original(next.slide);
       if (next && slide) {
         nextEl.removeAttribute("data-end");
         fillThumb(nextEl, slide, next.step);

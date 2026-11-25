@@ -382,6 +382,20 @@ describe("the presenter view", () => {
     expect(notes.innerHTML).toBe("<p>line one\nline two</p>");
   });
 
+  // A page script that redraws its part of the live slide, such as a chart
+  // growing in, must not leave the preview half drawn.
+  test("the preview of the next key press shows the slide as the server drew it, not as a script changed it", async () => {
+    await open("presenter", "http://localhost/presenter/1");
+    const live = document.querySelectorAll("#deck .slide")[1]!;
+    live.querySelector("li")!.textContent = "changed by a script";
+    press("ArrowRight");
+    const preview = document.getElementById("hinote-next")!;
+    expect(
+      [...preview.querySelectorAll("li")].map((li) => li.textContent),
+    ).toEqual(["a", "b"]);
+    expect(live.querySelector("li")?.textContent).toBe("changed by a script");
+  });
+
   test("announces its position, and its toolbar moves and opens the overview", async () => {
     const channel = await open(
       "presenter",
