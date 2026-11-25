@@ -16,23 +16,29 @@ const repo = resolve(import.meta.dir, "..");
 const workspace = resolve(repo, "../..");
 const node = Bun.which("node");
 
-// hinote has to work without Bun: the library as a Hono app on Node, Deno, or
-// Workers, and the CLI on Node. These tests build dist/ as `prepack` does and
-// run it with Node in a project that has what installing hinote brings.
+// The CLI has to work without Bun. These tests build hinote and the
+// @hinote/core it depends on as `prepack` does, and run the CLI with Node in
+// a project that has what installing hinote brings.
 describe.skipIf(!node)("the built package under Node", () => {
   let dir: string;
   let app: string;
 
   async function project(path: string, packages: string[]) {
-    await mkdir(join(path, "node_modules/@hono"), { recursive: true });
-    await cp(join(dir, "hinote"), join(path, "node_modules/hinote"), {
-      recursive: true,
-    });
+    await mkdir(join(path, "node_modules/@hinote"), { recursive: true });
+    for (const name of ["hinote", "@hinote/core"])
+      await cp(join(dir, name), join(path, "node_modules", name), {
+        recursive: true,
+      });
     for (const name of packages)
       await symlink(
         join(repo, "node_modules", name),
         join(path, "node_modules", name),
       );
+    // @hinote/core's declarations import it.
+    await symlink(
+      resolve(repo, "../types"),
+      join(path, "node_modules/@hinote/types"),
+    );
     await writeFile(
       join(path, "deck.tsx"),
       `import { Script, createSlide } from "hinote";
@@ -67,59 +73,31 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
     // Outside the repository, so Node cannot find the repository's own
     // packages by walking up from the project.
     dir = await mkdtemp(join(tmpdir(), "hinote-dist-"));
-    // The tarball npm gets: `prepack` builds dist/, and the catalog and
+    // The tarballs npm gets: `prepack` builds dist/, and the catalog and
     // workspace ranges in package.json become plain versions.
-    const tarball = join(dir, "hinote.tgz");
-    const packed = Bun.spawnSync(
-      ["bun", "pm", "pack", "--filename", tarball, "--quiet"],
-      { cwd: repo, stderr: "pipe" },
-    );
-    if (packed.exitCode !== 0) throw new Error(packed.stderr.toString());
-    const untar = Bun.spawnSync(["tar", "xzf", tarball, "-C", dir], {
-      stderr: "pipe",
-    });
-    if (untar.exitCode !== 0) throw new Error(untar.stderr.toString());
-    await rename(join(dir, "package"), join(dir, "hinote"));
+    for (const [name, source] of [
+      ["hinote", repo],
+      ["@hinote/core", resolve(repo, "../core")],
+    ] as const) {
+      const tarball = join(dir, "package.tgz");
+      const packed = Bun.spawnSync(
+        ["bun", "pm", "pack", "--filename", tarball, "--quiet"],
+        { cwd: source, stderr: "pipe" },
+      );
+      if (packed.exitCode !== 0) throw new Error(packed.stderr.toString());
+      const untar = Bun.spawnSync(["tar", "xzf", tarball, "-C", dir], {
+        stderr: "pipe",
+      });
+      if (untar.exitCode !== 0) throw new Error(untar.stderr.toString());
+      await mkdir(join(dir, name, ".."), { recursive: true });
+      await rename(join(dir, "package"), join(dir, name));
+    }
     app = join(dir, "app");
-    await project(app, ["hono", "@hinote", "rolldown"]);
+    await project(app, ["hono", "rolldown"]);
   }, 60_000);
 
   afterAll(async () => {
     await rm(dir, { recursive: true, force: true });
-  });
-
-  test("the library renders a deck", async () => {
-    await writeFile(
-      join(app, "app.mjs"),
-      `import { jsx } from "hono/jsx";
-import { createSlide } from "hinote";
-const deck = createSlide([createSlide(() => jsx("h1", {}, "library"))]);
-console.log(await (await deck.request("/1")).text());`,
-    );
-    const run = Bun.spawnSync([node!, "app.mjs"], {
-      cwd: app,
-      stderr: "pipe",
-    });
-    expect(run.stderr.toString()).toBe("");
-    expect(run.stdout.toString()).toContain("<h1>library</h1>");
-  });
-
-  // A page that only lays out, such as one rendered by an app of its own,
-  // should not carry the deck renderer and the presenter's browser script.
-  test("a bundle that imports one component leaves out the rest", async () => {
-    await writeFile(
-      join(app, "row.mjs"),
-      `import { Row } from "hinote";\nconsole.log(Row);`,
-    );
-    const built = await Bun.build({
-      entrypoints: [join(app, "row.mjs")],
-      target: "node",
-      external: ["hono", "hono/*"],
-    });
-    const text = await built.outputs[0]!.text();
-    expect(text).toContain("hinote-row");
-    expect(text).not.toContain("hinote-stage");
-    expect(text).not.toContain("createSlide");
   });
 
   test("the CLI finds its skills and checks a deck under Node", async () => {

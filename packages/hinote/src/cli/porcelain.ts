@@ -6,7 +6,7 @@ import { networkInterfaces } from "node:os";
 import { dirname, relative, resolve, sep } from "node:path";
 import { copyAssets, embedAssets } from "../build/assets.ts";
 import { isBrowserName } from "../snapshot/browser.ts";
-import type { Deck } from "../deck/deck.ts";
+import type { Deck } from "@hinote/core/internal";
 import { HinoteError, isHinoteError, UsageError } from "../errors.ts";
 import { COMMANDS, diffProject, initProject, packageManager } from "./init.ts";
 import { deckPath, loadDeckFile } from "../build/load.ts";

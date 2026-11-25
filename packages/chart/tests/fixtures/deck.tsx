@@ -1,4 +1,4 @@
-import { Step, createSlide } from "hinote";
+import { Step, createSlide } from "@hinote/core";
 import {
   Chart,
   barY,

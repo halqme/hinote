@@ -1,5 +1,5 @@
 // Browser-only types. Importing this module, or referencing it with
-// `/// <reference types="hinote/client" />`, declares the global `hinote`.
+// `/// <reference types="@hinote/core/client" />`, declares the global `hinote`.
 // A global augmentation covers the whole program, so the deck tsconfig
 // excludes this file and `*.client.tsx`. A slide that imported it would
 // start seeing `hinote` in every render function.

@@ -171,9 +171,9 @@ async function startUp(tool: Tool, cwd: string) {
 if (browser) browse("open", "about:blank");
 
 // --filename takes a path; it cannot be combined with --destination. The
-// hinote decks install all three from these files, not from npm.
+// hinote decks install all four from these files, not from npm.
 mkdirSync(join(root, ".pack"), { recursive: true });
-for (const name of ["hinote", "code", "types"]) {
+for (const name of ["hinote", "core", "code", "types"]) {
   const packed = spawnSync(
     "bun",
     ["pm", "pack", "--filename", join(root, `.pack/${name}.tgz`), "--quiet"],

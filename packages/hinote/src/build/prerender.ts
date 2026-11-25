@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { copyAssets } from "./assets.ts";
-import type { Deck } from "../deck/deck.ts";
+import type { Deck } from "@hinote/core/internal";
 import { HinoteError } from "../errors.ts";
 import { inlineScripts } from "./scripts.ts";
 

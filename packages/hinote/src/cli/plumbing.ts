@@ -6,21 +6,21 @@ import { text as readText } from "node:stream/consumers";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { decode, referencedPaths, remoteUrls } from "../build/assets.ts";
+import { contrastWarningsForTheme, type ContrastWarning } from "./contrast.ts";
 import {
-  contrastWarningsForTheme,
-  type ContrastWarning,
-} from "../deck/contrast.ts";
-import type { Deck } from "../deck/deck.ts";
+  type Deck,
+  defaultTheme,
+  mergeTheme,
+  stepsIn,
+  transitionName,
+} from "@hinote/core/internal";
 import { conventionProblems } from "./conventions.ts";
 import { HinoteError, isHinoteError, UsageError } from "../errors.ts";
 import { deckPath, loadDeckFile } from "../build/load.ts";
 import { inlineScripts } from "../build/scripts.ts";
 import { resolveInside } from "../build/server.ts";
-import { defaultTheme, mergeTheme } from "../deck/theme.ts";
 import { stringFlag } from "./args.ts";
 import type { Command } from "./command.ts";
-import { stepsIn } from "../components/step.tsx";
-import { transitionName } from "../deck/transition.ts";
 
 export const DECK_ARG = "[deck.tsx]";
 

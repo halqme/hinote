@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Step, createSlide } from "hinote";
+import { Step, createSlide } from "@hinote/core";
 import {
   Chart,
   areas,

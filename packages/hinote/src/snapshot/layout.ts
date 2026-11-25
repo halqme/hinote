@@ -1,7 +1,7 @@
 // Measures one open slide in the browser: canvas overflow, clipped content,
 // safe-area crossings, a title that wraps, and a character alone on its line. Runs as a page expression through CapturePage.evaluate
 // so every browser backend can return the same plain JSON.
-import { isPlainObject } from "../guards.ts";
+import { isPlainObject } from "@hinote/core/internal";
 import type { CapturePage } from "./browser.ts";
 
 export type LayoutCode =

@@ -1,0 +1,8 @@
+{
+  // Every file in src/, including the browser global that tsconfig.json leaves
+  // out, as JavaScript with declarations. scripts/build-lib.ts runs it.
+  "extends": ["./tsconfig.json", "../../tsconfig.build.json"],
+  "compilerOptions": { "rootDir": "src", "outDir": "dist" },
+  "include": ["src"],
+  "exclude": []
+}

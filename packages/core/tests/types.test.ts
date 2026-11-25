@@ -29,12 +29,12 @@ test("layout values, step tags, and gaps that would render wrong are type errors
           strict: true,
           noEmit: true,
           skipLibCheck: true,
-          // hinote's source imports with .ts and takes its shared types
+          // @hinote/core's source imports with .ts and takes its shared types
           // from the workspace.
           allowImportingTsExtensions: true,
           types: ["bun"],
           paths: {
-            hinote: [relative(dir, join(repo, "src/index.ts"))],
+            "@hinote/core": [relative(dir, join(repo, "src/index.ts"))],
             "@hinote/types": [relative(dir, join(repo, "../types/index.d.ts"))],
           },
         },
@@ -43,7 +43,7 @@ test("layout values, step tags, and gaps that would render wrong are type errors
     );
     await writeFile(
       join(dir, "deck.tsx"),
-      `import { Column, Grid, Row, Step, Steps, createSlide } from "hinote";
+      `import { Column, Grid, Row, Step, Steps, createSlide } from "@hinote/core";
 export default createSlide(() => (
   <Column gap={2} align="center" justify="space-between">
     <Row gap="1.5rem" align="start" />

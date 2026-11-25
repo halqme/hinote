@@ -8,7 +8,7 @@ import type { HinoteClient } from "../src/client/api.ts";
 import { Link, Morph, Step, Steps, createSlide } from "../src/index.ts";
 import type { Page, Sync } from "../src/deck/render.ts";
 
-// The page defines this. Importing hinote/client would type it for every file
+// The page defines this. Importing @hinote/core/client would type it for every file
 // in the program, so the test declares it for itself.
 declare const hinote: HinoteClient;
 

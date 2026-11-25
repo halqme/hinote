@@ -40,8 +40,8 @@ test("a slide cannot see hinote, and a client file can import Position and Role"
             noEmit: true,
             skipLibCheck: true,
             paths: {
-              hinote: [index],
-              "hinote/client": [clientTypes],
+              "@hinote/core": [index],
+              "@hinote/core/client": [clientTypes],
             },
           },
           files: ["slide.tsx"],
@@ -52,7 +52,7 @@ test("a slide cannot see hinote, and a client file can import Position and Role"
     );
     await writeFile(
       join(dir, "slide.tsx"),
-      `import { createSlide, type HinoteClient } from "hinote";
+      `import { createSlide, type HinoteClient } from "@hinote/core";
 export default createSlide(() => <p>{hinote.role}</p>);
 export type Client = HinoteClient;
 `,
@@ -83,7 +83,7 @@ export type Client = HinoteClient;
               relative(dir, join(repo, "types")),
               relative(dir, join(workspace, "node_modules/@types")),
             ],
-            paths: { "hinote/client": [clientTypes] },
+            paths: { "@hinote/core/client": [clientTypes] },
           },
           files: ["widget.client.tsx"],
         },
@@ -93,8 +93,8 @@ export type Client = HinoteClient;
     );
     await writeFile(
       join(dir, "widget.client.tsx"),
-      `/// <reference types="hinote/client" />
-import type { Position, Role } from "hinote/client";
+      `/// <reference types="@hinote/core/client" />
+import type { Position, Role } from "@hinote/core/client";
 const role: Role = hinote.role;
 hinote.on("position", (position: Position) => position.slide);
 export { role };

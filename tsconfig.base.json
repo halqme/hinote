@@ -34,6 +34,9 @@
     // others without listing them as dependencies or building them first.
     "paths": {
       "hinote": ["./packages/hinote/src/index.ts"],
+      "@hinote/core": ["./packages/core/src/index.ts"],
+      "@hinote/core/client": ["./packages/core/src/client-global.ts"],
+      "@hinote/core/internal": ["./packages/core/src/internal.ts"],
       "@hinote/types": ["./packages/types/index.d.ts"]
     }
   }

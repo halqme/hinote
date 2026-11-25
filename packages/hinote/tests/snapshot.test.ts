@@ -17,7 +17,7 @@ import {
 } from "../src/snapshot/browser.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
-const api = resolve(import.meta.dir, "../src/index.ts");
+const api = resolve(import.meta.dir, "../../core/src/index.ts");
 
 async function tempDir() {
   const scratch = join(import.meta.dir, "../.tmp");

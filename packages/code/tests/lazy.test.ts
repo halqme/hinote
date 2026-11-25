@@ -5,11 +5,11 @@ import { expect, test } from "bun:test";
 // @hinote/code but shows no code must still render there; only <Code> needs
 // the highlighter.
 test("importing <Code> does not compile WebAssembly until a slide uses it", () => {
-  const hinote = resolve(import.meta.dir, "../../hinote/src/index.ts");
+  const core = resolve(import.meta.dir, "../../core/src/index.ts");
   const code = resolve(import.meta.dir, "../src/index.tsx");
   const script = `
     WebAssembly.Module = function () { throw new Error("no wasm here"); };
-    const { createSlide } = await import(${JSON.stringify(hinote)});
+    const { createSlide } = await import(${JSON.stringify(core)});
     const { Code } = await import(${JSON.stringify(code)});
     const { jsx } = await import("hono/jsx");
     const plain = createSlide([createSlide(() => jsx("h1", {}, "plain"))]);

@@ -15,7 +15,7 @@ import {
   type LayoutIssue,
   type LayoutReport,
 } from "./layout.ts";
-import type { Canvas } from "../deck/deck.ts";
+import type { Canvas } from "@hinote/core/internal";
 import { HinoteError, UsageError } from "../errors.ts";
 import { loadDeckFile } from "../build/load.ts";
 import { serve } from "../build/runtime.ts";

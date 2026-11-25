@@ -13,6 +13,7 @@
     "esbuild": "^0.28.2"
   },
   "overrides": {
+    "@hinote/core": "file:../.pack/core.tgz",
     "@hinote/types": "file:../.pack/types.tgz"
   }
 }

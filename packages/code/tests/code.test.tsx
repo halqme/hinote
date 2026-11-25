@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createSlide } from "hinote";
+import { createSlide } from "@hinote/core";
 import { Code, dedent } from "../src/index.tsx";
 import { githubLight } from "../src/themes.ts";
 

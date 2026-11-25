@@ -3,12 +3,10 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Deck } from "../deck/deck.ts";
+import { type Deck, isDeck, isPlainObject } from "@hinote/core/internal";
 import { HinoteError, isHinoteError } from "../errors.ts";
-import { isPlainObject } from "../guards.ts";
 import type { Plugin } from "rolldown";
 import { bundle } from "./runtime.ts";
-import { isDeck } from "../deck/create.ts";
 import { child, identifier, parseProgram, walk, type Node } from "./ast.ts";
 
 // Bundle the deck so hinote and hono resolve from this package. The bundle is a

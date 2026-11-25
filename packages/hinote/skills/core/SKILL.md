@@ -1,6 +1,6 @@
 ---
 name: hinote
-description: Write, check, and ship slide decks with hinote, where each slide is a Hono JSX component rendered on the server and the deck is a Hono app. Use when a project has a deck.tsx that imports from "hinote", or when asked to make slides with hinote.
+description: Write, check, and ship slide decks with hinote, where each slide is a Hono JSX component rendered on the server and the deck is a Hono app. Use when a project has a deck.tsx that imports from "hinote" or "@hinote/core", or when asked to make slides with hinote.
 ---
 
 # hinote

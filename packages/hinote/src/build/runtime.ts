@@ -10,7 +10,7 @@ import {
 } from "node:http";
 import type { Plugin } from "rolldown";
 import { HinoteError } from "../errors.ts";
-import { isPlainObject } from "../guards.ts";
+import { isPlainObject } from "@hinote/core/internal";
 
 export const isBun = typeof Bun !== "undefined";
 

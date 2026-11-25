@@ -619,7 +619,7 @@ export function boot(): void {
       };
     },
   };
-  // Not declared here: hinote/client declares the global for client files only.
+  // Not declared here: @hinote/core/client declares the global for client files only.
   Reflect.set(globalThis, "hinote", api);
 
   // The laser is drawn only while it is on and the mouse is over the slide.

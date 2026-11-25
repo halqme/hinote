@@ -161,7 +161,9 @@ function browserProblems(
       .replace(/\/\/(?!\/).*$/, "")
       .replace(/\/\*[\s\S]*?\*\//g, "");
     if (
-      /^\s*\/\/\/\s*<reference\s+types\s*=\s*["']hinote\/client["']/.test(line)
+      /^\s*\/\/\/\s*<reference\s+types\s*=\s*["'](?:@hinote\/core|hinote)\/client["']/.test(
+        line,
+      )
     )
       problems.push({
         code: "browser-global",
@@ -170,7 +172,7 @@ function browserProblems(
       });
     else if (
       /^\s*(import|export)\b/.test(code) &&
-      /["']hinote\/client["']/.test(code)
+      /["'](?:@hinote\/core|hinote)\/client["']/.test(code)
     )
       problems.push({
         code: "browser-global",

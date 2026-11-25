@@ -48,6 +48,20 @@
         "hono": "catalog:",
       },
     },
+    "packages/core": {
+      "name": "@hinote/core",
+      "version": "0.5.2",
+      "dependencies": {
+        "@hinote/types": "workspace:^",
+      },
+      "devDependencies": {
+        "@happy-dom/global-registrator": "^21.0.4",
+        "rolldown": "1.3.3",
+      },
+      "peerDependencies": {
+        "hono": "catalog:",
+      },
+    },
     "packages/d2": {
       "name": "@hinote/d2",
       "version": "0.5.2",
@@ -63,11 +77,8 @@
         "hinote": "dist/cli.js",
       },
       "dependencies": {
-        "@hinote/types": "workspace:^",
+        "@hinote/core": "workspace:*",
         "rolldown": "1.3.3",
-      },
-      "devDependencies": {
-        "@happy-dom/global-registrator": "^21.0.4",
       },
       "peerDependencies": {
         "hono": "catalog:",
@@ -115,6 +126,8 @@
     "@hinote/chart": ["@hinote/chart@workspace:packages/chart"],
 
     "@hinote/code": ["@hinote/code@workspace:packages/code"],
+
+    "@hinote/core": ["@hinote/core@workspace:packages/core"],
 
     "@hinote/d2": ["@hinote/d2@workspace:packages/d2"],
 

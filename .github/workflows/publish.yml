@@ -40,12 +40,13 @@ jobs:
       # bun pm pack builds each package and turns its catalog: and workspace:
       # ranges into plain versions, which npm publish would leave as they are.
       # npm publishes the tarball, so trusted publishing still applies.
-      # @hinote/types goes first because hinote depends on it, and a package
-      # npm already has at this version is skipped, so a rerun can finish.
+      # A package goes after the ones it depends on: @hinote/types, then
+      # @hinote/core, and hinote last. One npm already has at this version is
+      # skipped, so a rerun can finish.
       - name: Publish every package
         run: |
           mkdir -p "$RUNNER_TEMP/packs"
-          for dir in packages/types packages/code packages/katex packages/d2 packages/mermaid packages/chart packages/hinote; do
+          for dir in packages/types packages/core packages/code packages/katex packages/d2 packages/mermaid packages/chart packages/hinote; do
             name=$(jq -r .name "$dir/package.json")
             version=$(jq -r .version "$dir/package.json")
             if npm view "${name}@${version}" version >/dev/null 2>&1; then

@@ -17,7 +17,7 @@ import { scriptPath } from "../src/build/scripts.ts";
 import { createDevApp, resolveInside } from "../src/build/server.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
-const api = resolve(import.meta.dir, "../src/index.ts");
+const api = resolve(import.meta.dir, "../../core/src/index.ts");
 const repo = resolve(import.meta.dir, "..");
 
 async function tempDir() {
@@ -599,15 +599,21 @@ test("init writes a deck that renders, and never overwrites", async () => {
     const project = join(dir, "talk");
     const created = await run(["init", "talk", "--no-install"], dir);
     expect(created.code).toBe(0);
-    // Stand in for `bun install`: the package as `prepack` builds it, and its
-    // hono, linked into the project.
+    // Stand in for `bun install`: hinote and its @hinote/core as `prepack`
+    // builds them, and hono, linked into the project.
     const built = join(dir, "hinote");
-    const build = Bun.spawnSync(
-      ["bun", "scripts/build-lib.ts", join(built, "dist")],
-      { cwd: repo, stderr: "pipe" },
-    );
-    if (build.exitCode !== 0) throw new Error(build.stderr.toString());
-    await copyFile(join(repo, "package.json"), join(built, "package.json"));
+    const core = join(built, "node_modules/@hinote/core");
+    for (const [source, out, script] of [
+      [repo, built, "../../scripts/build-package.ts"],
+      [resolve(repo, "../core"), core, "scripts/build.ts"],
+    ] as const) {
+      const build = Bun.spawnSync(["bun", script, join(out, "dist")], {
+        cwd: source,
+        stderr: "pipe",
+      });
+      if (build.exitCode !== 0) throw new Error(build.stderr.toString());
+      await copyFile(join(source, "package.json"), join(out, "package.json"));
+    }
     await mkdir(join(project, "node_modules"));
     await symlink(built, join(project, "node_modules/hinote"));
     await symlink(

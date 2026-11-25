@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createSlide } from "hinote";
+import { createSlide } from "@hinote/core";
 import { Math } from "../src/index.tsx";
 
 async function render(node: () => unknown) {

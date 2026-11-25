@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { expect, test } from "bun:test";
-import { createSlide } from "hinote";
+import { createSlide } from "@hinote/core";
 import { D2 } from "../src/index.tsx";
 
 async function render(...nodes: (() => unknown)[]) {

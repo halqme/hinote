@@ -4,8 +4,9 @@ import {
   contrastRatio,
   contrastWarningsForTheme,
   parseCssColor,
-} from "../src/deck/contrast.ts";
-import { defaultTheme, mergeTheme, themes } from "../src/deck/theme.ts";
+} from "../src/cli/contrast.ts";
+import { themes } from "@hinote/core";
+import { defaultTheme, mergeTheme } from "@hinote/core/internal";
 
 test("parseCssColor reads #rgb, #rrggbb, and opaque rgb()", () => {
   expect(parseCssColor("#abc")).toEqual({ r: 0xaa, g: 0xbb, b: 0xcc });

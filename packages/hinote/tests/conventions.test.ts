@@ -4,7 +4,7 @@ import { expect, test } from "bun:test";
 import { problemsInSource } from "../src/cli/conventions.ts";
 
 const cli = resolve(import.meta.dir, "../src/cli.ts");
-const api = resolve(import.meta.dir, "../src/index.ts");
+const api = resolve(import.meta.dir, "../../core/src/index.ts");
 
 function source(body: string): string {
   return `import { createSlide } from ${JSON.stringify(api)}\n${body}\n`;
@@ -85,11 +85,16 @@ export default createSlide(() => <p>hinote.send</p>);`),
   );
   expect(mentioned).toEqual([]);
 
-  const referenced = problemsInSource(
-    `/// <reference types="hinote/client" />\n${source(`export default createSlide(() => <p>ok</p>);`)}`,
-    "deck.tsx",
-  );
-  expect(referenced.map((problem) => problem.code)).toEqual(["browser-global"]);
+  // hinote/client and the @hinote/core/client it re-exports.
+  for (const types of ["hinote/client", "@hinote/core/client"]) {
+    const referenced = problemsInSource(
+      `/// <reference types="${types}" />\n${source(`export default createSlide(() => <p>ok</p>);`)}`,
+      "deck.tsx",
+    );
+    expect(referenced.map((problem) => problem.code)).toEqual([
+      "browser-global",
+    ]);
+  }
 
   const client = problemsInSource(
     `/// <reference types="hinote/client" />\nhinote.role\n`,

@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { ownPackage } from "./package.ts";
 import { HinoteError } from "../errors.ts";
-import { isPlainObject } from "../guards.ts";
+import { isPlainObject } from "@hinote/core/internal";
 import { isBun } from "../build/runtime.ts";
 
 const DECK = `import { Card, Center, Column, Grid, Step, createSlide } from "hinote";

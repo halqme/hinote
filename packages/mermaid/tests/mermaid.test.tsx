@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createSlide } from "hinote";
+import { createSlide } from "@hinote/core";
 import { Mermaid } from "../src/index.tsx";
 
 async function render(...nodes: (() => unknown)[]) {

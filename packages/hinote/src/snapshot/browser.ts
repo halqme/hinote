@@ -16,9 +16,8 @@ import {
 import { readFile, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import type { Canvas } from "../deck/deck.ts";
+import { type Canvas, isPlainObject } from "@hinote/core/internal";
 import { HinoteError } from "../errors.ts";
-import { isPlainObject } from "../guards.ts";
 
 export const BROWSER_NAMES = [
   "agent-browser",
