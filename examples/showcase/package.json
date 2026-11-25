@@ -16,6 +16,7 @@
     "@hinote/code": "workspace:*",
     "@hinote/d2": "workspace:*",
     "@hinote/katex": "workspace:*",
+    "@hinote/mermaid": "workspace:*",
     "hinote": "workspace:*",
     "hono": "catalog:"
   }

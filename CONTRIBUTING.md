@@ -7,6 +7,7 @@ The repository is a Bun workspace. Each package lives in `packages/`:
 - `packages/code`: `@hinote/code`, the `<Code>` component. It depends on `@pierre/highlights` so that `hinote` does not.
 - `packages/d2`: `@hinote/d2`, `<D2>`, D2 diagrams drawn as SVG with `@terrastruct/d2`. The compiler is WebAssembly in a worker thread; the component draws one diagram at a time and holds the worker only while it draws, so a build exits when it is done.
 - `packages/katex`: `@hinote/katex`, `<Math>`, LaTeX as MathML with KaTeX.
+- `packages/mermaid`: `@hinote/mermaid`, `<Mermaid>`, Mermaid diagrams drawn as SVG with `beautiful-mermaid`, which needs no DOM. Its colors are the deck's CSS variables, and the component scopes the renderer's `<style>` and ids to each diagram, since every slide is on one page.
 - `packages/types`: `@hinote/types`, the types shared by `hinote` and the `@hinote/*` packages, such as `Theme` and `SlideContext`. It is one hand-written `index.d.ts` with no JavaScript. `hinote` re-exports what it holds.
 
 How to use a package is its guide, `packages/hinote/skills/<name>/SKILL.md`, named after the package (`chart` for `@hinote/chart`). The guides ship with hinote, so `hinote skills get chart` works before the package is installed, and the core guide lists them. A package's README says only what the package is and where its guide is. Change the guide in the same commit as the package. Two guides belong to no package: `core`, for hinote itself, and `talk`, for planning a talk and its slides.

@@ -1,0 +1,43 @@
+{
+  "name": "@hinote/mermaid",
+  "version": "0.5.2",
+  "description": "<Mermaid> for hinote: Mermaid diagrams rendered as SVG while the slide renders",
+  "keywords": [
+    "hinote",
+    "hono",
+    "mermaid",
+    "diagram",
+    "slides"
+  ],
+  "license": "MIT",
+  "author": "HALQME",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halqme/hinote.git",
+    "directory": "packages/mermaid"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts",
+    "test": "bun test",
+    "typecheck": "bun check",
+    "prepack": "bun ../../scripts/build-package.ts"
+  },
+  "dependencies": {
+    "beautiful-mermaid": "^1.1.3",
+    "hono": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
+}

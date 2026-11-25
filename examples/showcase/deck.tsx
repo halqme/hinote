@@ -3,6 +3,7 @@ import { Chart, bars } from "@hinote/chart";
 import { Code } from "@hinote/code";
 import { D2 } from "@hinote/d2";
 import { Math } from "@hinote/katex";
+import { Mermaid } from "@hinote/mermaid";
 import type { Child } from "hono/jsx";
 import style from "./style.css" with { type: "text" };
 
@@ -246,11 +247,46 @@ const diagram = createSlide(
   ),
 );
 
+// Mermaid takes the deck's colors and fonts by itself, so the source is only
+// the diagram.
+const sequence = createSlide(
+  {
+    title: "Mermaid takes the deck's colors and fonts",
+    transition: "slide",
+  },
+  () => (
+    <Page
+      no="4"
+      section="Sequences"
+      headline={
+        <h2>
+          Mermaid takes the deck's <em>colors</em> and fonts
+        </h2>
+      }
+      standfirst={
+        <p class="standfirst">
+          The same source a README holds, drawn while the slide renders.
+        </p>
+      }
+    >
+      <Mermaid scale={2.2}>{`
+        sequenceDiagram
+          participant P as Presenter
+          participant D as hinote dev
+          participant A as Audience
+          P->>D: next slide
+          D-->>A: move to slide 5
+          A-->>P: follows along
+      `}</Mermaid>
+    </Page>
+  ),
+);
+
 const math = createSlide(
   { title: "Formulas are MathML, with no script or font", transition: "slide" },
   () => (
     <Page
-      no="4"
+      no="5"
       section="Math"
       headline={
         <h2>
@@ -304,7 +340,7 @@ const morphAll = createSlide(
   },
   () => (
     <Page
-      no="5"
+      no="6"
       section="Morph"
       wide
       headline={
@@ -330,7 +366,7 @@ const morphOne = createSlide(
   },
   () => (
     <Page
-      no="5"
+      no="6"
       section="Morph"
       wide
       headline={
@@ -362,7 +398,7 @@ const effects = createSlide(
   },
   () => (
     <Page
-      no="6"
+      no="7"
       section="Steps"
       headline={
         <h2>
@@ -403,5 +439,16 @@ const end = createSlide(
 
 export default createSlide(
   { title: "hinote showcase", lang: "en", theme, css: style, pageNumber: true },
-  [cover, code, chart, diagram, math, morphAll, morphOne, effects, end],
+  [
+    cover,
+    code,
+    chart,
+    diagram,
+    sequence,
+    math,
+    morphAll,
+    morphOne,
+    effects,
+    end,
+  ],
 );
