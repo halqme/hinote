@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { isPlainObject } from "../guards.ts";
 
 // The peers `hinote init` writes into a new deck's package.json.
-const PEERS = ["hono", "esbuild", "@hono/node-server"] as const;
+const PEERS = ["hono"] as const;
 
 type PackageJson = {
   version: string;
@@ -58,8 +58,6 @@ export function ownPackage(): PackageJson {
     version: parsed.version,
     peerDependencies: {
       hono: range("hono"),
-      esbuild: range("esbuild"),
-      "@hono/node-server": range("@hono/node-server"),
     },
   };
   return read;

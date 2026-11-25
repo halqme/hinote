@@ -235,7 +235,6 @@ static is the one-file page that build writes. view and presenter are the pages 
     "hinote render --page presenter -o presenter.html",
     "hinote render | hinote inline > deck.html",
   ],
-  bundles: true,
   async run(args, out) {
     const requested = stringFlag(args, "page") ?? "static";
     const page = PAGES.find((name) => name === requested);
@@ -267,7 +266,6 @@ export const inline: Command = {
     "hinote render | hinote inline > deck.html",
     "hinote inline page.html -o deck.html",
   ],
-  bundles: true,
   async run(args, out) {
     const html = await readInput(args.positionals[0]);
     await emit(out, await inlineScripts(html), stringFlag(args, "output"));
@@ -283,7 +281,6 @@ export const refs: Command = {
   description: `Lists every relative path the slides load (src, href, srcset, and url() in CSS), relative to the deck file, and whether the file is there. These are the files build, prerender, and assets copy.`,
   flags: {},
   examples: ["hinote refs", "hinote refs talk/deck.tsx --json"],
-  bundles: true,
   async run(args, out) {
     const file = deckPath(args.positionals[0]);
     const deck = await loadDeckFile(file);
@@ -307,7 +304,6 @@ export const inspect: Command = {
   description: `Loads the deck and renders each slide by itself, then reports what is in it: for each slide its number (as in /3), title (the title option or its first heading), id, the sections of the decks around it, steps, notes, transition, and the files it loads. The text lists slides under the section they belong to. A slide that fails to render is listed with its error.`,
   flags: {},
   examples: ["hinote inspect", "hinote inspect --json"],
-  bundles: true,
   async run(args, out) {
     const file = deckPath(args.positionals[0]);
     const deck = await loadDeckFile(file);
@@ -413,7 +409,6 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
     "hinote check --json",
     "hinote check && hinote build",
   ],
-  bundles: true,
   async run(args, out) {
     const file = deckPath(args.positionals[0]);
     const problems: Problem[] = [];

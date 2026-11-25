@@ -1,135 +1,69 @@
-// What the CLI needs from its runtime: bundling a deck and serving it. On Bun
-// these are Bun.build and Bun.serve. On Node they are esbuild and
-// @hono/node-server, optional peer dependencies that `hinote init` adds when it
-// runs on Node. The library itself (src/index.ts) needs neither.
-import { readFile } from "node:fs/promises";
-import { HinoteError, isHinoteError } from "../errors.ts";
+// What the CLI needs from its runtime: bundling a deck and serving it.
+// Rolldown bundles on every runtime. Bun serves with Bun.serve, and Node with
+// node:http through the adapter at the end of this file. The library itself
+// (src/index.ts) needs neither.
+import { once } from "node:events";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
+import type { Plugin } from "rolldown";
+import { HinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
 
 export const isBun = typeof Bun !== "undefined";
 
-export const NODE_PACKAGES = ["esbuild", "@hono/node-server"] as const;
-
-// A plugin in the shape both Bun.build and esbuild accept.
-export type LoadPlugin = {
-  name: string;
-  setup(build: {
-    onLoad(
-      options: { filter: RegExp },
-      callback: (args: {
-        path: string;
-      }) => Promise<{ contents: string; loader: string }>,
-    ): void;
-  }): void;
-};
-
-export function loaderFor(path: string): string {
-  if (path.endsWith(".tsx")) return "tsx";
-  if (/\.[cm]?ts$/.test(path)) return "ts";
-  if (path.endsWith(".jsx")) return "jsx";
-  return "js";
-}
-
-export function readText(path: string): Promise<string> {
-  return readFile(path, "utf8");
-}
-
-// The Node-only packages, each imported by a literal specifier so tools that
-// follow imports can see them.
-const NODE_IMPORTS = {
-  esbuild: () => import("esbuild"),
-  "@hono/node-server": () => import("@hono/node-server"),
-} satisfies Record<(typeof NODE_PACKAGES)[number], () => Promise<unknown>>;
-
-async function optional<T>(
-  name: keyof typeof NODE_IMPORTS,
-  load: () => Promise<T>,
-): Promise<T> {
-  try {
-    return await load();
-  } catch {
-    throw new HinoteError(
-      `hinote needs ${name} to run on Node. Install it with: npm install -D ${NODE_PACKAGES.join(" ")}`,
-    );
-  }
-}
-
-// Whether the Node-only packages can be loaded. The CLI hands itself to Bun
-// instead when they cannot and Bun is installed.
-export async function hasNodePackages(): Promise<boolean> {
-  try {
-    await Promise.all(NODE_PACKAGES.map((name) => NODE_IMPORTS[name]()));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // Bundles `entry` and everything it imports into one ES module: for the
 // server (a deck, JSX from hono/jsx) or for the browser (a <Script> file,
-// JSX from hono/jsx/dom, minified).
+// JSX from hono/jsx/dom, minified). CSS is imported as text, as
+// `import style from "./style.css" with { type: "text" }` asks.
 export async function bundle(
   entry: string,
-  plugins: LoadPlugin[],
+  plugins: Plugin[] = [],
   target: "server" | "browser" = "server",
 ): Promise<string> {
   const browser = target === "browser";
-  const jsxSource = browser ? "hono/jsx/dom" : "hono/jsx";
-  if (isBun) {
-    const built = await Bun.build({
-      entrypoints: [entry],
-      format: "esm",
-      target: browser ? "browser" : "bun",
-      packages: "bundle",
-      minify: browser,
-      // LoadPlugin is the part of a plugin both bundlers share.
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      plugins: plugins as unknown as import("bun").BunPlugin[],
-      jsx: {
-        runtime: "automatic",
-        importSource: jsxSource,
-        development: false,
-      },
-      // Bun otherwise throws "Bundle failed" and the reasons stay in an
-      // AggregateError nobody reads; the logs below carry them.
-      throw: false,
-    });
-    if (!built.success)
-      throw new HinoteError(
-        built.logs.map((log) => log.message).join("\n") || "build failed.",
-      );
-    const artifact = built.outputs[0];
-    if (!artifact) throw new HinoteError("build produced no output.");
-    return artifact.text();
-  }
-  const esbuild = await optional("esbuild", NODE_IMPORTS.esbuild);
+  // Loaded when first needed: the commands that do not bundle start faster.
+  const { rolldown } = await import("rolldown");
   try {
-    const result = await esbuild.build({
-      entryPoints: [entry],
-      bundle: true,
-      format: "esm",
+    const build = await rolldown({
+      input: entry,
       platform: browser ? "browser" : "node",
-      minify: browser,
-      write: false,
+      moduleTypes: { ".css": "text" },
+      transform: {
+        jsx: {
+          runtime: "automatic",
+          importSource: browser ? "hono/jsx/dom" : "hono/jsx",
+          development: false,
+        },
+      },
+      plugins,
       logLevel: "silent",
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      plugins: plugins as unknown as import("esbuild").Plugin[],
-      jsx: "automatic",
-      jsxImportSource: jsxSource,
     });
-    const output = result.outputFiles[0];
-    if (!output) throw new HinoteError("build produced no output.");
-    return output.text;
+    try {
+      const { output } = await build.generate({
+        format: "esm",
+        codeSplitting: false,
+        minify: browser,
+      });
+      const [chunk] = output;
+      if (!chunk) throw new HinoteError("build produced no output.");
+      return chunk.code;
+    } finally {
+      await build.close();
+    }
   } catch (error) {
-    if (isHinoteError(error)) throw error;
-    // esbuild throws an error with the build's messages in `errors`.
-    const errors =
+    if (error instanceof HinoteError) throw error;
+    // Rolldown throws one error whose `errors` lists each reason.
+    const reasons =
       isPlainObject(error) && Array.isArray(error.errors) ? error.errors : [];
+    const messages = reasons
+      .map((item: unknown) => (isPlainObject(item) ? item.message : undefined))
+      .filter((text) => typeof text === "string");
     throw new HinoteError(
-      errors
-        .map((item: unknown) => (isPlainObject(item) ? item.text : undefined))
-        .filter((text) => typeof text === "string")
-        .join("\n") || (error instanceof Error ? error.message : String(error)),
+      messages.join("\n") ||
+        (error instanceof Error ? error.message : String(error)),
     );
   }
 }
@@ -157,22 +91,77 @@ export async function serve(options: {
       throw error;
     }
   }
-  const { serve: serveNode } = await optional(
-    "@hono/node-server",
-    NODE_IMPORTS["@hono/node-server"],
-  );
   return new Promise((resolve, reject) => {
-    const server = serveNode(options, (info) => {
-      resolve({
-        port: info.port,
-        stop: () => {
-          server.close();
-          if ("closeAllConnections" in server) server.closeAllConnections();
-        },
-      });
+    const server = createServer((request, response) => {
+      void respond(options.fetch, request, response);
     });
     server.once("error", (error: NodeJS.ErrnoException) =>
       reject(error.code === "EADDRINUSE" ? inUse() : error),
     );
+    server.listen(options.port, options.hostname, () => {
+      const address = server.address();
+      resolve({
+        port:
+          typeof address === "object" && address ? address.port : options.port,
+        stop: () => {
+          server.close();
+          server.closeAllConnections();
+        },
+      });
+    });
   });
+}
+
+// Node's server speaks IncomingMessage and ServerResponse, the app Request and
+// Response. The response body is streamed, so an event stream stays open; when
+// the client goes away, the request's signal aborts and the body is cancelled.
+// A request body is read whole: the deck's server takes only small ones.
+async function respond(
+  fetch: (request: Request) => Response | Promise<Response>,
+  incoming: IncomingMessage,
+  outgoing: ServerResponse,
+): Promise<void> {
+  const aborted = new AbortController();
+  outgoing.once("close", () => aborted.abort());
+  try {
+    const headers = new Headers();
+    for (const [name, value] of Object.entries(incoming.headers))
+      for (const item of [value ?? []].flat()) headers.append(name, item);
+    const method = incoming.method ?? "GET";
+    const url = new URL(incoming.url ?? "/", `http://${incoming.headers.host}`);
+    let body: Uint8Array<ArrayBuffer> | undefined;
+    if (method !== "GET" && method !== "HEAD") {
+      const chunks: Buffer[] = [];
+      for await (const chunk of incoming) chunks.push(Buffer.from(chunk));
+      body = new Uint8Array(Buffer.concat(chunks));
+    }
+    const response = await fetch(
+      new Request(url, { method, headers, body, signal: aborted.signal }),
+    );
+    outgoing.statusCode = response.status;
+    for (const [name, value] of response.headers)
+      if (name !== "set-cookie") outgoing.setHeader(name, value);
+    const cookies = response.headers.getSetCookie();
+    if (cookies.length > 0) outgoing.setHeader("set-cookie", cookies);
+    if (!response.body) {
+      outgoing.end();
+      return;
+    }
+    outgoing.flushHeaders();
+    const reader = response.body.getReader();
+    aborted.signal.addEventListener("abort", () => {
+      reader.cancel().catch(() => {});
+    });
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!outgoing.write(value))
+        await once(outgoing, "drain", { signal: aborted.signal });
+    }
+    outgoing.end();
+  } catch {
+    // A client that left mid-stream ends the pipeline; nothing to answer.
+    if (!outgoing.headersSent) outgoing.writeHead(500);
+    if (!outgoing.writableEnded) outgoing.end();
+  }
 }

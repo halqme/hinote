@@ -3,17 +3,11 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { cssAsText } from "./css-text.ts";
 import type { Deck } from "../deck/deck.ts";
 import { HinoteError, isHinoteError } from "../errors.ts";
 import { isPlainObject } from "../guards.ts";
-import {
-  bundle,
-  isBun,
-  loaderFor,
-  readText,
-  type LoadPlugin,
-} from "./runtime.ts";
+import type { Plugin } from "rolldown";
+import { bundle } from "./runtime.ts";
 import { isDeck } from "../deck/create.ts";
 import { tokenize } from "./lex.ts";
 
@@ -61,13 +55,11 @@ export function fixImportMeta(
   return result + source.slice(from);
 }
 
-const sourceMeta: LoadPlugin = {
+const sourceMeta: Plugin = {
   name: "hinote-source-meta",
-  setup(build) {
-    build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, async ({ path }) => {
-      const contents = await readText(path);
-      const loader = loaderFor(path);
-      if (!contents.includes("import.meta")) return { contents, loader };
+  transform: {
+    filter: { id: /\.[cm]?[jt]sx?$/, code: "import.meta" },
+    handler(code, path) {
       const values: Record<string, string> = {
         url: pathToFileURL(path).href,
         dir: dirname(path),
@@ -76,11 +68,8 @@ const sourceMeta: LoadPlugin = {
         filename: path,
         file: basename(path),
       };
-      return {
-        contents: fixImportMeta(contents, values, loader.endsWith("x")),
-        loader,
-      };
-    });
+      return fixImportMeta(code, values, path.endsWith("x"));
+    },
   },
 };
 
@@ -101,10 +90,7 @@ export async function loadDeckFile(file: string): Promise<Deck> {
     });
   let code: string;
   try {
-    code = await bundle(
-      absolute,
-      isBun ? [sourceMeta, cssAsText] : [sourceMeta],
-    );
+    code = await bundle(absolute, [sourceMeta]);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new HinoteError(`Could not load ${absolute}: ${message}`, {

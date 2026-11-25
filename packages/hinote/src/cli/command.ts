@@ -23,8 +23,6 @@ export type Command = {
   // Help that depends on what is installed, read when help is shown: more
   // sections after the description, and examples after the fixed ones.
   dynamicHelp?: () => { sections: HelpSection[]; examples: string[] };
-  // Bundles TSX, which on Node needs esbuild (see handOffToBun in cli.ts).
-  bundles?: boolean;
   // Returns the exit code; nothing means 0.
   run(args: Parsed, out: Output): Promise<number | void>;
 };

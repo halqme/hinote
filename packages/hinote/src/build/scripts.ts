@@ -1,8 +1,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { cssAsText } from "./css-text.ts";
 import { HinoteError } from "../errors.ts";
-import { bundle, isBun } from "./runtime.ts";
+import { bundle } from "./runtime.ts";
 
 const PLACEHOLDER =
   /<script type="module" data-hinote-src="([^"]+)"><\/script>/g;
@@ -33,7 +32,7 @@ export async function inlineScripts(html: string): Promise<string> {
     const path = scriptPath(fileURLToPath(href.replace(/&amp;/g, "&")));
     let code: string;
     try {
-      code = await bundle(path, isBun ? [cssAsText] : [], "browser");
+      code = await bundle(path, [], "browser");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new HinoteError(`Could not bundle <Script> ${path}: ${message}`);

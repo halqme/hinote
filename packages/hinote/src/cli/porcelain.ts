@@ -8,13 +8,7 @@ import { copyAssets, embedAssets } from "../build/assets.ts";
 import { isBrowserName } from "../snapshot/browser.ts";
 import type { Deck } from "../deck/deck.ts";
 import { HinoteError, isHinoteError, UsageError } from "../errors.ts";
-import {
-  COMMANDS,
-  diffProject,
-  initProject,
-  NODE_DEV_PACKAGES,
-  packageManager,
-} from "./init.ts";
+import { COMMANDS, diffProject, initProject, packageManager } from "./init.ts";
 import { deckPath, loadDeckFile } from "../build/load.ts";
 import { takeSnapshots } from "../snapshot/snapshot.ts";
 import { parseBase, prerender as prerenderDeck } from "../build/prerender.ts";
@@ -81,7 +75,7 @@ export const init: Command = {
     const dir = args.positionals[0] ?? ".";
     const pm = packageManager();
     if (args.flags.diff === true) {
-      const diff = await diffProject(dir, pm);
+      const diff = await diffProject(dir);
       const text: string[] = [];
       for (const file of diff.files) {
         if (file.status === "same") continue;
@@ -102,7 +96,7 @@ export const init: Command = {
       return;
     }
     const commands = COMMANDS[pm];
-    const { files: written, wrotePackage } = await initProject(dir, pm);
+    const { files: written, wrotePackage } = await initProject(dir);
     const install = commands.install.join(" ");
     const next = `${commands.hinote} dev`;
     const guide = "Guide: hinote skills get core";
@@ -120,8 +114,6 @@ export const init: Command = {
     // Someone else's package.json: say what to add instead of changing it.
     if (!wrotePackage) {
       const add = [`${commands.add} hinote hono`];
-      if (pm !== "bun")
-        add.push(`${commands.addDev} ${NODE_DEV_PACKAGES.join(" ")}`);
       report(
         false,
         [...add, next],
@@ -186,7 +178,6 @@ With --json it prints one {"event", "data"} line per event: listening (the URLs)
     },
   },
   examples: ["hinote dev", "hinote dev talk/deck.tsx --port 5000 --json"],
-  bundles: true,
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
     const root = dirname(deckFile);
@@ -297,7 +288,6 @@ The same as:
     "hinote check && hinote build -o out/talk.html",
     "hinote build --embed -o talk.html",
   ],
-  bundles: true,
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
     const output = resolve(stringFlag(args, "output") ?? "dist/index.html");
@@ -346,7 +336,6 @@ export const prerender: Command = {
     },
   },
   examples: ["hinote prerender", "hinote prerender -o site --base /talk"],
-  bundles: true,
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
     const outDir = resolve(stringFlag(args, "output") ?? "dist");
@@ -375,7 +364,6 @@ export const assets: Command = {
   description: `Copies only the files the slides refer to (see hinote refs) into one directory, keeping their paths. Serve that directory beside the deck: serveStatic({ root: "./public" }) on Bun and Node, or [assets] directory = "./public" in wrangler.toml. Nothing else in the deck directory, such as its source, ends up there.`,
   flags: { output: OUTPUT_FLAG("The directory to copy into.", "public") },
   examples: ["hinote assets", "hinote assets talk/deck.tsx -o talk/public"],
-  bundles: true,
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
     const outDir = resolve(stringFlag(args, "output") ?? "public");
@@ -437,7 +425,6 @@ export const snapshot: Command = {
     "hinote snapshot --browser chrome -o shots",
     "hinote snapshot --json",
   ],
-  bundles: true,
   async run(args, out) {
     const requested = stringFlag(args, "browser") ?? "auto";
     if (requested !== "auto" && !isBrowserName(requested))

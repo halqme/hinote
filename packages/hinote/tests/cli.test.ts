@@ -639,7 +639,6 @@ test("init writes a deck that renders, and never overwrites", async () => {
     const added = await run(["init", "own"], dir, npm);
     expect(added.code).toBe(0);
     expect(added.stdout).toContain("npm install hinote hono");
-    expect(added.stdout).toContain("npm install -D esbuild @hono/node-server");
     expect(await readFile(join(own, "package.json"), "utf8")).toBe("{}\n");
     expect(await Bun.file(join(own, "deck.tsx")).exists()).toBe(true);
     expect(await Bun.file(join(own, "ran-npm")).exists()).toBe(false);
@@ -811,14 +810,11 @@ test("init installs with the package manager that started it", async () => {
     expect(installed.stdout).toContain("> npm install");
     expect(installed.stdout).toContain("npx hinote dev");
     expect(await readFile(join(dir, "talk/ran-npm"), "utf8")).toBe("install\n");
-    // Outside Bun, the CLI needs these to bundle and serve.
+    // hinote brings what the CLI needs to bundle and serve on any runtime.
     const pkg = JSON.parse(
       await readFile(join(dir, "talk/package.json"), "utf8"),
     );
-    expect(Object.keys(pkg.devDependencies).sort()).toEqual([
-      "@hono/node-server",
-      "esbuild",
-    ]);
+    expect(pkg.devDependencies).toBeUndefined();
 
     // A failed install keeps the files and says how to try again.
     const failed = await run(
@@ -830,16 +826,12 @@ test("init installs with the package manager that started it", async () => {
     expect(failed.stderr).toContain("cd broken && pnpm install");
     expect(await Bun.file(join(dir, "broken/deck.tsx")).exists()).toBe(true);
 
-    // Started from bunx, the project needs no Node packages, even if the CLI
-    // itself ran on Node.
+    // Started from bunx, the steps are Bun's, even if the CLI itself ran on
+    // Node.
     const bun = await run(["init", "bun", "--no-install"], dir, {
       npm_config_user_agent: "bun/1.4.4 npm/? node/v24.3.0",
     });
     expect(bun.stdout).toContain("bun install && bunx hinote dev");
-    const bunPkg = JSON.parse(
-      await readFile(join(dir, "bun/package.json"), "utf8"),
-    );
-    expect(bunPkg.devDependencies).toBeUndefined();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

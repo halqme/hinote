@@ -17,13 +17,11 @@ const workspace = resolve(repo, "../..");
 const node = Bun.which("node");
 
 // hinote has to work without Bun: the library as a Hono app on Node, Deno, or
-// Workers, and the CLI on Node with esbuild and @hono/node-server. These tests
-// build dist/ as `prepack` does and run it with Node in two projects, one with
-// those packages installed and one without.
+// Workers, and the CLI on Node. These tests build dist/ as `prepack` does and
+// run it with Node in a project that has what installing hinote brings.
 describe.skipIf(!node)("the built package under Node", () => {
   let dir: string;
-  let full: string;
-  let bare: string;
+  let app: string;
 
   async function project(path: string, packages: string[]) {
     await mkdir(join(path, "node_modules/@hono"), { recursive: true });
@@ -67,7 +65,7 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
 
   beforeAll(async () => {
     // Outside the repository, so Node cannot find the repository's own
-    // esbuild by walking up from these projects.
+    // packages by walking up from the project.
     dir = await mkdtemp(join(tmpdir(), "hinote-dist-"));
     // The tarball npm gets: `prepack` builds dist/, and the catalog and
     // workspace ranges in package.json become plain versions.
@@ -82,10 +80,8 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
     });
     if (untar.exitCode !== 0) throw new Error(untar.stderr.toString());
     await rename(join(dir, "package"), join(dir, "hinote"));
-    full = join(dir, "full");
-    bare = join(dir, "bare");
-    await project(full, ["hono", "@hinote", "esbuild", "@hono/node-server"]);
-    await project(bare, ["hono", "@hinote"]);
+    app = join(dir, "app");
+    await project(app, ["hono", "@hinote", "rolldown"]);
   }, 60_000);
 
   afterAll(async () => {
@@ -94,14 +90,14 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
 
   test("the library renders a deck", async () => {
     await writeFile(
-      join(bare, "app.mjs"),
+      join(app, "app.mjs"),
       `import { jsx } from "hono/jsx";
 import { createSlide } from "hinote";
 const deck = createSlide([createSlide(() => jsx("h1", {}, "library"))]);
 console.log(await (await deck.request("/1")).text());`,
     );
     const run = Bun.spawnSync([node!, "app.mjs"], {
-      cwd: bare,
+      cwd: app,
       stderr: "pipe",
     });
     expect(run.stderr.toString()).toBe("");
@@ -112,11 +108,11 @@ console.log(await (await deck.request("/1")).text());`,
   // should not carry the deck renderer and the presenter's browser script.
   test("a bundle that imports one component leaves out the rest", async () => {
     await writeFile(
-      join(bare, "row.mjs"),
+      join(app, "row.mjs"),
       `import { Row } from "hinote";\nconsole.log(Row);`,
     );
     const built = await Bun.build({
-      entrypoints: [join(bare, "row.mjs")],
+      entrypoints: [join(app, "row.mjs")],
       target: "node",
       external: ["hono", "hono/*"],
     });
@@ -127,21 +123,21 @@ console.log(await (await deck.request("/1")).text());`,
   });
 
   test("the CLI finds its skills and checks a deck under Node", async () => {
-    const guide = hinote(bare, ["skills", "get", "core"]);
+    const guide = hinote(app, ["skills", "get", "core"]);
     expect(guide.exitCode).toBe(0);
     expect(guide.stdout.toString()).toContain("name: hinote");
-    const checked = hinote(full, ["check", "--json"]);
+    const checked = hinote(app, ["check", "--json"]);
     expect(checked.exitCode).toBe(0);
     expect(JSON.parse(checked.stdout.toString()).ok).toBe(true);
   });
 
-  test("the CLI builds and serves with esbuild and @hono/node-server", async () => {
-    const built = hinote(full, ["build", "deck.tsx", "-o", "out/index.html"]);
+  test("the CLI builds and serves on Node", async () => {
+    const built = hinote(app, ["build", "deck.tsx", "-o", "out/index.html"]);
     expect(built.stderr.toString()).toBe("");
-    const html = await Bun.file(join(full, "out/index.html")).text();
+    const html = await Bun.file(join(app, "out/index.html")).text();
     expect(html).toContain("<h1>node</h1>");
     expect(html).toContain("h1 { color: teal; }");
-    // <Script> bundled for the browser by esbuild.
+    // <Script> bundled for the browser.
     expect(html).toContain("widget-");
     expect(html).not.toContain("data-hinote-src");
 
@@ -150,7 +146,7 @@ console.log(await (await deck.request("/1")).text());`,
     await probe.stop(true);
     const dev = Bun.spawn(
       [node!, "node_modules/hinote/dist/cli.js", "dev", "--port", String(port)],
-      { cwd: full, stdout: "pipe", stderr: "pipe" },
+      { cwd: app, stdout: "pipe", stderr: "pipe" },
     );
     try {
       let page = "";
@@ -167,30 +163,11 @@ console.log(await (await deck.request("/1")).text());`,
     }
   }, 30_000);
 
-  test("without those packages, the CLI hands the run to Bun", async () => {
-    const built = hinote(bare, ["build", "deck.tsx", "-o", "bun/index.html"]);
-    expect(built.exitCode).toBe(0);
-    expect(await Bun.file(join(bare, "bun/index.html")).text()).toContain(
-      "<h1>node</h1>",
-    );
-  }, 30_000);
-
-  test("started from bunx but running on Node, init adds no Node packages", async () => {
-    const made = hinote(bare, ["init", "from-bunx", "--no-install"], {
-      npm_config_user_agent: "bun/1.4.4 npm/? node/v24.3.0",
-    });
-    expect(made.stderr.toString()).toBe("");
-    const pkg = JSON.parse(
-      await Bun.file(join(bare, "from-bunx/package.json")).text(),
-    );
-    expect(pkg.devDependencies).toBeUndefined();
-  });
-
   test("the deck init writes typechecks with tsc, CSS import included", async () => {
-    const made = hinote(bare, ["init", "typed", "--no-install"]);
+    const made = hinote(app, ["init", "typed", "--no-install"]);
     expect(made.exitCode).toBe(0);
-    const typed = join(bare, "typed");
-    await symlink(join(bare, "node_modules"), join(typed, "node_modules"));
+    const typed = join(app, "typed");
+    await symlink(join(app, "node_modules"), join(typed, "node_modules"));
     const tsc = Bun.spawnSync(
       [join(workspace, "node_modules/.bin/tsc"), "-p", "tsconfig.json"],
       { cwd: typed, stdout: "pipe", stderr: "pipe" },
@@ -198,18 +175,4 @@ console.log(await (await deck.request("/1")).text());`,
     expect(tsc.stdout.toString()).toBe("");
     expect(tsc.exitCode).toBe(0);
   }, 30_000);
-
-  test("without those packages or Bun, the CLI says what to install", async () => {
-    const onlyNode = join(dir, "only-node");
-    await mkdir(onlyNode);
-    await symlink(node!, join(onlyNode, "node"));
-    const built = hinote(bare, ["build", "deck.tsx", "-o", "none/index.html"], {
-      PATH: `${onlyNode}:/usr/bin:/bin`,
-    });
-    expect(built.exitCode).toBe(1);
-    expect(built.stderr.toString()).toContain(
-      "npm install -D esbuild @hono/node-server",
-    );
-    expect(await Bun.file(join(bare, "none/index.html")).exists()).toBe(false);
-  });
 });

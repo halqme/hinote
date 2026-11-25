@@ -56,7 +56,7 @@ Run `hinote assets` again after adding images. Bun, Node with `@hono/node-server
 - `build`: the audience view only (no presenter, pointer, or sync), with previous and next icons over the slide. They stay hidden until the pointer moves. The position is in the hash (`#3`). Files the slides refer to by relative path (`src`, `href`, `srcset`, CSS `url()`) are copied beside it with their paths; files outside the deck directory, absolute paths, and other sites are left as they are.
 - `prerender`: `index.html` at `/` and `/3/` for each slide, plus those files. With `presenter: true` also `/presenter/` and `/presenter/3/`, synced between windows of one browser with `BroadcastChannel`; anyone can open them and read the notes. `--base /repo` for a site under a path, such as a GitHub Pages project site.
 - `snapshot`: `auto` tries `agent-browser`, `puppeteer` (the project's package), `chrome` (Google Chrome, Chromium, or Edge, or `HINOTE_CHROME`), and `chrome-for-testing` (or `HINOTE_CHROME_FOR_TESTING`). As root, chrome and puppeteer add `--no-sandbox`. Extra Chromium flags go in `HINOTE_CHROME_FLAGS`; when Chrome dies on start, the error's `hint` has the tail of its stderr.
-- On Node the CLI uses `esbuild` and `@hono/node-server` (which `init` adds) in place of Bun's bundler and server. Without them it hands the run to Bun when Bun is installed, and otherwise says what to install.
+- The CLI bundles with Rolldown, which comes with hinote, on Bun and Node alike. It serves with `Bun.serve` on Bun and `node:http` on Node.
 
 ## One step at a time
 

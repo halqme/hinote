@@ -4,6 +4,7 @@ What changed in each published version of hinote. Newest first. The GitHub relea
 
 ## Unreleased
 
+- The CLI bundles decks and `<Script>` files with Rolldown on Bun and Node alike, and hinote installs it. On Node it serves with `node:http`. `esbuild` and `@hono/node-server` are no longer peer dependencies, `hinote init` no longer adds them, and the CLI no longer hands a run to Bun when they are missing. A deck that installed them for hinote can remove them.
 - `hinote check` no longer hangs on JSX written in a prop after a sibling element, such as `<p>lead</p><Card footer={<p>2020</p>}>`. The source checks read the file with Babel's parser, which the package carries inside instead of installing.
 - `hinote build` floats previous and next icons over the slide. They reveal a step before moving on, and stay hidden until the pointer moves. The audience page (`/`) enters full screen from the fullscreen icon or `F`. The icon switches to leave full screen, and stays hidden until the pointer moves. The presenter has neither.
 - The presenter view puts the timer, a progress mark for each slide, a preview of the next key press, and the notes in the side column. Notes are the same size as the panel text and take no space when a slide has none. Prev, Next, Overview, and Laser sit under the slide. `P` and `←` go back, `N` and `→` go forward, `O` opens the overview, and `L` toggles the laser. Those letters and arrows are underlined on the buttons. The overview lists titles.

@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { spawn, spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { UsageError } from "./errors.ts";
@@ -17,7 +16,6 @@ import {
   snapshot,
 } from "./cli/porcelain.ts";
 import { skills } from "./cli/skills.ts";
-import { hasNodePackages, isBun } from "./build/runtime.ts";
 import { ownPackage } from "./cli/package.ts";
 
 export const COMMANDS: readonly Command[] = [
@@ -123,25 +121,6 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
 }
 
-// Under Node, dev and build need esbuild and @hono/node-server. A Bun user who
-// runs the CLI through Node (bunx and package scripts follow the node shebang
-// when Node is installed) has neither, so hand the run to Bun when it is there.
-async function handOffToBun(argv: string[]): Promise<boolean> {
-  const needsBundler =
-    COMMANDS.find((command) => command.name === argv[0])?.bundles === true;
-  if (isBun || !needsBundler || (await hasNodePackages())) return false;
-  const probe = spawnSync("bun", ["--version"], { stdio: "ignore" });
-  if (probe.status !== 0) return false;
-  const child = spawn("bun", [fileURLToPath(import.meta.url), ...argv], {
-    stdio: "inherit",
-  });
-  const code = await new Promise<number>((done) =>
-    child.on("exit", (status) => done(status ?? 1)),
-  );
-  process.exitCode = code;
-  return true;
-}
-
 function isMain(): boolean {
   const script = process.argv[1];
   if (!script) return false;
@@ -156,9 +135,9 @@ function isMain(): boolean {
 
 if (isMain()) {
   const argv = process.argv.slice(2);
-  handOffToBun(argv)
-    .then(async (handed) => {
-      if (!handed) process.exitCode = await main(argv);
+  main(argv)
+    .then((code) => {
+      process.exitCode = code;
     })
     .catch((error: unknown) => {
       process.exitCode = reportError(

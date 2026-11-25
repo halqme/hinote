@@ -95,62 +95,39 @@ export function packageManager(
 
 export const COMMANDS: Record<
   PackageManager,
-  { install: string[]; add: string; addDev: string; hinote: string }
+  { install: string[]; add: string; hinote: string }
 > = {
   bun: {
     install: ["bun", "install"],
     add: "bun add",
-    addDev: "bun add -d",
     hinote: "bunx hinote",
   },
   npm: {
     install: ["npm", "install"],
     add: "npm install",
-    addDev: "npm install -D",
     hinote: "npx hinote",
   },
   pnpm: {
     install: ["pnpm", "install"],
     add: "pnpm add",
-    addDev: "pnpm add -D",
     hinote: "pnpm exec hinote",
   },
   yarn: {
     install: ["yarn", "install"],
     add: "yarn add",
-    addDev: "yarn add -D",
     hinote: "yarn hinote",
   },
 };
 
-// Outside Bun, the CLI also needs a bundler and a server; Bun has its own.
-export const NODE_DEV_PACKAGES = ["esbuild", "@hono/node-server"] as const;
-
 // The packages init puts in package.json, with the ranges of this version.
-function packageRanges(pm: PackageManager) {
+function packageRanges() {
   const { version, peerDependencies: peers } = ownPackage();
-  return {
-    dependencies: { hinote: `^${version}`, hono: peers.hono },
-    devDependencies:
-      pm === "bun"
-        ? undefined
-        : {
-            "@hono/node-server": peers["@hono/node-server"],
-            esbuild: peers.esbuild,
-          },
-  };
+  return { hinote: `^${version}`, hono: peers.hono };
 }
 
-function packageFile(name: string, pm: PackageManager): string {
-  const { dependencies, devDependencies } = packageRanges(pm);
+function packageFile(name: string): string {
   return `${JSON.stringify(
-    {
-      name,
-      private: true,
-      type: "module",
-      dependencies,
-      ...(devDependencies && { devDependencies }),
-    },
+    { name, private: true, type: "module", dependencies: packageRanges() },
     null,
     2,
   )}\n`;
@@ -161,7 +138,6 @@ function packageFile(name: string, pm: PackageManager): string {
 // and `wrotePackage` says whether there is one of ours to install.
 export async function initProject(
   dir: string,
-  pm: PackageManager,
 ): Promise<{ files: string[]; wrotePackage: boolean }> {
   const root = resolve(dir);
   const files: [string, string][] = [
@@ -178,7 +154,6 @@ export async function initProject(
         basename(root)
           .toLowerCase()
           .replace(/[^a-z0-9-]/g, "-"),
-        pm,
       ),
     ]);
   for (const [name] of files) {
@@ -219,7 +194,6 @@ export type PackageDiff = {
 // It reads only; the author decides what to take.
 export async function diffProject(
   dir: string,
-  pm: PackageManager,
 ): Promise<{ version: string; files: FileDiff[]; packages: PackageDiff[] }> {
   const root = resolve(dir);
   const files: FileDiff[] = [];
@@ -255,11 +229,7 @@ export async function diffProject(
     ...installed("devDependencies"),
     ...installed("dependencies"),
   };
-  const { dependencies, devDependencies } = packageRanges(pm);
-  for (const [name, want] of Object.entries({
-    ...dependencies,
-    ...devDependencies,
-  })) {
+  for (const [name, want] of Object.entries(packageRanges())) {
     const range = have[name];
     if (range === want) continue;
     packages.push(

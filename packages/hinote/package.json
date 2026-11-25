@@ -45,26 +45,15 @@
     "build": "bun scripts/build-lib.ts"
   },
   "dependencies": {
-    "@hinote/types": "workspace:^"
+    "@hinote/types": "workspace:^",
+    "rolldown": "1.3.3"
   },
   "devDependencies": {
     "@babel/parser": "8.1.3",
-    "@happy-dom/global-registrator": "^21.0.4",
-    "@hono/node-server": "catalog:",
-    "esbuild": "catalog:"
+    "@happy-dom/global-registrator": "^21.0.4"
   },
   "peerDependencies": {
-    "@hono/node-server": "catalog:",
-    "esbuild": "catalog:",
     "hono": "catalog:"
-  },
-  "peerDependenciesMeta": {
-    "esbuild": {
-      "optional": true
-    },
-    "@hono/node-server": {
-      "optional": true
-    }
   },
   "devEngines": {
     "runtime": {
