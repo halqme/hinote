@@ -20,7 +20,7 @@ const contents = createSlide(
         </h2>
       }
     >
-      <Contents slide={slide} class="toc" />
+      <Contents slide={slide} skipCurrent class="toc" />
     </Page>
   ),
 );

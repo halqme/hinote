@@ -228,6 +228,22 @@ describe("createSlide", () => {
     await expect(deckOf(flat).render()).rejects.toThrow("<Contents depth>");
   });
 
+  test("Contents with skipCurrent leaves out the section the slide is in", async () => {
+    const deck = createSlide([
+      createSlide({ section: "Part" }, [
+        createSlide({ section: "Contents" }, [
+          createSlide((slide) => <Contents slide={slide} skipCurrent />),
+        ]),
+        createSlide({ section: "Method" }, [textSlide("m")]),
+      ]),
+    ]);
+    const html = await deck.render();
+    expect(html).not.toContain(">Contents<");
+    // The section around it is current too, but it is not the slide's own.
+    expect(html).toContain(">Part<");
+    expect(html).toContain(">Method<");
+  });
+
   test("two nested decks with one section next to each other are one entry", async () => {
     const deck = createSlide([
       createSlide({ section: "Part" }, [textSlide("a")]),

@@ -319,11 +319,6 @@ strong {
 
 /* ---------- Contents ---------- */
 
-/* The contents page is in the Contents section, which is not a place to go. */
-.toc .hinote-contents-item.is-current {
-  display: none;
-}
-
 .toc ol {
   gap: 0;
 }

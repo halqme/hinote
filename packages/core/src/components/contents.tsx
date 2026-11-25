@@ -7,13 +7,28 @@ export type ContentsProps = {
   slide: SlideContext;
   // How many levels of nested sections to list. Every level when omitted.
   depth?: number;
+  // Leaves out the section the slide is in, the innermost one, such as the
+  // section a contents page sits in itself.
+  skipCurrent?: boolean;
   class?: string;
 };
 
-function Entries(props: { entries: readonly ContentsEntry[]; depth: number }) {
+// The innermost section the slide is in: current, with no current section inside.
+function isOwn(entry: ContentsEntry): boolean {
+  return entry.current && !entry.sections.some((inner) => inner.current);
+}
+
+function Entries(props: {
+  entries: readonly ContentsEntry[];
+  depth: number;
+  skipCurrent: boolean;
+}) {
+  const entries = props.skipCurrent
+    ? props.entries.filter((entry) => !isOwn(entry))
+    : props.entries;
   return (
     <ol>
-      {props.entries.map((entry) => {
+      {entries.map((entry) => {
         const label = [
           <span class="hinote-contents-name">{entry.name}</span>,
           entry.title === undefined ? null : (
@@ -37,7 +52,11 @@ function Entries(props: { entries: readonly ContentsEntry[]; depth: number }) {
               </Link>
             )}
             {props.depth > 1 && entry.sections.length > 0 && (
-              <Entries entries={entry.sections} depth={props.depth - 1} />
+              <Entries
+                entries={entry.sections}
+                depth={props.depth - 1}
+                skipCurrent={props.skipCurrent}
+              />
             )}
           </li>
         );
@@ -58,7 +77,11 @@ export function Contents(props: ContentsProps) {
     <nav
       class={props.class ? `hinote-contents ${props.class}` : "hinote-contents"}
     >
-      <Entries entries={props.slide.contents} depth={depth} />
+      <Entries
+        entries={props.slide.contents}
+        depth={depth}
+        skipCurrent={props.skipCurrent === true}
+      />
     </nav>
   );
 }
