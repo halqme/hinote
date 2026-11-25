@@ -90,10 +90,12 @@ export type HinoteClient = {
 // - `<script type="module" data-hinote-src="file:///...">` is bundled and
 //   inlined once per page, after window.hinote exists (what <Script> writes).
 // - `data-hinote-step="auto"` is a step, numbered in document order (<Step>).
+// - `data-hinote-effect` on a step moves it into place as it fades in.
 // - `data-hinote-steps="auto:N"` reserves the next N steps for the element
 //   (<Steps>); hinote.observe reports them.
 export type SlideMarkup = {
   "data-hinote-src": `file:${string}`;
   "data-hinote-step": "auto" | `${number}`;
+  "data-hinote-effect": "up" | "down" | "left" | "right" | "zoom";
   "data-hinote-steps": `auto:${number}`;
 };

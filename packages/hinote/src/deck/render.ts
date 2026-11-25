@@ -84,8 +84,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--hinote-color-bg)
 .hinote-stage{position:relative;overflow:hidden;width:calc(var(--hinote-canvas-width) * var(--hinote-scale));height:calc(var(--hinote-canvas-height) * var(--hinote-scale))}
 .slide{position:absolute;top:0;left:0;width:var(--hinote-canvas-width);height:var(--hinote-canvas-height);overflow:hidden;transform-origin:0 0;transform:scale(var(--hinote-scale))}
 .slide:not(.is-active){display:none}
-[data-hinote-step]{transition:opacity .2s ease}
+[data-hinote-step]{transition:opacity .2s ease,translate .3s ease,scale .3s ease}
 [data-hinote-step].is-hidden{opacity:0;visibility:hidden}
+[data-hinote-effect="up"].is-hidden{translate:0 .6em}
+[data-hinote-effect="down"].is-hidden{translate:0 -.6em}
+[data-hinote-effect="left"].is-hidden{translate:.6em 0}
+[data-hinote-effect="right"].is-hidden{translate:-.6em 0}
+[data-hinote-effect="zoom"].is-hidden{scale:.85}
+@media (prefers-reduced-motion:reduce){[data-hinote-step]{transition:none}}
 .hinote-stage{view-transition-name:hinote-stage}
 ::view-transition-old(root),::view-transition-new(root){animation:none}
 ::view-transition-image-pair(hinote-stage){overflow:clip}
@@ -177,7 +183,7 @@ html[data-page] body{display:block}
 #deck,html[data-page="presenter"] #deck{position:static;display:block;padding:0}
 .hinote-stage{width:auto;height:auto;overflow:visible;box-shadow:none}
 .hinote-stage>.slide{display:revert-layer;position:relative;transform:none;break-after:page}
-[data-hinote-step].is-hidden{opacity:1;visibility:visible}
+[data-hinote-step].is-hidden{opacity:1;visibility:visible;translate:none;scale:none}
 #hinote-panel,#hinote-notes,#hinote-toolbar,#hinote-nav,#hinote-fullscreen,#hinote-overview,#hinote-pointer{display:none}
 }
 `.trim();

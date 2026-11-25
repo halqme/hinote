@@ -380,7 +380,16 @@ describe("Step", () => {
     expect(html.match(/data-hinote-step="1"/g)).toHaveLength(2);
   });
 
+  test("an effect is written on the step for the page to animate", async () => {
+    const html = await deckOf(
+      createSlide(() => <Step effect="up">x</Step>),
+    ).render();
+    expect(html).toContain('data-hinote-effect="up"');
+  });
+
   test("rejects bad props", async () => {
+    const effect = createSlide(() => <Step effect={"spin" as never}>x</Step>);
+    await expect(deckOf(effect).render()).rejects.toThrow(HinoteError);
     const bad = createSlide(() => <Step at={0}>x</Step>);
     await expect(deckOf(bad).render()).rejects.toThrow(HinoteError);
     const tag = createSlide(() => <Step as={"li onclick" as never}>x</Step>);

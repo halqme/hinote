@@ -25,6 +25,11 @@ export type { Slide, SlideOptions, SlideRender } from "./deck/slide.ts";
 export { Script } from "./components/script.tsx";
 export type { ScriptProps } from "./components/script.tsx";
 export { Step, Steps } from "./components/step.tsx";
-export type { StepProps, StepsProps, Tag } from "./components/step.tsx";
+export type {
+  StepEffect,
+  StepProps,
+  StepsProps,
+  Tag,
+} from "./components/step.tsx";
 export { themes } from "./deck/theme.ts";
 export type { Transition, TransitionName } from "./deck/transition.ts";

@@ -4,9 +4,24 @@ import { HinoteError } from "../errors.ts";
 // An HTML element's name.
 export type Tag = Extract<keyof JSX.IntrinsicElements, string>;
 
+// How a step comes in: it fades, and with a direction it also moves that way
+// into place, or with "zoom" it grows into place.
+export type StepEffect = "fade" | "up" | "down" | "left" | "right" | "zoom";
+
+const EFFECTS: readonly StepEffect[] = [
+  "fade",
+  "up",
+  "down",
+  "left",
+  "right",
+  "zoom",
+];
+
 export type StepProps = {
   // 1-based step that reveals this element. Without it, steps count up in document order.
   at?: number;
+  // "fade" by default.
+  effect?: StepEffect;
   // Element to render, such as "li" inside a list. Defaults to "div".
   as?: Tag;
   class?: string;
@@ -56,10 +71,16 @@ export function Step(props: StepProps) {
   const tag = props.as ?? "div";
   if (!TAG.test(tag))
     throw new HinoteError(`<Step as="${tag}"> must be a lowercase tag name.`);
+  const { effect } = props;
+  if (effect !== undefined && !EFFECTS.includes(effect))
+    throw new HinoteError(
+      `<Step effect> must be one of ${EFFECTS.map((name) => `"${name}"`).join(", ")}.`,
+    );
   return jsx(
     tag,
     {
       "data-hinote-step": at === undefined ? AUTO : String(at),
+      "data-hinote-effect": effect === "fade" ? undefined : effect,
       class: props.class,
     },
     props.children,
