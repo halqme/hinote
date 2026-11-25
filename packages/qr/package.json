@@ -1,7 +1,7 @@
 {
   "name": "@hinote/qr",
   "version": "0.5.2",
-  "description": "<Qr> for hinote: a QR code drawn as inline SVG in the deck's colors",
+  "description": "<Qr> for hinote: a QR code drawn as inline SVG, in the theme's colors or your own",
   "keywords": [
     "hinote",
     "hono",
@@ -41,6 +41,7 @@
   },
   "sideEffects": false,
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "jsqr": "^1.4.0"
   }
 }
