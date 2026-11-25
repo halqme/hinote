@@ -7,6 +7,7 @@ import {
   Flow,
   Grid,
   Link,
+  Morph,
   Row,
   Script,
   Step,
@@ -352,6 +353,38 @@ describe("transition", () => {
     expect(() => call({ transition: "spin" }, () => <p>x</p>)).toThrow(
       HinoteError,
     );
+  });
+});
+
+describe("Morph", () => {
+  test("names its element so the page can pair it across slides", async () => {
+    const html = await deckOf(
+      createSlide(() => (
+        <Morph name="title" as="h1">
+          x
+        </Morph>
+      )),
+      createSlide(() => <Morph name="title">y</Morph>),
+    ).render();
+    expect(html).toContain('<h1 data-hinote-morph="title">x</h1>');
+    expect(html).toContain('<div data-hinote-morph="title">y</div>');
+  });
+
+  test("refuses a name used twice on one slide, naming the slide", async () => {
+    const twice = createSlide(() => (
+      <>
+        <Morph name="a">1</Morph>
+        <Morph name="a">2</Morph>
+      </>
+    ));
+    await expect(deckOf(textSlide("x"), twice).render()).rejects.toThrow(
+      /Slide 2 has two <Morph name="a">/,
+    );
+  });
+
+  test("rejects a name that is not letters, digits, _, or -", async () => {
+    const bad = createSlide(() => <Morph name="a b">x</Morph>);
+    await expect(deckOf(bad).render()).rejects.toThrow(HinoteError);
   });
 });
 

@@ -93,9 +93,12 @@ export type HinoteClient = {
 // - `data-hinote-effect` on a step moves it into place as it fades in.
 // - `data-hinote-steps="auto:N"` reserves the next N steps for the element
 //   (<Steps>); hinote.observe reports them.
+// - `data-hinote-morph="name"` moves the element into the one with the same
+//   name on the slide shown next (<Morph>).
 export type SlideMarkup = {
   "data-hinote-src": `file:${string}`;
   "data-hinote-step": "auto" | `${number}`;
   "data-hinote-effect": "up" | "down" | "left" | "right" | "zoom";
   "data-hinote-steps": `auto:${number}`;
+  "data-hinote-morph": string;
 };

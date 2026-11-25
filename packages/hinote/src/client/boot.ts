@@ -114,6 +114,30 @@ function revealSteps(slide: ParentNode, revealed: number): void {
   }
 }
 
+// The <Morph> elements of a slide by name that are shown once `revealed`
+// steps are out, so a twin inside a later step stays out of a pair.
+function morphs(
+  slide: HTMLElement | undefined,
+  revealed: number,
+): Map<string, HTMLElement> {
+  const found = new Map<string, HTMLElement>();
+  for (const el of slide?.querySelectorAll<HTMLElement>(
+    "[data-hinote-morph]",
+  ) ?? []) {
+    const key = el.dataset.hinoteMorph ?? "";
+    if (!/^[\w-]+$/.test(key) || found.has(key)) continue;
+    let step = el.closest<HTMLElement>("[data-hinote-step]");
+    while (step && slide?.contains(step)) {
+      if (Number(step.dataset.hinoteStep) > revealed) break;
+      step =
+        step.parentElement?.closest<HTMLElement>("[data-hinote-step]") ?? null;
+    }
+    if (step && slide?.contains(step)) continue;
+    found.set(key, el);
+  }
+  return found;
+}
+
 // A copy of a slide scaled into `box`, which keeps the canvas ratio in CSS.
 function fillThumb(box: HTMLElement, slide: HTMLElement, revealed: number) {
   const copy = slide.cloneNode(true);
@@ -412,18 +436,36 @@ export function boot(): void {
   };
 
   // A slide change animates with the transition of the slide it enters.
+  // Elements that share a <Morph> name on the two slides move into each other
+  // as their own pairs, whatever the transition, so a "none" slide still runs
+  // a view transition when it has pairs.
   const root = document.documentElement;
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
-  let shown: number | undefined;
+  let shown: Position | undefined;
+  let named: HTMLElement[] = [];
+  let running: ViewTransition | undefined;
+  const unname = () => {
+    for (const el of named) el.style.removeProperty("view-transition-name");
+    named = [];
+  };
+  const nameMorph = (el: HTMLElement | undefined, key: string) => {
+    if (!el) return;
+    el.style.setProperty("view-transition-name", `hinote-morph-${key}`);
+    named.push(el);
+  };
   const show = (position: Position) => {
     const from = shown;
-    shown = position.slide;
+    shown = position;
     const entering = slides[position.slide];
+    const leaving = from && slides[from.slide];
     const transition = entering?.dataset.transition ?? "none";
+    const before = morphs(leaving, from?.step ?? 0);
+    const after = morphs(entering, position.step);
+    const pairs = [...after.keys()].filter((key) => before.has(key));
     if (
       from === undefined ||
-      from === position.slide ||
-      transition === "none" ||
+      from.slide === position.slide ||
+      (transition === "none" && pairs.length === 0) ||
       reduceMotion.matches ||
       !document.startViewTransition
     ) {
@@ -431,7 +473,7 @@ export function boot(): void {
       return;
     }
     root.dataset.transition = transition;
-    root.dataset.direction = position.slide > from ? "forward" : "back";
+    root.dataset.direction = position.slide > from.slide ? "forward" : "back";
     for (const [property, value] of [
       ["--hinote-transition-duration", entering?.dataset.transitionDuration],
       ["--hinote-transition-easing", entering?.dataset.transitionEasing],
@@ -439,7 +481,17 @@ export function boot(): void {
       if (value) root.style.setProperty(property, value);
       else root.style.removeProperty(property);
     }
-    document.startViewTransition(() => apply(position));
+    unname();
+    for (const key of pairs) nameMorph(before.get(key), key);
+    const transitionRun = document.startViewTransition(() => {
+      unname();
+      apply(position);
+      for (const key of pairs) nameMorph(after.get(key), key);
+    });
+    running = transitionRun;
+    void transitionRun.finished.finally(() => {
+      if (running === transitionRun) unname();
+    });
   };
 
   const activeSlide = () =>

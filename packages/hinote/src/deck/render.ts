@@ -15,6 +15,7 @@ import type { Slide } from "./slide.ts";
 import { numberSteps } from "../components/step.tsx";
 import { servedPath, slideHash } from "../client/location.ts";
 import { transitionData, type Transition } from "./transition.ts";
+import { repeatedMorph } from "../components/morph.tsx";
 import {
   defaultTheme,
   mergeTheme,
@@ -96,6 +97,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--hinote-color-bg)
 ::view-transition-old(root),::view-transition-new(root){animation:none}
 ::view-transition-image-pair(hinote-stage){overflow:clip}
 ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation-duration:var(--hinote-transition-duration,.35s);animation-timing-function:var(--hinote-transition-easing,ease)}
+html[data-transition="none"]::view-transition-old(hinote-stage){animation:none;opacity:0}
+html[data-transition="none"]::view-transition-new(hinote-stage){animation:none}
 html:is([data-transition="slide"],[data-transition="slide-up"],[data-transition="wipe"])::view-transition-old(hinote-stage),html:is([data-transition="slide"],[data-transition="slide-up"],[data-transition="wipe"])::view-transition-new(hinote-stage){mix-blend-mode:normal}
 html[data-transition="slide"]::view-transition-old(hinote-stage){animation-name:hinote-to-left}
 html[data-transition="slide"]::view-transition-new(hinote-stage){animation-name:hinote-from-right}
@@ -474,6 +477,12 @@ ${FRAME_CSS}`;
             );
       },
     );
+    const twice = repeatedMorph(html);
+    if (twice !== undefined)
+      throw new HinoteError(
+        `Slide ${index + 1} has two <Morph name="${twice}">, so the page cannot tell which one moves.`,
+        { hint: "Give each <Morph> on a slide its own name." },
+      );
     const pageNumber = input.pageNumbers?.[index];
     const pageHtml =
       pageNumber !== undefined && slide.options.pageNumber !== false

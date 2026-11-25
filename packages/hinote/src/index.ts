@@ -24,6 +24,8 @@ export type { SlideContext, Theme } from "@hinote/types";
 export type { Slide, SlideOptions, SlideRender } from "./deck/slide.ts";
 export { Script } from "./components/script.tsx";
 export type { ScriptProps } from "./components/script.tsx";
+export { Morph } from "./components/morph.tsx";
+export type { MorphProps } from "./components/morph.tsx";
 export { Step, Steps } from "./components/step.tsx";
 export type {
   StepEffect,

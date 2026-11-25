@@ -5,7 +5,7 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { boot } from "../src/client/boot.ts";
 import type { HinoteClient } from "../src/client/api.ts";
-import { Link, Step, Steps, createSlide } from "../src/index.ts";
+import { Link, Morph, Step, Steps, createSlide } from "../src/index.ts";
 import type { Page, Sync } from "../src/deck/render.ts";
 
 // The page defines this. Importing hinote/client would type it for every file
@@ -161,6 +161,82 @@ describe("navigating a page", () => {
     document.dispatchEvent(event);
     expect(active()).toBe(0);
     expect(event.defaultPrevented).toBe(false);
+  });
+});
+
+describe("morphing between slides", () => {
+  // The browser pairs elements by view-transition-name: it reads the names on
+  // the old page when the transition starts and on the new page after the
+  // update. The stub records both.
+  type Run = { before: string[]; after: string[] };
+  const runs: Run[] = [];
+  const named = () =>
+    [...document.querySelectorAll<HTMLElement>("#deck .slide *")]
+      .filter((el) => el.style.getPropertyValue("view-transition-name"))
+      .map(
+        (el) =>
+          `${[...document.querySelectorAll("#deck .slide")].indexOf(el.closest(".slide")!) + 1}:${el.style.getPropertyValue("view-transition-name")}`,
+      );
+  const stubTransitions = () => {
+    runs.length = 0;
+    (document as { startViewTransition: unknown }).startViewTransition = (
+      update: () => void,
+    ) => {
+      const run: Run = { before: named(), after: [] };
+      update();
+      run.after = named();
+      runs.push(run);
+      return { finished: Promise.resolve() };
+    };
+  };
+  const morphDeck = createSlide({ transition: "none" }, [
+    createSlide(() => (
+      <>
+        <Morph name="title">big</Morph>
+        <Morph name="logo">only here</Morph>
+      </>
+    )),
+    createSlide(() => (
+      <>
+        <Morph name="title">small</Morph>
+        <Step>
+          <Morph name="logo">later</Morph>
+        </Step>
+      </>
+    )),
+    createSlide(() => <p>plain</p>),
+  ]);
+
+  test("an element named on both slides carries one name out of the old slide and into the new, and nothing stays named after", async () => {
+    await open(
+      "static",
+      "http://localhost/index.html#1",
+      undefined,
+      false,
+      morphDeck,
+    );
+    stubTransitions();
+    press("ArrowRight");
+    expect(runs).toEqual([
+      { before: ["1:hinote-morph-title"], after: ["2:hinote-morph-title"] },
+    ]);
+    await Promise.resolve();
+    expect(named()).toEqual([]);
+  });
+
+  test("a slide with no transition and no pair changes without a view transition", async () => {
+    await open(
+      "static",
+      "http://localhost/index.html#2",
+      undefined,
+      false,
+      morphDeck,
+    );
+    stubTransitions();
+    press("ArrowRight");
+    press("ArrowRight");
+    expect(active()).toBe(2);
+    expect(runs).toEqual([]);
   });
 });
 
