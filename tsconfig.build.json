@@ -1,8 +1,7 @@
 {
-  // What a package's tsconfig.build.json adds to its tsconfig.json: emit
-  // JavaScript and declarations for each file in src/, one for one, with
-  // `./x.ts` imports rewritten to `./x.js`. Nothing is bundled, so a deck's
-  // bundler keeps only the modules the deck imports.
+  // What a package's tsconfig.build.json adds to its tsconfig.json, for
+  // scripts/build-package.ts: declarations for each file in src/, one for
+  // one, with `./x.ts` imports rewritten to `./x.js`.
   "compilerOptions": {
     "noEmit": false,
     "declaration": true,

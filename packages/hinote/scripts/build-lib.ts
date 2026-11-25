@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 // tests/dist.test.ts builds into a temporary directory instead.
 const dist = await buildPackage(root, process.argv[2]);
 
-// tsc does not emit a .d.ts input, and keeps index.d.ts pointing at the one
+// A .d.ts in src/ is not compiled, and index.d.ts points at the one
 // in src/, which the package does not ship. Without it, a deck's
 // `import style from "./style.css"` fails to typecheck.
 await copyFile(`${root}src/css-module.d.ts`, `${dist}/css-module.d.ts`);

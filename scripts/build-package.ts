@@ -1,19 +1,27 @@
-// Builds a package's dist/ from its src/ with TypeScript, as configured by the
+// Builds a package's dist/ from its src/ with tsdown, as configured by the
 // package's tsconfig.build.json. Run it from the package directory:
 //   bun ../../scripts/build-package.ts [outDir]
-import { rm } from "node:fs/promises";
+// Each file in src/ becomes one file in dist/, with its declarations, and
+// `./x.ts` imports become `./x.js`. Nothing is bundled, so a deck's bundler
+// keeps only the modules the deck imports.
 import { join, resolve } from "node:path";
-
-const tsc = join(import.meta.dir, "../node_modules/.bin/tsc");
+import { build } from "tsdown";
 
 export async function buildPackage(dir: string, outDir = join(dir, "dist")) {
-  await rm(outDir, { recursive: true, force: true });
-  const run = Bun.spawnSync(
-    [tsc, "-p", "tsconfig.build.json", "--outDir", resolve(outDir)],
-    { cwd: dir, stdout: "inherit", stderr: "inherit" },
-  );
-  if (run.exitCode !== 0)
-    throw new Error(`tsc failed in ${dir} with exit code ${run.exitCode}.`);
+  await build({
+    config: false,
+    cwd: dir,
+    entry: ["src/**/*.{ts,tsx}", "!src/**/*.d.ts"],
+    unbundle: true,
+    format: "esm",
+    platform: "node",
+    outDir: resolve(outDir),
+    clean: true,
+    fixedExtension: false,
+    tsconfig: "tsconfig.build.json",
+    dts: { tsgo: {} },
+    logLevel: "warn",
+  });
   return outDir;
 }
 
