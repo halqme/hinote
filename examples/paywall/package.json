@@ -1,0 +1,14 @@
+{
+  "name": "hinote-paywall",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun server.ts",
+    "check": "hinote check",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "hinote": "workspace:*",
+    "hono": "catalog:"
+  }
+}
