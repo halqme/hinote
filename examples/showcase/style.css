@@ -340,7 +340,7 @@ strong {
 .toc .hinote-contents-entry {
   justify-content: space-between;
   gap: calc(var(--hinote-space-unit) * 4);
-  padding: calc(var(--hinote-space-unit) * 1.5) 0;
+  padding: calc(var(--hinote-space-unit) * 1.25) 0;
   border-bottom: 1px solid var(--hinote-color-border);
 }
 
@@ -468,4 +468,63 @@ strong {
 .plot-actions button[aria-disabled="true"] {
   color: var(--hinote-color-muted);
   cursor: default;
+}
+
+/* ---------- Icons ---------- */
+
+/* The card's color is the accent, so a one-color icon, drawn in currentColor,
+   takes it. The name and the id set their own colors. */
+.marks {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(var(--hinote-space-unit) * 3);
+}
+
+.mark {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  height: 360px;
+  padding: calc(var(--hinote-space-unit) * 4);
+  border: 1px solid var(--hinote-color-border);
+  background: var(--hinote-color-surface);
+  color: var(--hinote-color-accent);
+}
+
+.mark-name {
+  font-family: var(--hinote-font-heading);
+  font-style: italic;
+  font-size: var(--hinote-text-h3);
+  line-height: 1;
+  color: var(--hinote-color-fg);
+}
+
+.mark code {
+  font-size: var(--hinote-text-small);
+  color: var(--hinote-color-muted);
+}
+
+/* An icon at 1em sits on the baseline; this lifts it onto the line of text. */
+.standfirst .icon {
+  vertical-align: -0.15em;
+}
+
+/* ---------- QR ---------- */
+
+/* No frame: the code already keeps the quiet zone a scanner needs. The gap
+   stays small so the address sits against that zone, not a second margin. */
+.scan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--hinote-space-unit) * 1);
+}
+
+.scan-url {
+  margin: 0;
+  font-family: var(--hinote-font-mono);
+  font-size: var(--hinote-text-small);
+  color: var(--hinote-color-muted);
 }

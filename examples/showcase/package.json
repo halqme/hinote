@@ -15,8 +15,11 @@
     "@hinote/chart": "workspace:*",
     "@hinote/code": "workspace:*",
     "@hinote/d2": "workspace:*",
+    "@hinote/icon": "workspace:*",
     "@hinote/katex": "workspace:*",
     "@hinote/mermaid": "workspace:*",
+    "@hinote/qr": "workspace:*",
+    "@iconify-json/lucide": "^1.2.159",
     "hinote": "workspace:*",
     "hono": "catalog:"
   }

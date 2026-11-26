@@ -9,6 +9,8 @@ import charts from "./slides/charts.tsx";
 import diagrams from "./slides/diagrams.tsx";
 import sequences from "./slides/sequences.tsx";
 import math from "./slides/math.tsx";
+import icons from "./slides/icons.tsx";
+import qr from "./slides/qr.tsx";
 import morph from "./slides/morph.tsx";
 import steps from "./slides/steps.tsx";
 import end from "./slides/end.tsx";
@@ -29,6 +31,8 @@ export default createSlide(
     diagrams,
     sequences,
     math,
+    icons,
+    qr,
     morph,
     steps,
     end,
