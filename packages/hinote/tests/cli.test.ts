@@ -367,9 +367,17 @@ test("build writes a page for each route, which a static host serves under any p
       JSON.parse(done.stdout).data.pages.map((page: string) =>
         relative(join(dir, "site"), page),
       ),
-    ).toEqual(["2.html", "index.html", "presenter.html", "presenter/2.html"]);
+    ).toEqual([
+      "1.html",
+      "2.html",
+      "index.html",
+      "presenter.html",
+      "presenter/1.html",
+      "presenter/2.html",
+    ]);
     for (const [path, base] of [
       ["index.html", "./"],
+      ["1.html", "./"],
       ["2.html", "./"],
       ["presenter.html", "./"],
       ["presenter/2.html", "../"],

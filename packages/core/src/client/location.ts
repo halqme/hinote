@@ -1,27 +1,31 @@
 import type { Role } from "./player.ts";
 
-// Each slide is a route of the deck: `/`, `/2`, `/3`, and `/presenter`,
-// `/presenter/2` for the presenter, counted from 1. Paths do not nest
-// further, so steps stay out of the URL and a reload starts the slide with no
-// step revealed.
+// Each slide is a route of the deck, counted from 1: `/1`, `/2`, and
+// `/presenter/1`, `/presenter/2` for the presenter. The deck root, `/` and
+// `/presenter`, answers with the first slide too. Paths do not nest further,
+// so steps stay out of the URL and a reload starts the slide with no step
+// revealed.
 //
 // A page names the deck root in `<base href>` and links to slides relative to
 // it, so the same pages work wherever the deck is: mounted with
 // `app.route("/talk", deck)`, or written out by `hinote build` for a static
-// host under any path. The built single file keeps the slide in the hash
-// (`#3`), since it is one page.
+// host under any path. Links name slides by number, never the root, since
+// `/talk/` with its trailing slash is not a route of a deck mounted at `/talk`.
+// The built single file keeps the slide in the hash (`#3`), since it is one page.
 
 // The route of a slide, from the deck root.
 export function slideRoute(role: Role, slide: number): string {
-  const presenter = role === "presenter" ? "/presenter" : "";
-  if (slide === 0) return presenter || "/";
-  return `${presenter}/${slide + 1}`;
+  return `${role === "presenter" ? "/presenter" : ""}/${slide + 1}`;
+}
+
+// The deck root, which answers with the first slide.
+export function rootRoute(role: Role): string {
+  return role === "presenter" ? "/presenter" : "/";
 }
 
 // The href of a slide, relative to the deck root.
 export function slideHref(role: Role, slide: number): string {
-  const route = slideRoute(role, slide);
-  return route === "/" ? "./" : route.slice(1);
+  return slideRoute(role, slide).slice(1);
 }
 
 // `<base href>` for a page served at `path`, which ends in `route`. Relative

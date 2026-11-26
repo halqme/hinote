@@ -53,7 +53,7 @@ async function pageAt(
   if (!path.startsWith(mount)) return undefined;
   const route = path.slice(mount.length) || "/";
   const match = /^(\/presenter)?(?:\/(\d+))?$/.exec(route === "/" ? "" : route);
-  if (!match || match[2] === "1") return undefined;
+  if (!match || match[2] === "0") return undefined;
   const role = match[1] ? "presenter" : "view";
   const index = match[2] ? Number(match[2]) - 1 : 0;
   if (index >= from.slides.length) return undefined;
@@ -194,14 +194,14 @@ describe("navigating a page", () => {
     await press("ArrowLeft");
     expect(hidden()).toEqual([false, true]);
     await press("Home");
-    expect(location.pathname).toBe("/");
+    expect(location.pathname).toBe("/1");
   });
 
   test("the slides either side are fetched ahead, marked as a prefetch", async () => {
     await open("http://localhost/2");
     await new Promise((r) => setTimeout(r, 100));
     expect(fetched).toContainEqual({ path: "/3", purpose: "prefetch" });
-    expect(fetched).toContainEqual({ path: "/", purpose: "prefetch" });
+    expect(fetched).toContainEqual({ path: "/1", purpose: "prefetch" });
   });
 
   test("a route that answers with something other than a slide is opened as a page", async () => {
@@ -267,7 +267,8 @@ describe("navigating a page", () => {
     await press("End");
     expect(location.pathname).toBe("/talk/3");
     await press("Home");
-    expect(location.pathname).toBe("/talk/");
+    // Not /talk/, which a deck mounted at /talk does not answer.
+    expect(location.pathname).toBe("/talk/1");
   });
 
   test("keys with a modifier are left to the browser", async () => {
@@ -580,7 +581,7 @@ describe("the presenter view", () => {
     await click("prev");
     await click("prev");
     expect(active()).toBe(0);
-    expect(location.pathname).toBe("/presenter");
+    expect(location.pathname).toBe("/presenter/1");
     expect(document.getElementById("hinote-notes")?.textContent).toBe(
       "first notes",
     );

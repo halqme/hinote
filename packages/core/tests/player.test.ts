@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   baseHref,
   parseHash,
+  rootRoute,
   slideHash,
   slideHref,
   slideRoute,
@@ -171,11 +172,12 @@ test("normalizePointer maps inside the slide and rejects outside", () => {
 
 describe("location", () => {
   test("each slide has a route from the deck root, counted from 1, and an href relative to it", () => {
-    expect(slideRoute("view", 0)).toBe("/");
+    expect(rootRoute("view")).toBe("/");
+    expect(rootRoute("presenter")).toBe("/presenter");
+    expect(slideRoute("view", 0)).toBe("/1");
     expect(slideRoute("view", 2)).toBe("/3");
-    expect(slideRoute("presenter", 0)).toBe("/presenter");
     expect(slideRoute("presenter", 1)).toBe("/presenter/2");
-    expect(slideHref("view", 0)).toBe("./");
+    expect(slideHref("view", 0)).toBe("1");
     expect(slideHref("view", 2)).toBe("3");
     expect(slideHref("presenter", 1)).toBe("presenter/2");
   });
@@ -185,6 +187,7 @@ describe("location", () => {
       new URL(baseHref(path, route), `http://h${path}`).pathname;
     for (const [path, route] of [
       ["/", "/"],
+      ["/1", "/1"],
       ["/2", "/2"],
       ["/presenter", "/presenter"],
       ["/presenter/2", "/presenter/2"],

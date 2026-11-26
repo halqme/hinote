@@ -9,7 +9,7 @@ import { didYouMean } from "../suggest.ts";
 import { isPlainObject } from "../guards.ts";
 import { disableSSG, isSSGContext } from "hono/ssg";
 import { syncHub } from "./hub.ts";
-import { baseHref, slideRoute } from "../client/location.ts";
+import { baseHref, rootRoute, slideRoute } from "../client/location.ts";
 import type { Role } from "../client/player.ts";
 import { citationOrder, numberCitations } from "../components/cite.tsx";
 import {
@@ -227,8 +227,9 @@ export function parseDeckOptions(
   return options;
 }
 
-// A deck is a Hono app with a route for each slide: `/`, `/2`, `/3`, and, with
-// the presenter, `/presenter`, `/presenter/2`. Each answers with that slide
+// A deck is a Hono app with a route for each slide: `/1`, `/2`, `/3`, and, with
+// the presenter, `/presenter/1`, `/presenter/2`. The root answers with the
+// first slide. Each answers with that slide
 // alone, so middleware in front of the deck sees every slide that is opened,
 // and the page fetches the next slide from its route. `hinote dev` serves it,
 // `hinote build` writes every route out as a file, and a server of your own on
@@ -255,27 +256,32 @@ export class Deck extends Hono {
     // A deck built while pages are open is an edited deck (`bun --hot`, `hinote dev`).
     syncHub().reloadAll();
 
-    const page = (role: Role, index: number) => async (c: Context) => {
-      if (role === "presenter" && !this.presenter) return c.notFound();
-      const sync: Sync | undefined = this.presenter
-        ? // Written out for a static host, pages have no server to sync
-          // through, so windows of one browser talk directly.
-          isSSGContext(c)
-          ? "broadcast"
-          : "server"
-        : this.live
-          ? "reload"
-          : undefined;
-      const base = baseHref(c.req.path, slideRoute(role, index));
-      return c.html(await this.#page(role, index, base, sync), 200, {
-        "cache-control": "no-store",
-      });
-    };
-    // A deck with no slides still answers at its root, with an empty stage.
-    const count = Math.max(1, slides.length);
-    for (const role of ["view", "presenter"] as const)
-      for (let index = 0; index < count; index++)
-        this.get(slideRoute(role, index), page(role, index));
+    const page =
+      (role: Role, index: number, route: string) => async (c: Context) => {
+        if (role === "presenter" && !this.presenter) return c.notFound();
+        const sync: Sync | undefined = this.presenter
+          ? // Written out for a static host, pages have no server to sync
+            // through, so windows of one browser talk directly.
+            isSSGContext(c)
+            ? "broadcast"
+            : "server"
+          : this.live
+            ? "reload"
+            : undefined;
+        const base = baseHref(c.req.path, route);
+        return c.html(await this.#page(role, index, base, sync), 200, {
+          "cache-control": "no-store",
+        });
+      };
+    for (const role of ["view", "presenter"] as const) {
+      // A deck with no slides still answers at its root, with an empty stage.
+      this.get(rootRoute(role), page(role, 0, rootRoute(role)));
+      for (let index = 0; index < slides.length; index++)
+        this.get(
+          slideRoute(role, index),
+          page(role, index, slideRoute(role, index)),
+        );
+    }
 
     this.get(`/${RUNTIME}`, (c) =>
       c.body(CLIENT_SCRIPT, 200, {

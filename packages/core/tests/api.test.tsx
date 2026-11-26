@@ -1320,13 +1320,13 @@ describe("deck as a Hono app", () => {
     }
     // Each page names its neighbors and every slide of its kind, relative to the root.
     const second = await page("/2");
-    expect(second).toContain('<link rel="prev" href="./"/>');
+    expect(second).toContain('<link rel="prev" href="1"/>');
     expect(second).toContain('<link rel="next" href="3"/>');
     expect(
       [...second.matchAll(/<link rel="hinote-slide" href="([^"]*)"/g)].map(
         (m) => m[1],
       ),
-    ).toEqual(["./", "2", "3"]);
+    ).toEqual(["1", "2", "3"]);
     const presenter = await page("/presenter/2");
     expect(presenter).toContain('<link rel="next" href="presenter/3"/>');
     expect(presenter).toContain('id="hinote-panel"');
@@ -1336,8 +1336,10 @@ describe("deck as a Hono app", () => {
     expect(await page(new URL(next ?? "", "http://h/").pathname)).toContain(
       "<p>three</p>",
     );
-    // The first slide is the root; paths do not nest below the slide number.
-    for (const path of ["/1", "/4", "/2/1"])
+    // The root answers with the first slide too; paths do not nest below the
+    // slide number.
+    expect(await page("/1")).toBe(await page("/"));
+    for (const path of ["/4", "/2/1"])
       expect((await deck.request(path)).status).toBe(404);
   });
 
@@ -1397,10 +1399,10 @@ describe("deck as a Hono app", () => {
         "./pic.png",
         new URL((await baseOf(app, path)) ?? "", `http://h${path}`),
       ).pathname;
-    for (const path of ["/", "/2", "/presenter", "/presenter/2"])
+    for (const path of ["/", "/1", "/2", "/presenter", "/presenter/2"])
       expect(await resolved(deck, path)).toBe("/pic.png");
     const app = new Hono().route("/talk", deck);
-    for (const path of ["/talk", "/talk/2", "/talk/presenter/2"])
+    for (const path of ["/talk", "/talk/1", "/talk/2", "/talk/presenter/2"])
       expect(await resolved(app, path)).toBe("/talk/pic.png");
     // The built file resolves images next to itself.
     expect(await deck.render()).not.toContain("<base");

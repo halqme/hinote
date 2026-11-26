@@ -267,7 +267,7 @@ export const build: Command = {
   summary: "Write the deck as a site, one page per slide",
   args: DECK_ARG,
   maxArgs: 1,
-  description: `Writes every page the deck serves into a directory for GitHub Pages, Cloudflare Pages, Netlify, or any static host: index.html for the first slide and 2.html, 3.html for the rest, the stylesheet and runtime they share under _hinote/, and the files the slides refer to. The host answers /2 with 2.html, as those hosts do (Vercel with cleanUrls). Moving to a slide fetches its page, so the site has to be served; opened from disk it shows only the first slide. Links are relative to the deck root, so the site works under any path, such as a GitHub Pages project site.
+  description: `Writes every page the deck serves into a directory for GitHub Pages, Cloudflare Pages, Netlify, or any static host: 1.html, 2.html, 3.html for the slides and index.html for the deck root, which shows the first, the stylesheet and runtime they share under _hinote/, and the files the slides refer to. The host answers /2 with 2.html, as those hosts do (Vercel with cleanUrls). Moving to a slide fetches its page, so the site has to be served; opened from disk it shows only the first slide. Links are relative to the deck root, so the site works under any path, such as a GitHub Pages project site.
 
 With document: { presenter: true } on the deck it also writes presenter.html and presenter/2.html, which sync with the audience pages in the same browser. Anyone can open those and read the notes.
 

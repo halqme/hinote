@@ -93,8 +93,7 @@ async function photograph(
   canvas: Canvas,
   file: string,
 ): Promise<LayoutReport> {
-  // The first slide is the deck root; the rest are /2, /3, and so on.
-  await page.goto(`http://127.0.0.1:${port}/${index === 0 ? "" : index + 1}`);
+  await page.goto(`http://127.0.0.1:${port}/${index + 1}`);
   const expression = ready(index, canvas);
   await poll(
     async () => (await page.evaluate(expression)) === true,
