@@ -231,7 +231,7 @@ test("a default export that is not a deck is refused", async () => {
   }
 });
 
-test("build writes one html file and leaves nothing behind on failure", async () => {
+test("build --single writes one html file and leaves nothing behind on failure", async () => {
   const dir = await tempDir();
   try {
     await writeFile(
@@ -241,7 +241,7 @@ test("build writes one html file and leaves nothing behind on failure", async ()
       ),
     );
     const built = await run(
-      ["build", "deck.tsx", "-o", "site/index.html"],
+      ["build", "deck.tsx", "--single", "-o", "site/index.html"],
       dir,
     );
     expect(built.code).toBe(0);
@@ -253,7 +253,7 @@ test("build writes one html file and leaves nothing behind on failure", async ()
 
     const missing = join(dir, "missing.html");
     const failed = await run(
-      ["build", "missing.tsx", "-o", "missing.html"],
+      ["build", "missing.tsx", "--single", "-o", "missing.html"],
       dir,
     );
     expect(failed.code).toBe(1);
@@ -266,7 +266,10 @@ test("build writes one html file and leaves nothing behind on failure", async ()
         `export default createSlide([createSlide(() => { throw new Error("boom") })])`,
       ),
     );
-    const boom = await run(["build", "bad.tsx", "-o", "thrown.html"], dir);
+    const boom = await run(
+      ["build", "bad.tsx", "--single", "-o", "thrown.html"],
+      dir,
+    );
     expect(boom.code).toBe(1);
     expect(await Bun.file(thrown).exists()).toBe(false);
 
@@ -296,7 +299,7 @@ test("build copies the files the page refers to, and only those", async () => {
   createSlide(() => <div><img src="./images/logo.svg" /><img src="../outside.png" /><a href="secret.txt#x">s</a></div>),
 ])`),
     );
-    const built = await run(["build", "deck.tsx", "-o", "out/index.html"], dir);
+    const built = await run(["build", "deck.tsx", "-o", "out"], dir);
     expect(built.code).toBe(0);
     expect(built.stdout).toContain("copied 3 files");
     expect(await readFile(join(dir, "out/images/logo.svg"), "utf8")).toBe(
@@ -309,7 +312,10 @@ test("build copies the files the page refers to, and only those", async () => {
     );
 
     // Building next to the deck copies nothing onto itself.
-    const beside = await run(["build", "deck.tsx", "-o", "index.html"], dir);
+    const beside = await run(
+      ["build", "deck.tsx", "--single", "-o", "index.html"],
+      dir,
+    );
     expect(beside.code).toBe(0);
     expect(beside.stdout).not.toContain("copied");
     expect(await readFile(join(dir, "images/logo.svg"), "utf8")).toBe("<svg/>");
@@ -344,7 +350,7 @@ test("assets copies only the files the slides refer to", async () => {
   }
 });
 
-test("prerender writes a page for each route, which a static host serves under any path", async () => {
+test("build writes a page for each route, which a static host serves under any path", async () => {
   const dir = await tempDir();
   try {
     await writeFile(join(dir, "logo.svg"), "<svg/>");
@@ -355,10 +361,7 @@ test("prerender writes a page for each route, which a static host serves under a
   createSlide(() => <p>two</p>),
 ])`),
     );
-    const done = await run(
-      ["prerender", "deck.tsx", "-o", "site", "--json"],
-      dir,
-    );
+    const done = await run(["build", "deck.tsx", "-o", "site", "--json"], dir);
     expect(done.code).toBe(0);
     expect(
       JSON.parse(done.stdout).data.pages.map((page: string) =>
@@ -397,15 +400,19 @@ test("prerender writes a page for each route, which a static host serves under a
         `export default createSlide([createSlide({ notes: "secret" }, () => <p>one</p>)])`,
       ),
     );
-    expect(
-      (await run(["prerender", "plain.tsx", "-o", "plain"], dir)).code,
-    ).toBe(0);
+    expect((await run(["build", "plain.tsx", "-o", "plain"], dir)).code).toBe(
+      0,
+    );
     const plain = await readFile(join(dir, "plain/index.html"), "utf8");
     expect(plain).not.toContain("data-sync");
     expect(plain).not.toContain("secret");
     expect(await Bun.file(join(dir, "plain/presenter.html")).exists()).toBe(
       false,
     );
+
+    // Only one file can carry the files inside it.
+    const embed = await run(["build", "deck.tsx", "--embed", "-o", "e"], dir);
+    expect(embed.code).toBe(2);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -499,7 +506,7 @@ test("build --embed puts the files the slides load into the HTML, and copies non
 ])`),
     );
     const built = await run(
-      ["build", "--embed", "-o", "out/talk.html", "--json"],
+      ["build", "--single", "--embed", "-o", "out/talk.html", "--json"],
       dir,
     );
     expect(built.code).toBe(0);
@@ -587,7 +594,10 @@ export default createSlide([
   createSlide(() => <div class="slot"><Script src={chart} /></div>),
 ])`),
     );
-    const built = await run(["build", "deck.tsx", "-o", "out/index.html"], dir);
+    const built = await run(
+      ["build", "deck.tsx", "--single", "-o", "out/index.html"],
+      dir,
+    );
     expect(built.stderr).toBe("");
     const html = await readFile(join(dir, "out/index.html"), "utf8");
     expect(html).not.toContain("data-hinote-src");
@@ -600,9 +610,7 @@ export default createSlide([
     expect(html.search(module)).toBeGreaterThan(html.lastIndexOf("<script>"));
     // On the site, each page that needs it carries it under one name, so a
     // page that fetches the next slide runs it once.
-    expect((await run(["prerender", "deck.tsx", "-o", "site"], dir)).code).toBe(
-      0,
-    );
+    expect((await run(["build", "deck.tsx", "-o", "site"], dir)).code).toBe(0);
     const names = await Promise.all(
       ["index.html", "2.html"].map(
         async (page) =>
@@ -616,7 +624,7 @@ export default createSlide([
 
     await writeFile(join(dir, "chart.client.tsx"), "export const = ;");
     const broken = await run(
-      ["build", "deck.tsx", "-o", "broken/index.html"],
+      ["build", "deck.tsx", "--single", "-o", "broken/index.html"],
       dir,
     );
     expect(broken.code).toBe(1);
@@ -1146,7 +1154,7 @@ export default createSlide({ document: { aspect: "4:3" } }, [
   }
 });
 
-test("build is render piped through inline, and refs lists what it copies", async () => {
+test("build --single is render piped through inline, and refs lists what it copies", async () => {
   const dir = await tempDir();
   try {
     await writeFile(join(dir, "logo.svg"), "<svg/>");
@@ -1158,7 +1166,9 @@ export default createSlide([
   createSlide(() => <div><img src="./logo.svg" /><img src="./gone.png" /><Script src={new URL("./w.client.tsx", import.meta.url)} /></div>),
 ])`),
     );
-    expect((await run(["build", "-o", "dist/index.html"], dir)).code).toBe(0);
+    expect(
+      (await run(["build", "--single", "-o", "dist/index.html"], dir)).code,
+    ).toBe(0);
     const rendered = await run(["render", "-o", "page.html"], dir);
     expect(rendered.code).toBe(0);
     expect(await readFile(join(dir, "page.html"), "utf8")).toContain(

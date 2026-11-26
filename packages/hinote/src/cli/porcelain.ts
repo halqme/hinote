@@ -264,33 +264,62 @@ With --json it prints one {"event", "data"} line per event: listening (the URLs)
 export const build: Command = {
   name: "build",
   group: "porcelain",
-  summary: "Write the deck as one HTML file",
+  summary: "Write the deck as a site, one page per slide",
   args: DECK_ARG,
   maxArgs: 1,
-  description: `Writes the audience view as one HTML file that opens without a server, and copies the files the slides refer to next to it. No presenter view, no sync; the slide is in the hash (#3).
+  description: `Writes every page the deck serves into a directory for GitHub Pages, Cloudflare Pages, Netlify, or any static host: index.html for the first slide and 2.html, 3.html for the rest, the stylesheet and runtime they share under _hinote/, and the files the slides refer to. The host answers /2 with 2.html, as those hosts do (Vercel with cleanUrls). Moving to a slide fetches its page, so the site has to be served; opened from disk it shows only the first slide. Links are relative to the deck root, so the site works under any path, such as a GitHub Pages project site.
 
-With --embed, the files go into the HTML as data: URLs instead, so the one file is the whole deck, to attach or send. Large images make it large.
+With document: { presenter: true } on the deck it also writes presenter.html and presenter/2.html, which sync with the audience pages in the same browser. Anyone can open those and read the notes.
 
-The same as:
+With --single it writes one HTML file instead, which opens without a server: every slide, the slide in the hash (#3), no presenter, no sync. It copies the files the slides refer to next to it, or with --embed puts them into the HTML as data: URLs, so the one file is the whole deck, to attach or send. Large images make it large.
+
+--single is the same as:
   hinote render | hinote inline -o dist/index.html
   hinote assets -o dist`,
   flags: {
-    output: OUTPUT_FLAG("The HTML file to write.", "dist/index.html"),
+    output: OUTPUT_FLAG(
+      "The directory to write, or with --single the HTML file.",
+      "dist, or dist/index.html with --single",
+    ),
+    single: {
+      type: "boolean",
+      description: "Write one HTML file that opens without a server.",
+    },
     embed: {
       type: "boolean",
       description:
-        "Put the files the slides load into the HTML, so it is one file to send.",
+        "With --single, put the files the slides load into the HTML, so it is one file to send.",
     },
   },
   examples: [
     "hinote build",
-    "hinote check && hinote build -o out/talk.html",
-    "hinote build --embed -o talk.html",
+    "hinote check && hinote build -o site",
+    "hinote build --single --embed -o talk.html",
   ],
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
-    const output = resolve(stringFlag(args, "output") ?? "dist/index.html");
+    const single = args.flags.single === true;
+    if (args.flags.embed && !single)
+      throw new UsageError(
+        "--embed puts the files into one HTML file, which only --single writes.",
+        "hinote build --single --embed",
+      );
     const deck = await loadDeckFile(deckFile);
+    if (!single) {
+      const outDir = resolve(stringFlag(args, "output") ?? "dist");
+      const { pages, copied } = await writeSite(
+        deck,
+        dirname(deckFile),
+        outDir,
+      );
+      out.result({ output: outDir, pages, copied }, [
+        outDir,
+        `${pages.length} page${pages.length === 1 ? "" : "s"}` +
+          (copied.length > 0 ? `, copied ${files(copied.length)}` : ""),
+      ]);
+      return;
+    }
+    const output = resolve(stringFlag(args, "output") ?? "dist/index.html");
     const html = await inlineScripts(await deck.render());
     if (args.flags.embed) {
       const embedded = await embedAssets(html, dirname(deckFile));
@@ -314,30 +343,6 @@ The same as:
     out.result({ output, copied }, [
       output,
       ...(copied.length > 0 ? [`copied ${files(copied.length)}`] : []),
-    ]);
-  },
-};
-
-export const prerender: Command = {
-  name: "prerender",
-  group: "porcelain",
-  summary: "Write every page a static host serves",
-  args: DECK_ARG,
-  maxArgs: 1,
-  description: `Writes every page the deck serves into a directory for GitHub Pages, Cloudflare Pages, Netlify, or any static host: index.html for the first slide and 2.html, 3.html for the rest, the stylesheet and runtime they share under _hinote/, and the files the slides refer to. The host answers /2 with 2.html, as those hosts do (Vercel with cleanUrls). Moving to a slide fetches its page, so the site has to be served; opened from disk it shows only the first slide. Links are relative to the deck root, so the site works under any path, such as a GitHub Pages project site. With document: { presenter: true } on the deck it also writes presenter.html and presenter/2.html, which sync with the audience pages in the same browser. Anyone can open those and read the notes.`,
-  flags: {
-    output: OUTPUT_FLAG("The directory to write.", "dist"),
-  },
-  examples: ["hinote prerender", "hinote prerender -o site"],
-  async run(args, out) {
-    const deckFile = deckPath(args.positionals[0]);
-    const outDir = resolve(stringFlag(args, "output") ?? "dist");
-    const deck = await loadDeckFile(deckFile);
-    const { pages, copied } = await writeSite(deck, dirname(deckFile), outDir);
-    out.result({ output: outDir, pages, copied }, [
-      outDir,
-      `${pages.length} page${pages.length === 1 ? "" : "s"}` +
-        (copied.length > 0 ? `, copied ${files(copied.length)}` : ""),
     ]);
   },
 };

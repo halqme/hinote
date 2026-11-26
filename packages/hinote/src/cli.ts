@@ -8,14 +8,7 @@ import type { Command } from "./cli/command.ts";
 import { commandHelp, overview } from "./cli/help.ts";
 import { createOutput, reportError } from "./cli/output.ts";
 import { check, inline, inspect, refs, render } from "./cli/plumbing.ts";
-import {
-  assets,
-  build,
-  dev,
-  init,
-  prerender,
-  snapshot,
-} from "./cli/porcelain.ts";
+import { assets, build, dev, init, snapshot } from "./cli/porcelain.ts";
 import { skills } from "./cli/skills.ts";
 import { ownPackage } from "./cli/package.ts";
 
@@ -23,7 +16,6 @@ export const COMMANDS: readonly Command[] = [
   init,
   dev,
   build,
-  prerender,
   assets,
   snapshot,
   render,

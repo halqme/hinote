@@ -110,14 +110,27 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
   });
 
   test("the CLI builds and serves on Node", async () => {
-    const built = hinote(app, ["build", "deck.tsx", "-o", "out/index.html"]);
+    const built = hinote(app, ["build", "deck.tsx", "-o", "out"]);
     expect(built.stderr.toString()).toBe("");
     const html = await Bun.file(join(app, "out/index.html")).text();
     expect(html).toContain("<h1>node</h1>");
-    expect(html).toContain("h1 { color: teal; }");
+    expect(await Bun.file(join(app, "out/_hinote/deck.css")).text()).toContain(
+      "h1 { color: teal; }",
+    );
     // <Script> bundled for the browser.
     expect(html).toContain("widget-");
     expect(html).not.toContain("data-hinote-src");
+    const single = hinote(app, [
+      "build",
+      "deck.tsx",
+      "--single",
+      "-o",
+      "one.html",
+    ]);
+    expect(single.stderr.toString()).toBe("");
+    expect(await Bun.file(join(app, "one.html")).text()).toContain(
+      "h1 { color: teal; }",
+    );
 
     const probe = Bun.serve({ port: 0, fetch: () => new Response() });
     const port = probe.port;
