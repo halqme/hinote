@@ -3,17 +3,11 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@hinote/code": "file:../.pack/code.tgz",
-    "hinote": "file:../.pack/hinote.tgz",
     "hono": "^4.13.19",
     "katex": "^0.19.1"
   },
   "devDependencies": {
     "@hono/node-server": "^2.1.9",
     "esbuild": "^0.28.2"
-  },
-  "overrides": {
-    "@hinote/core": "file:../.pack/core.tgz",
-    "@hinote/types": "file:../.pack/types.tgz"
   }
 }

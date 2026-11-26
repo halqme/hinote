@@ -1,0 +1,61 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Mondays. Not on Publish: the registry can lag the workflow, and this
+    # measures hinote@latest rather than the commit that was just tagged.
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmark-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - run: bun install --frozen-lockfile
+      # Browser timing stays local: it needs agent-browser.
+      - run: bun bench/run.ts
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmark
+          if-no-files-found: error
+          path: bench/report
+
+  publish-report:
+    if: needs.benchmark.result == 'success' && github.ref == 'refs/heads/main'
+    needs: benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: benchmark
+          path: bench-report
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: bench-report
+      - id: deployment
+        uses: actions/deploy-pages@v5

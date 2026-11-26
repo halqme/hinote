@@ -35,8 +35,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 
 # bench output
-bench/.pack
-bench/.cache-*
 bench/*/dist
 bench/*/bun.lock
 bench/*/.hono-decks
+bench/report

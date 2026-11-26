@@ -6,24 +6,18 @@ hono-decks has a somewhat different aim: it adds MDX decks to an existing Hono a
 
 ## Results
 
-hinote was measured twice, run by Bun and run by Node; on Node it has esbuild and `@hono/node-server` added. hinote's numbers include KaTeX, added for the formula.
+The numbers are not kept here. A run writes `bench/report/` (`index.html` and `latest.json`) from what it actually installed. The Benchmark workflow runs that on Mondays and when started by hand, and publishes the report from `main`.
 
-|                                                          | hinote 0.5.2 (Bun) | hinote 0.5.2 (Node) | hono-decks 2.2.0 |       Slidev 53.1.0 | Marp CLI 4.5.1 |
-| -------------------------------------------------------- | -----------------: | ------------------: | ---------------: | ------------------: | -------------: |
-| Slides                                                   |                 22 |                  22 |               20 |                  20 |             20 |
-| Packages installed                                       |              **5** |                   8 |              161 |                 640 |            155 |
-| `node_modules` size                                      |        **10.2 MB** |             20.7 MB |          46.2 MB |              569 MB |         131 MB |
-| Install time                                             |          **0.6 s** |               1.1 s |            3.0 s |              11.4 s |          4.5 s |
-| Dev server: until it responds                            |         **0.10 s** |              0.14 s |           0.30 s |              0.58 s |         0.40 s |
-| Dev server: from start until the browser shows the slide |         **0.20 s** |              0.24 s |           0.41 s |              1.46 s |         0.72 s |
-| Build time                                               |         **0.06 s** |              0.11 s |           0.22 s |              1.58 s |         0.22 s |
-| Build output                                             |     2 files, 32 KB |      2 files, 32 KB |                — | 120 files, 1,900 KB | 1 file, 116 KB |
-| Build output, gzipped                                    |               9 KB |                9 KB |                — |            1,197 KB |          24 KB |
+[View the benchmark report →](https://halqme.github.io/hinote/)
 
-- The machine was an Apple M4 Pro with 48 GB of memory, running macOS 27.2.1, Bun 1.4.5, and Node.js 26.13.1.
-- The two dev server rows and the build time are medians. The dev server was timed 3 times after the first start. The build was timed 5 times after one warm-up run.
-- The first start was about the same: hinote 0.11 s on Bun and 0.12 s on Node, hono-decks 0.28 s, Slidev 0.60 s, Marp 0.33 s. Slidev's first start was timed with its Vite cache removed.
-- hinote's two files are the HTML and the background image. Marp does not copy images, so its one file has no image in it; the image has to be placed separately. Slidev's many files include the formula fonts.
+```bash
+bun bench/run.ts            # install, build, and until the dev server responds
+bun bench/run.ts --browser  # also until the browser shows the slide (needs agent-browser)
+```
+
+hinote is measured twice when the published packages can run this deck. **Release** is `hinote@latest` and `@hinote/code@latest` from npm, downloaded by the timed `bun install`. That row runs only when `hinote@latest` depends on `@hinote/core` and `@hinote/code` is on npm; otherwise the report says the release deck was not measured, and it does not substitute a different install. **Main** is this checkout: `bun pm pack` builds `hinote`, `@hinote/core`, `@hinote/code`, `@hinote/types`, and `@hinote/shared`, and the install uses those tarballs, not the workspace. Each is run by Bun and by Node; on Node the deck adds esbuild and `@hono/node-server`. The deck also installs KaTeX for the formula. Slidev, Marp, and hono-decks stay at the versions pinned in their `package.json`.
+
+The dev server column in the report is the warm median, timed 3 times after the first start. The build is timed 5 times after one warm-up. Install time includes downloads. The machine, the commit, and the resolved versions are in the report, not in this file.
 
 ## How far hinote follows
 
@@ -40,13 +34,8 @@ hinote reproduced what each of the other tools does well, with the same look. Ea
 
 ## How it was measured
 
-```bash
-bun bench/run.ts            # install, build, and until the dev server responds
-bun bench/run.ts --browser  # also until the browser shows the slide (needs agent-browser)
-```
-
-- **Package manager:** Everything was installed with Bun. The two hinote rows start the CLI with `bun` and with `node`.
-- **Install:** The cache was empty, so install time includes downloads. It depends on the network; treat it as a rough guide.
+- **Package manager:** Everything was installed with Bun, in a temporary copy of the deck, from an empty cache. The hinote rows start the CLI with `bun` and with `node`.
+- **Install:** Install time includes downloads. It depends on the network; treat it as a rough guide. Main's `@hinote/core`, `@hinote/types`, and `@hinote/shared` are overrides to the checkout tarballs, because the packed packages would otherwise ask npm for them.
 - **Until the browser shows the slide:** The time from starting the dev server until the title text appears in headless Chrome. It includes about 0.1 s of browser automation.
 - **Build:** `hinote build`, `hono-decks compile`, `slidev build`, and `marp slides.md -o dist/index.html`.
 - **hono-decks:** The project is what `hono-decks init` writes, plus a Hono app that mounts the deck. In daily use Wrangler or Vite compiles on start, so its dev server is timed from `compile` until Bun serves the app. The browser waited on `/decks/talk/presentation`, which shows the slides alone.
