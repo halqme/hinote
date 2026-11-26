@@ -20,7 +20,7 @@ test.skipIf(!browser)(
           <span>b</span>
         </Row>
       )),
-    ]).render("static");
+    ]).render();
     const overridden = await createSlide({ css: ".hinote-row{gap:0}" }, [
       createSlide(() => (
         <Row gap="40px">
@@ -28,7 +28,7 @@ test.skipIf(!browser)(
           <span>b</span>
         </Row>
       )),
-    ]).render("static");
+    ]).render();
 
     const dir = await mkdtemp(join(tmpdir(), "hinote-layout-"));
     try {
@@ -80,7 +80,7 @@ test.skipIf(!browser)(
           </Card>
         </Grid>
       )),
-    ]).render("static");
+    ]).render();
 
     const dir = await mkdtemp(join(tmpdir(), "hinote-card-align-"));
     try {
@@ -148,7 +148,7 @@ test.skipIf(!browser)(
           </Card>
         </Grid>
       )),
-    ]).render("static");
+    ]).render();
     const dir = await mkdtemp(join(tmpdir(), "hinote-card-footer-"));
     try {
       const file = join(dir, "cards.html");
@@ -191,7 +191,7 @@ test.skipIf(!browser)(
           </Card>
         </Grid>
       )),
-    ]).render("static");
+    ]).render();
     const overridden = await createSlide(
       { css: ".hinote-card{background:rgb(255, 0, 0)}" },
       [
@@ -204,7 +204,7 @@ test.skipIf(!browser)(
           </Grid>
         )),
       ],
-    ).render("static");
+    ).render();
 
     const dir = await mkdtemp(join(tmpdir(), "hinote-card-css-"));
     try {
@@ -246,7 +246,7 @@ test.skipIf(!browser)(
             <pre>const どうか = 1;</pre>
           </div>
         )),
-      ]).render("static");
+      ]).render();
     const dir = await mkdtemp(join(tmpdir(), "hinote-lang-"));
     try {
       const langs = ["ja", "ja-JP", "en", undefined];
@@ -296,7 +296,7 @@ test.skipIf(!browser)(
             <p>answer</p>
           </Flow>
         )),
-      ]).render("static");
+      ]).render();
     const dir = await mkdtemp(join(tmpdir(), "hinote-flow-"));
     try {
       const plainFile = join(dir, "plain.html");
@@ -350,7 +350,7 @@ test.skipIf(!browser)(
             </tbody>
           </Table>
         )),
-      ]).render("static");
+      ]).render();
     const dir = await mkdtemp(join(tmpdir(), "hinote-table-"));
     try {
       const plainFile = join(dir, "plain.html");

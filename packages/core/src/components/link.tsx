@@ -13,9 +13,9 @@ export type LinkProps = {
 export const SLIDE_ID = /^[\w-]{1,64}$/;
 
 // A link to another slide of the deck, by its id rather than its URL. The
-// deck writes the href for the page it renders (dev, a mounted base,
-// prerendered directories, or the single file's #n), and the runtime moves
-// there without reloading the page.
+// deck writes the slide's route relative to the deck root, which every page
+// names in <base href>, or the single file's #n, and the runtime moves there
+// without reloading the page.
 export function Link(props: LinkProps) {
   if (typeof props.to !== "string" || !SLIDE_ID.test(props.to))
     throw new HinoteError(

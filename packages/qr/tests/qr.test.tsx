@@ -5,7 +5,7 @@ import jsQR from "jsqr";
 import { Qr } from "../src/index.tsx";
 
 async function render(node: () => unknown) {
-  return createSlide([createSlide(node as () => never)]).render("static");
+  return createSlide([createSlide(node as () => never)]).render();
 }
 
 async function svg(node: () => unknown): Promise<string> {

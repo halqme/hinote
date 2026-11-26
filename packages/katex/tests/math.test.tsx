@@ -3,7 +3,7 @@ import { createSlide } from "@hinote/core";
 import { Math } from "../src/index.tsx";
 
 async function render(node: () => unknown) {
-  return createSlide([createSlide(node as () => never)]).render("static");
+  return createSlide([createSlide(node as () => never)]).render();
 }
 
 test("renders LaTeX as MathML, a block by default", async () => {

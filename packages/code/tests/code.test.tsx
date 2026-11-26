@@ -4,7 +4,7 @@ import { Code, dedent } from "../src/index.tsx";
 import { githubLight } from "../src/themes.ts";
 
 async function render(node: () => unknown) {
-  return createSlide([createSlide(node as () => never)]).render("static");
+  return createSlide([createSlide(node as () => never)]).render();
 }
 
 test("highlights code with inline colors and escapes it", async () => {

@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { rolldown } from "rolldown";
 
-// The browser runtime every page inlines, bundled from main.ts when hinote
+// The browser runtime every page loads, bundled from main.ts when hinote
 // runs from source, so it is never stale. `bun run build` replaces this
 // module in dist/ with the bundled text: the package never bundles at runtime.
 const build = await rolldown({

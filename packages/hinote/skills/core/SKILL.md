@@ -13,7 +13,7 @@ A deck is a TSX file whose default export is `createSlide([...])`. Slides render
 2. `hinote check --json`: loads the deck, renders each slide alone, looks for the files slides load, bundles each `<Script>`, and reads the source for mistakes a render cannot see. Exit 1 lists problems, each with a `code`, a `hint` that says how to fix it, and the slide numbers when it has them. Fix them before anything else.
 3. `hinote inspect`: the outline of the deck, each slide under its section with its title, steps, and notes (`--json` for all of it). Read only the titles, in order: they should tell the whole story, each as a claim rather than a topic. Use it to confirm the deck says what you meant without opening a browser.
 4. Look at it. `hinote snapshot --json` writes one PNG per slide at the canvas size (`shots/1.png`, `shots/2.png`, …). Every `<Step>` is shown (no mid-fade), so the picture is the finished slide. The same result reports layout: `problems` for what does not fit the canvas (exit 1), and `warnings` for what fits but reads badly (exit 0 alone). Each issue has `slides` (an array of slide numbers), `code`, `hint`, and a short selector. Mark intentional bleed with `data-hinote-bleed`. `--slides 2,5,8` photographs and reports only those slides; pictures keep their slide number (`shots/5.png`). The pictures come from Google Chrome, Chromium, or Edge, or a Chromium build that Playwright, Puppeteer, or agent-browser downloaded; `HINOTE_CHROME` names another. To present, run `hinote dev --json` in the background; its first line is `{"event":"listening","data":{"urls":[{"deck":...,"presenter":...}]}}`. Open `/<n>` for slide n.
-5. Ship: `hinote build` (one HTML file and the files it loads; `--embed` puts them in the HTML, to send as one file), `hinote prerender` (a static site), or `hinote assets` beside a server of your own. `hinote check && hinote build` stops on a broken deck.
+5. Ship: `hinote build` (one HTML file and the files it loads; `--embed` puts them in the HTML, to send as one file), `hinote prerender` (a static site, one page per slide), or `hinote assets` beside a server of your own, where middleware in front of the deck runs for each slide. `hinote check && hinote build` stops on a broken deck.
 
 Every command takes `--json` and `--help`. Errors come as `{"ok":false,"error":{"code","message","hint"}}`; the hint is usually the next command to run. Exit 2 means the command line was wrong: read `hinote help <command>`.
 
@@ -93,7 +93,7 @@ Load one with `hinote skills get core --ref <name>`:
 
 - `api`: every option of `createSlide`, the components (`Row`, `Column`, `Center`, `Grid`, `Card`, `Flow`, `Table`, `Link`, `Cite`, `References`, `Contents`, `SectionBar`, `SectionDots`, `Progress`, `Step`, `Steps`, `Morph`, `Script`), themes, and CSS.
 - `client`: `<Script>` and the `hinote` browser API, with sync between presenter and audience.
-- `serving`: presenting with `dev`, what `build`, `prerender`, and `snapshot` write, mounting the deck in Bun, Node, or Cloudflare Workers, and the one-step commands.
+- `serving`: presenting with `dev`, what `build`, `prerender`, and `snapshot` write, mounting the deck in Bun, Node, or Cloudflare Workers, middleware in front of each slide, and the one-step commands.
 - `design`: what makes a slide say something, how hinote supports it, and how to check it.
 - `recipes`: a background image beside text, two columns, a chart drawn by hand, and other common slides.
 

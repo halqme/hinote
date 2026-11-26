@@ -2,8 +2,9 @@ import { jsx } from "hono/jsx";
 import clientScript from "../client/script.ts";
 import { loadCss, scopeCss, type CssSource, type StyleLayer } from "./css.ts";
 import { HinoteError } from "../errors.ts";
-// `view` and `presenter` are served by the deck and sync through it. `static` is
-// the single file from `hinote build`: one audience view with no sync.
+// `view` and `presenter` are the pages the deck serves, one slide each, and
+// sync through it. `static` is the single file from `hinote build --single`:
+// one audience view of every slide with no sync.
 export type Page = "view" | "presenter" | "static";
 
 // "server" and "broadcast" sync with the presenter; "reload" only hears that
@@ -12,7 +13,7 @@ export type Sync = "server" | "broadcast" | "reload";
 import type { SlideContext, Theme } from "@hinote/types";
 import type { Slide } from "./slide.ts";
 import { numberSteps } from "../components/step.tsx";
-import { servedPath, slideHash } from "../client/location.ts";
+import { slideHash, slideHref } from "../client/location.ts";
 import { transitionData, type Transition } from "./transition.ts";
 import { repeatedMorph } from "../components/morph.tsx";
 import { gatherScripts } from "../components/script.tsx";
@@ -348,10 +349,16 @@ function audienceChrome(page: Page) {
 // Layers, weakest first: hinote's SLIDE_CSS, then the top-level deck (hinote-0),
 // nested decks by depth (hinote-1, ...), then each slide's own (hinote-slide).
 // Each layer reaches only its slides: they carry its id in data-hinote-css.
+// Ids count through the whole deck, so a slide drawn by itself on its own page
+// never shares an id with the slide it replaces.
 async function authorCss(
   slides: readonly Slide[],
   deckCss: readonly CssSource[] | undefined,
-): Promise<{ css: string; scopes: (string | undefined)[] }> {
+): Promise<{
+  css: string;
+  slideCss: string[][];
+  scopes: (string | undefined)[];
+}> {
   const layers = new Map<StyleLayer, { id: string; depth: number }>();
   for (const slide of slides) {
     for (const [index, layer] of (slide.styles ?? []).entries()) {
@@ -360,18 +367,19 @@ async function authorCss(
     }
   }
   const scope = (id: string) => `:where(.slide[data-hinote-css~="${id}"])`;
-  const blocks: string[] = [`@layer hinote{${SLIDE_CSS}}`];
-  if (deckCss)
-    blocks.push(
-      `@layer hinote-0{${scopeCss(await loadCss(deckCss), ":where(.slide)", "Deck css")}}`,
-    );
+  const layerCss = new Map<StyleLayer, string>();
   for (const [layer, { id, depth }] of layers)
-    blocks.push(
+    layerCss.set(
+      layer,
       `@layer hinote-${depth}{${scopeCss(await loadCss(layer.sources), scope(id), "Nested deck css")}}`,
     );
   const scopes: (string | undefined)[] = [];
+  const slideCss: string[][] = [];
   for (const [index, slide] of slides.entries()) {
     const ids = (slide.styles ?? []).map((layer) => layers.get(layer)?.id);
+    const blocks = (slide.styles ?? []).map(
+      (layer) => layerCss.get(layer) ?? "",
+    );
     if (slide.options.css) {
       ids.push(`s${index}`);
       blocks.push(
@@ -379,18 +387,22 @@ async function authorCss(
       );
     }
     scopes.push(ids.length > 0 ? ids.join(" ") : undefined);
+    slideCss.push(blocks);
   }
   const depth = Math.max(
     0,
     ...[...layers.values()].map((layer) => layer.depth),
   );
   const order = Array.from({ length: depth + 1 }, (_, i) => `hinote-${i}`);
-  return {
-    css: [`@layer hinote,${order.join(",")},hinote-slide;`, ...blocks].join(
-      "\n",
-    ),
-    scopes,
-  };
+  const blocks = [
+    `@layer hinote,${order.join(",")},hinote-slide;`,
+    `@layer hinote{${SLIDE_CSS}}`,
+  ];
+  if (deckCss)
+    blocks.push(
+      `@layer hinote-0{${scopeCss(await loadCss(deckCss), ":where(.slide)", "Deck css")}}`,
+    );
+  return { css: blocks.join("\n"), slideCss, scopes };
 }
 
 // Gives each <Link> an href for this page. Link writes data-hinote-to first
@@ -403,7 +415,11 @@ function linkSlides(html: string, href: (target: string) => string): string {
   );
 }
 
-export async function renderDeck(input: {
+// Which pages a slide is drawn for. Presenter pages carry notes and titles,
+// and each kind links to its own pages: "static" to the hash of the one file.
+export type Drawing = "view" | "presenter" | "static";
+
+export type DeckInput = {
   slides: readonly Slide[];
   theme?: Theme;
   title?: string;
@@ -411,13 +427,6 @@ export async function renderDeck(input: {
   canvas?: { width: number; height: number };
   transition?: Transition;
   css?: readonly CssSource[];
-  page?: Page;
-  base?: string;
-  // How served pages sync: through the deck's server, or, for pages
-  // prerendered onto a static host, between windows of one browser.
-  sync?: Sync;
-  // Prerendered pages are directories on a static host, so their URLs end in "/".
-  directories?: boolean;
   // Position of each slide in the whole deck, after nested decks are flattened.
   // Present only when the deck asked for page numbers. Same length as `slides`.
   pageNumbers?: readonly number[];
@@ -428,18 +437,36 @@ export async function renderDeck(input: {
   // Where each slide is in the whole deck and the sections as it sees them,
   // so one slide rendered alone still lists every section.
   place: (slide: Slide) => Pick<SlideContext, "contents" | "number" | "total">;
-}): Promise<string> {
+};
+
+// What every page of a deck is made from, worked out once from all its slides:
+// the stylesheet they share, each slide's own CSS, and each slide drawn.
+export type DrawnDeck = {
+  drawing: Drawing;
+  title: string;
+  lang?: string;
+  canvas: { width: number; height: number };
+  css: string;
+  // Each slide's own layers: those of the nested decks around it, then its own.
+  slideCss: readonly (readonly string[])[];
+  sections: readonly string[];
+  // Each slide's notes, which only presenter pages show.
+  notes: readonly string[];
+};
+
+export async function drawDeck(
+  input: DeckInput,
+  drawing: Drawing,
+): Promise<DrawnDeck> {
   const theme = mergeTheme(
     defaultTheme,
     input.theme === undefined ? undefined : parseTheme(input.theme),
   );
-  const page = input.page ?? "view";
   const canvas = input.canvas ?? { width: 1920, height: 1080 };
   const title =
     input.title ||
     input.slides.find((slide) => slide.options.title)?.options.title ||
     "hinote";
-  const firstNotes = input.slides[0]?.options.notes ?? "";
   const author = await authorCss(input.slides, input.css);
   // Printing gives one page per slide at canvas size, which "Save as PDF" turns into a PDF.
   const css = `${themeCss(theme)}
@@ -447,6 +474,7 @@ export async function renderDeck(input: {
 @page{size:${canvas.width}px ${canvas.height}px;margin:0}
 ${author.css}
 ${FRAME_CSS}`;
+  const role = drawing === "presenter" ? "presenter" : "view";
   // Slides render one after another, so an error names the first broken slide.
   const rendered: string[] = [];
   for (const [index, slide] of input.slides.entries()) {
@@ -467,14 +495,7 @@ ${FRAME_CSS}`;
             `Slide ${index + 1} links to "${target}", but no slide has that id.`,
             { hint: `Give the slide createSlide({ id: "${target}" }, ...).` },
           );
-        return page === "static"
-          ? slideHash(to)
-          : servedPath(
-              input.base ?? "",
-              page === "presenter" ? "presenter" : "view",
-              to,
-              input.directories,
-            );
+        return drawing === "static" ? slideHash(to) : slideHref(role, to);
       },
     );
     const twice = repeatedMorph(html);
@@ -487,7 +508,7 @@ ${FRAME_CSS}`;
   }
   const order = citationOrder(rendered);
   const listed = listedSources(rendered);
-  // Only a page with <References> can tell a misspelled name: a slide
+  // Only a deck with <References> can tell a misspelled name: a slide
   // rendered by itself may cite what another slide lists.
   if (listed.size > 0)
     for (const [index, html] of rendered.entries()) {
@@ -498,79 +519,187 @@ ${FRAME_CSS}`;
           { hint: `Add "${missing}" to <References sources>.` },
         );
     }
-  const slides = [];
+  const sections: string[] = [];
   for (const [index, slide] of input.slides.entries()) {
     const html = numberCitations(rendered[index] ?? "", order);
-    const className = [
-      "slide",
-      index === 0 ? "is-active" : "",
-      slide.options.class,
-    ]
-      .filter(Boolean)
-      .join(" ");
     const pageNumber = input.pageNumbers?.[index];
     const pageHtml =
       pageNumber !== undefined && slide.options.pageNumber !== false
         ? `<p class="hinote-page">${pageNumber} / ${input.pageCount}</p>`
         : "";
-    slides.push(
-      jsx("section", {
-        class: className,
-        "data-hinote-id": slide.options.id,
-        // Notes and titles stay on the presenter page: notes in the side column,
-        // titles on the overview.
-        "data-notes":
-          page === "presenter" ? (slide.options.notes ?? "") : undefined,
-        "data-title": page === "presenter" ? slide.options.title : undefined,
-        "data-hinote-css": author.scopes[index],
-        ...transitionData(slide.options.transition ?? input.transition),
-        style: slideStyle(slide),
-        dangerouslySetInnerHTML: { __html: html + pageHtml },
-      }),
+    sections.push(
+      await elementHtml(
+        jsx("section", {
+          class: ["slide", slide.options.class].filter(Boolean).join(" "),
+          "data-hinote-slide": String(input.place(slide).number),
+          "data-hinote-id": slide.options.id,
+          // Notes and titles stay on the presenter page: notes in the side column,
+          // titles on the overview.
+          "data-notes":
+            drawing === "presenter" ? (slide.options.notes ?? "") : undefined,
+          "data-title":
+            drawing === "presenter" ? slide.options.title : undefined,
+          "data-hinote-css": author.scopes[index],
+          ...transitionData(slide.options.transition ?? input.transition),
+          style: slideStyle(slide),
+          dangerouslySetInnerHTML: { __html: html + pageHtml },
+        }),
+      ),
     );
   }
-  const stage = jsx(
-    "div",
-    {
-      class: "hinote-stage",
-      "data-width": String(canvas.width),
-      "data-height": String(canvas.height),
-    },
-    ...slides,
+  return {
+    drawing,
+    title,
+    lang: input.lang,
+    canvas,
+    css,
+    slideCss: author.slideCss,
+    sections,
+    notes: input.slides.map((slide) =>
+      drawing === "presenter" ? (slide.options.notes ?? "") : "",
+    ),
+  };
+}
+
+// The slide on screen starts active; the page shows only that one.
+function active(section: string): string {
+  return section.replace(
+    '<section class="slide',
+    '<section class="slide is-active',
   );
-  const deck = jsx("div", { id: "deck" }, stage);
+}
+
+function stage(deck: DrawnDeck, section: string | undefined) {
+  return jsx(
+    "div",
+    { id: "deck" },
+    jsx("div", {
+      class: "hinote-stage",
+      "data-width": String(deck.canvas.width),
+      "data-height": String(deck.canvas.height),
+      dangerouslySetInnerHTML: { __html: section ? active(section) : "" },
+    }),
+  );
+}
+
+const META = [
+  jsx("meta", { charset: "utf-8" }),
+  jsx("meta", {
+    name: "viewport",
+    content: "width=device-width, initial-scale=1",
+  }),
+];
+
+// One slide's page, as the deck serves it at the slide's route. It names the
+// deck root in <base href>, every slide of its kind in <link rel="hinote-slide">
+// for the page to fetch, and links the stylesheet and runtime the pages share,
+// so moving to the next slide fetches only that slide.
+export async function slidePage(
+  deck: DrawnDeck,
+  index: number,
+  options: {
+    // `<base href>`: the deck root as seen from this page.
+    base: string;
+    // How the page syncs: through the deck's server, between windows of one
+    // browser for pages on a static host, or only to hear `hinote dev` reload.
+    sync?: Sync;
+    // The routes of the shared stylesheet and runtime, relative to the root.
+    stylesheet: string;
+    script: string;
+  },
+): Promise<string> {
+  const page: Page = deck.drawing === "presenter" ? "presenter" : "view";
+  const count = deck.sections.length;
+  const href = (slide: number) => slideHref(page, slide);
+  const section = deck.sections[index];
+  const own = deck.slideCss[index]?.join("\n") || undefined;
   const document = jsx(
     "html",
     {
-      lang: input.lang,
+      lang: deck.lang,
       "data-page": page,
-      "data-sync": page !== "static" ? input.sync : undefined,
-      "data-paths": input.directories ? "directories" : undefined,
+      "data-sync": options.sync,
+      "data-hinote-deck": "",
     },
     jsx(
       "head",
       {},
-      jsx("meta", { charset: "utf-8" }),
-      jsx("meta", {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
-      }),
-      input.base === undefined ? null : jsx("base", { href: `${input.base}/` }),
-      jsx("title", {}, title),
+      ...META,
+      jsx("base", { href: options.base }),
+      jsx("title", {}, deck.title),
+      jsx("link", { rel: "stylesheet", href: options.stylesheet }),
+      own === undefined
+        ? null
+        : jsx("style", {
+            "data-hinote-slide": String(index + 1),
+            dangerouslySetInnerHTML: { __html: own },
+          }),
+      index > 0 ? jsx("link", { rel: "prev", href: href(index - 1) }) : null,
+      index < count - 1
+        ? jsx("link", { rel: "next", href: href(index + 1) })
+        : null,
+      Array.from({ length: count }, (_, slide) =>
+        jsx("link", { rel: "hinote-slide", href: href(slide) }),
+      ),
+    ),
+    jsx(
+      "body",
+      {},
+      stage(deck, section),
+      page === "view" ? audienceChrome(page) : null,
+      page === "presenter"
+        ? presenterPanel(count, deck.notes[index] ?? "")
+        : null,
+      options.sync === "server" || options.sync === "broadcast"
+        ? jsx("div", { id: "hinote-pointer" })
+        : null,
+      jsx("script", { src: options.script }),
+    ),
+  );
+  return `<!doctype html>${gatherScripts(await elementHtml(document))}`;
+}
+
+// The one file `hinote build --single` writes: every slide in one page that
+// opens without a server. The first slide is on the stage and the rest wait in
+// a <template> for the page to show; the stylesheet and runtime are inline.
+// `only` draws just those slides, for reading one slide's page by itself.
+export async function singlePage(
+  deck: DrawnDeck,
+  only?: readonly number[],
+): Promise<string> {
+  const indices = only ?? deck.sections.map((_, index) => index);
+  const [first, ...rest] = indices.map((index) => deck.sections[index] ?? "");
+  // A nested deck's layer is written once, however many of its slides there are.
+  const css = [
+    deck.css,
+    ...new Set(indices.flatMap((index) => deck.slideCss[index] ?? [])),
+  ].join("\n");
+  const document = jsx(
+    "html",
+    { lang: deck.lang, "data-page": "static" },
+    jsx(
+      "head",
+      {},
+      ...META,
+      jsx("title", {}, deck.title),
       jsx("style", { dangerouslySetInnerHTML: { __html: css } }),
     ),
     jsx(
       "body",
       {},
-      deck,
-      page === "static" || page === "view" ? audienceChrome(page) : null,
-      page === "presenter" ? presenterPanel(slides.length, firstNotes) : null,
-      page !== "static" &&
-        (input.sync === "server" || input.sync === "broadcast")
-        ? jsx("div", { id: "hinote-pointer" })
+      stage(deck, first),
+      rest.length > 0
+        ? jsx("template", {
+            id: "hinote-slides",
+            dangerouslySetInnerHTML: { __html: rest.join("") },
+          })
         : null,
+      audienceChrome("static"),
       jsx("script", { dangerouslySetInnerHTML: { __html: SCRIPT } }),
     ),
   );
   return `<!doctype html>${gatherScripts(await elementHtml(document))}`;
 }
+
+// The runtime a served page loads from the deck, as one file every page shares.
+export const CLIENT_SCRIPT = clientScript;

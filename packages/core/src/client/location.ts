@@ -1,33 +1,37 @@
 import type { Role } from "./player.ts";
 
-// Served pages keep the slide in the path: `<base>[/presenter][/<slide>]`, counted
-// from 1. Paths do not nest further, so steps stay out of the URL and a reload
-// starts the slide with no step revealed. A deck mounted with
-// `app.route("/talk", deck)` has base "/talk". The built single file is opened
-// from file://, so it keeps the slide in the hash (`#3`) and marks the presenter
-// with `?presenter`.
+// Each slide is a route of the deck: `/`, `/2`, `/3`, and `/presenter`,
+// `/presenter/2` for the presenter, counted from 1. Paths do not nest
+// further, so steps stay out of the URL and a reload starts the slide with no
+// step revealed.
+//
+// A page names the deck root in `<base href>` and links to slides relative to
+// it, so the same pages work wherever the deck is: mounted with
+// `app.route("/talk", deck)`, or written out by `hinote build` for a static
+// host under any path. The built single file keeps the slide in the hash
+// (`#3`), since it is one page.
 
-export type ServedLocation = { base: string; role: Role; slide?: number };
-
-const SERVED_PATH = /^(.*?)(\/presenter)?(?:\/(\d+))?\/?$/;
-
-export function parseServedPath(pathname: string): ServedLocation {
-  const match = SERVED_PATH.exec(pathname);
-  const base = match?.[1] ?? "";
-  const role = match?.[2] ? "presenter" : "view";
-  if (!match?.[3]) return { base, role };
-  return { base, role, slide: Number(match[3]) - 1 };
+// The route of a slide, from the deck root.
+export function slideRoute(role: Role, slide: number): string {
+  const presenter = role === "presenter" ? "/presenter" : "";
+  if (slide === 0) return presenter || "/";
+  return `${presenter}/${slide + 1}`;
 }
 
-// Prerendered pages are directories on a static host, so their paths end in "/".
-export function servedPath(
-  base: string,
-  role: Role,
-  slide: number,
-  trailingSlash = false,
-): string {
-  const presenter = role === "presenter" ? "/presenter" : "";
-  return `${base}${presenter}/${slide + 1}${trailingSlash ? "/" : ""}`;
+// The href of a slide, relative to the deck root.
+export function slideHref(role: Role, slide: number): string {
+  const route = slideRoute(role, slide);
+  return route === "/" ? "./" : route.slice(1);
+}
+
+// `<base href>` for a page served at `path`, which ends in `route`. Relative
+// where it can be, so a page written to a static host under /repo still finds
+// its deck root. The root itself without its trailing slash, `/talk`, has no
+// directory to be relative to, so it is named in full.
+export function baseHref(path: string, route: string): string {
+  if (route === "/") return path.endsWith("/") ? "./" : `${path}/`;
+  const depth = route.split("/").length - 2;
+  return depth === 0 ? "./" : "../".repeat(depth);
 }
 
 export function parseHash(hash: string): number | undefined {

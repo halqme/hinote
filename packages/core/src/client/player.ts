@@ -1,8 +1,13 @@
 // A Position's `step` counts revealed steps: 0 shows none, `steps[slide]`
-// shows all.
+// shows all. A page knows the steps of a slide once it has fetched it, so
+// a slide not fetched yet has none in `steps`, and a move back onto it asks
+// for END, every step it turns out to have.
 import type { Position, Role } from "@hinote/types";
 
 export type { Position, Role };
+
+// Every step of a slide whose steps are not known yet.
+export const END = Number.MAX_SAFE_INTEGER;
 
 export type Pointer = { x: number; y: number; active: boolean };
 
@@ -48,12 +53,16 @@ export type Player = {
     source: "local" | "remote",
   ): void;
   onMessage(message: unknown): void;
+  // Takes the position the page settled on once it learned a slide's steps,
+  // without showing or sending it again.
+  settle(position: Position): void;
 };
 
 export type PlayerOptions = {
   role: Role;
-  // Number of steps on each slide. Its length is the slide count.
-  steps: readonly number[];
+  // Number of steps on each slide, where it is known. Its length is the
+  // slide count. The page fills it in as it fetches slides.
+  steps: readonly (number | undefined)[];
   initial?: Position;
   show: (position: Position) => void;
   showPointer: (pointer: Pointer) => void;
@@ -62,11 +71,11 @@ export type PlayerOptions = {
 
 export function clampPosition(
   position: Position,
-  steps: readonly number[],
+  steps: readonly (number | undefined)[],
 ): Position {
   if (steps.length === 0) return { slide: 0, step: 0 };
   const slide = Math.min(steps.length - 1, Math.max(0, position.slide));
-  const step = Math.min(steps[slide] ?? 0, Math.max(0, position.step));
+  const step = Math.min(steps[slide] ?? END, Math.max(0, position.step));
   return { slide, step };
 }
 
@@ -74,7 +83,7 @@ export function clampPosition(
 // Undefined at the very end.
 export function nextPosition(
   { slide, step }: Position,
-  steps: readonly number[],
+  steps: readonly (number | undefined)[],
 ): Position | undefined {
   if (step < (steps[slide] ?? 0)) return { slide, step: step + 1 };
   if (slide < steps.length - 1) return { slide: slide + 1, step: 0 };
@@ -85,10 +94,10 @@ export function nextPosition(
 // Undefined at the very start.
 export function prevPosition(
   { slide, step }: Position,
-  steps: readonly number[],
+  steps: readonly (number | undefined)[],
 ): Position | undefined {
   if (step > 0) return { slide, step: step - 1 };
-  if (slide > 0) return { slide: slide - 1, step: steps[slide - 1] ?? 0 };
+  if (slide > 0) return { slide: slide - 1, step: steps[slide - 1] ?? END };
   return undefined;
 }
 
@@ -143,7 +152,7 @@ const PREV_KEYS = new Set(["ArrowLeft", "ArrowUp", "PageUp", "Backspace"]);
 export function createPlayer(options: PlayerOptions): Player {
   const { steps } = options;
   let position = clampPosition(options.initial ?? { slide: 0, step: 0 }, steps);
-  const stepsAt = (slide: number) => steps[slide] ?? 0;
+  const stepsAt = (slide: number) => steps[slide] ?? END;
 
   options.show(position);
   options.showPointer({ x: 0, y: 0, active: false });
@@ -206,6 +215,9 @@ export function createPlayer(options: PlayerOptions): Player {
       }
       if (isPointer(record))
         player.pointer(record.x, record.y, record.active, "remote");
+    },
+    settle(next) {
+      position = clampPosition(next, steps);
     },
   };
 

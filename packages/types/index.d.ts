@@ -85,7 +85,7 @@ export type Observed = {
 export type HinoteClient = {
   readonly role: Role;
   // How events reach other pages: through the deck's server, between windows
-  // of one browser (prerender), or not at all (the built file, or a deck
+  // of one browser (pages built for a static host), or not at all (the built file, or a deck
   // without the presenter), where send() only reaches this page.
   readonly sync: "server" | "broadcast" | "none";
   readonly position: Position;
@@ -94,9 +94,20 @@ export type HinoteClient = {
   // position, then on every slide or step change. Returns a function that stops it.
   on(name: string, handler: (data: unknown) => void): () => void;
   on(name: "position", handler: (position: Position) => void): () => void;
+  // Calls `setup` with each element matching `selector` on a slide as the
+  // slide enters the page, now for the slide on screen and later for each
+  // slide the page fetches. The page holds one slide at a time, so a script
+  // finds its elements here rather than with document.querySelectorAll. The
+  // function `setup` returns, if any, runs when the slide leaves the page.
+  // Returns a function that stops it for slides still to come.
+  mount(
+    selector: string,
+    setup: (element: HTMLElement) => void | (() => void),
+  ): () => void;
   // Calls `handler` at once, then whenever the element's slide is shown or
   // hidden or one of its steps changes. An element outside the deck, such as
-  // in a presenter's preview, is never active. Returns a function that stops it.
+  // in a presenter's preview, is never active. It stops by itself once its
+  // slide leaves the page. Returns a function that stops it sooner.
   observe(element: Element, handler: (state: Observed) => void): () => void;
   // Sends an event to every page of the deck, this one included. Pages that
   // do not sync (the built file, or a deck without the presenter) only reach
@@ -113,6 +124,8 @@ export type HinoteClient = {
 // write it without importing hinote:
 // - `<script type="module" data-hinote-src="file:///...">` is bundled and
 //   inlined once per page, after window.hinote exists (what <Script> writes).
+//   The page runs each script once, when the first slide that carries it
+//   enters, so a script sets up its elements with hinote.mount.
 //   Only the CLI bundles it; a deck served without it refuses the page.
 // - `<script type="module" data-hinote-script="name">code</script>` is code a
 //   package built itself. The page keeps the first of each name, at the end

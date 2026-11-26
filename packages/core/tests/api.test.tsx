@@ -55,13 +55,13 @@ describe("createSlide", () => {
       },
       () => <h1>題</h1>,
     );
-    const html = await deckOf(slide).render("presenter");
+    const html = await deckOf(slide).renderSlide(0, "presenter");
     expect(html).toContain("<title>題</title>");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).not.toContain("<script>alert(1)</script>");
     // Notes are for the presenter: the audience view and the built file never carry them.
-    for (const page of ["view", "static"] as const)
-      expect(await deckOf(slide).render(page)).not.toContain("alert(1)");
+    expect(await deckOf(slide).renderSlide(0)).not.toContain("alert(1)");
+    expect(await deckOf(slide).render()).not.toContain("alert(1)");
     expect(html).toContain("opening extra");
     expect(html).toContain("#123456");
   });
@@ -125,8 +125,12 @@ describe("createSlide", () => {
 
   test("a top-level lang is on every page, and a deck without one has no lang", async () => {
     const deck = createSlide({ document: { lang: "ja" } }, [textSlide("x")]);
-    for (const page of ["view", "presenter", "static"] as const)
-      expect(await deck.render(page)).toMatch(/<html\b[^>]*\blang="ja"/);
+    for (const html of [
+      await deck.renderSlide(0),
+      await deck.renderSlide(0, "presenter"),
+      await deck.render(),
+    ])
+      expect(html).toMatch(/<html\b[^>]*\blang="ja"/);
     expect(
       await createSlide({ document: { lang: "ja-JP" } }, [
         textSlide("x"),
@@ -162,7 +166,7 @@ describe("createSlide", () => {
     );
   });
 
-  test("Link points at a slide id and gets the URL of the page it is on", async () => {
+  test("Link points at a slide id and gets the URL of its page, relative to the deck root", async () => {
     const deck = createSlide([
       createSlide(() => (
         <p>
@@ -181,18 +185,19 @@ describe("createSlide", () => {
         html,
       )?.[1];
 
-    const view = await deck.render();
-    expect(view).toContain('data-hinote-id="method"');
-    expect(href(view)).toBe("/3");
-    expect(href(await deck.render("presenter"))).toBe("/presenter/3");
-    expect(href(await deck.render("view", { base: "/talk" }))).toBe("/talk/3");
-    expect(
-      href(await deck.render("view", { base: "/talk", directories: true })),
-    ).toBe("/talk/3/");
-    expect(href(await deck.render("static"))).toBe("#3");
+    expect(href(await deck.renderSlide(0))).toBe("3");
+    expect(href(await deck.renderSlide(0, "presenter"))).toBe("presenter/3");
+    // Mounted under /talk, the page names /talk/ as its root, so the link holds.
+    const mounted = await new Hono().route("/talk", deck).request("/talk");
+    const html = await mounted.text();
+    expect(html).toContain('<base href="/talk/"/>');
+    expect(href(html)).toBe("3");
+    const single = await deck.render();
+    expect(single).toContain('data-hinote-id="method"');
+    expect(href(single)).toBe("#3");
     // One slide rendered alone, as check and inspect do, still resolves.
     const [first] = await deck.renderEach();
-    expect(first && "html" in first && href(first.html)).toBe("/3");
+    expect(first && "html" in first && href(first.html)).toBe("#3");
   });
 
   test("Contents lists the deck's sections, links each to its first slide, and marks the current one", async () => {
@@ -214,7 +219,7 @@ describe("createSlide", () => {
     const [first, , , last] = (await deck.render()).split("<section").slice(1);
     // Linked by the first slide's id, with its title beside the name.
     expect(first).toMatch(
-      /<a href="\/2" data-hinote-to="method" class="hinote-contents-entry"><span class="hinote-contents-name">Method<\/span><span class="hinote-contents-title">How we measured<\/span><\/a>/,
+      /<a href="#2" data-hinote-to="method" class="hinote-contents-entry"><span class="hinote-contents-name">Method<\/span><span class="hinote-contents-title">How we measured<\/span><\/a>/,
     );
     // A first slide without an id gives the name without a link.
     expect(first).toContain(
@@ -269,7 +274,7 @@ describe("createSlide", () => {
     const third = (await deck.render()).split("<section").slice(1)[2] ?? "";
     // The bar links the sections and marks the one the slide is in.
     expect(third).toMatch(
-      /<li class="hinote-section-bar-item is-current" aria-current="true"><a href="\/2" data-hinote-to="method" class="hinote-section-bar-name">Method<\/a><\/li><li class="hinote-section-bar-item"><span class="hinote-section-bar-name">Results<\/span>/,
+      /<li class="hinote-section-bar-item is-current" aria-current="true"><a href="#2" data-hinote-to="method" class="hinote-section-bar-name">Method<\/a><\/li><li class="hinote-section-bar-item"><span class="hinote-section-bar-name">Results<\/span>/,
     );
     // Method has three slides, and this is its second.
     expect(third).toContain('aria-label="Method: slide 2 of 3"');
@@ -1177,7 +1182,7 @@ describe("theme and output", () => {
       createSlide({ theme: { colors: { bg: "#abc123" } } }, () => <p>one</p>),
       createSlide(() => <img src="./pic.png" alt="会場" />),
     ]);
-    const html = await deck.render("static");
+    const html = await deck.render();
     expect(html).toContain("--hinote-color-accent:#111111");
     expect(html).toContain("--hinote-color-bg:#abc123");
     const first = html.indexOf("#abc123");
@@ -1192,10 +1197,9 @@ describe("theme and output", () => {
     expect(html).not.toContain('id="hinote-panel"');
   });
 
-  test("inlines a runtime the browser can parse", async () => {
-    const html = await deckOf(textSlide("x"), textSlide("y")).render(
-      "presenter",
-    );
+  test("the single file inlines a runtime the browser can parse, and the deck serves the same one", async () => {
+    const deck = deckOf(textSlide("x"), textSlide("y"));
+    const html = await deck.render();
     const start = html.indexOf("<script>");
     const end = html.lastIndexOf("</script>");
     const script = html.slice(start + "<script>".length, end);
@@ -1203,7 +1207,9 @@ describe("theme and output", () => {
     // Parses the inlined client script without running it.
     // oxlint-disable-next-line typescript/no-implied-eval
     expect(() => new Function(script)).not.toThrow();
-    expect(html).toContain('id="hinote-panel"');
+    const served = await deck.request("/_hinote/client.js");
+    expect(served.headers.get("content-type")).toContain("text/javascript");
+    expect(script).toContain((await served.text()).trim());
   });
 
   test("spacing.safe is the default slide padding", async () => {
@@ -1266,9 +1272,10 @@ describe("deck as a Hono app", () => {
   test("keeps the presenter view, sync, and pointer off unless the deck turns them on", async () => {
     const deck = createSlide([
       createSlide({ notes: "secret notes" }, () => <p>one</p>),
+      textSlide("two"),
     ]);
-    expect((await deck.request("/1")).status).toBe(200);
-    for (const path of ["/presenter", "/presenter/1", "/_hinote/events"])
+    expect((await deck.request("/")).status).toBe(200);
+    for (const path of ["/presenter", "/presenter/2", "/_hinote/events"])
       expect((await deck.request(path)).status).toBe(404);
     const sync = await deck.request("/_hinote/sync", {
       method: "POST",
@@ -1285,45 +1292,118 @@ describe("deck as a Hono app", () => {
     expect(view).not.toContain("data-sync");
   });
 
-  test("serves the view, the presenter, and each slide by number", async () => {
-    const deck = presenterDeckOf(textSlide("one"), textSlide("two"));
-    for (const path of ["/", "/2", "/presenter", "/presenter/2"]) {
+  test("has a route for each slide, and each answers with that slide alone", async () => {
+    const deck = presenterDeckOf(
+      textSlide("one"),
+      textSlide("two"),
+      textSlide("three"),
+    );
+    const page = async (path: string) => {
       const response = await deck.request(path);
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/html");
-      const html = await response.text();
-      expect(html).toContain("two");
+      return response.text();
+    };
+    for (const [path, text] of [
+      ["/", "one"],
+      ["/2", "two"],
+      ["/3", "three"],
+      ["/presenter", "one"],
+      ["/presenter/2", "two"],
+    ] as const) {
+      const html = await page(path);
+      const slides = html.match(/<section class="slide/g) ?? [];
+      expect(slides).toHaveLength(1);
+      expect(html).toContain(`<p>${text}</p>`);
+      for (const other of ["one", "two", "three"])
+        if (other !== text) expect(html).not.toContain(`<p>${other}</p>`);
     }
-    expect(await (await deck.request("/presenter")).text()).toContain(
-      'id="hinote-panel"',
+    // Each page names its neighbors and every slide of its kind, relative to the root.
+    const second = await page("/2");
+    expect(second).toContain('<link rel="prev" href="./"/>');
+    expect(second).toContain('<link rel="next" href="3"/>');
+    expect(
+      [...second.matchAll(/<link rel="hinote-slide" href="([^"]*)"/g)].map(
+        (m) => m[1],
+      ),
+    ).toEqual(["./", "2", "3"]);
+    const presenter = await page("/presenter/2");
+    expect(presenter).toContain('<link rel="next" href="presenter/3"/>');
+    expect(presenter).toContain('id="hinote-panel"');
+    expect(second).not.toContain('id="hinote-panel"');
+    // Following rel="next" from a page reaches the next slide.
+    const next = /<link rel="next" href="([^"]*)"/.exec(second)?.[1];
+    expect(await page(new URL(next ?? "", "http://h/").pathname)).toContain(
+      "<p>three</p>",
     );
-    expect(await (await deck.request("/")).text()).not.toContain(
-      'id="hinote-panel"',
+    // The first slide is the root; paths do not nest below the slide number.
+    for (const path of ["/1", "/4", "/2/1"])
+      expect((await deck.request(path)).status).toBe(404);
+  });
+
+  test("pages share one stylesheet and runtime, and a slide's own CSS comes with its page", async () => {
+    const deck = presenterDeckOf(
+      textSlide("one"),
+      createSlide({ css: ".mine{color:red}" }, () => <p class="mine">two</p>),
     );
-    // Paths do not nest below the slide number.
-    expect((await deck.request("/2/1")).status).toBe(404);
+    const first = await (await deck.request("/")).text();
+    const second = await (await deck.request("/2")).text();
+    const stylesheet = /<link rel="stylesheet" href="([^"]*)"/.exec(first)?.[1];
+    expect(stylesheet).toMatch(/^_hinote\/deck\.css\?v=/);
+    expect(second).toContain(`<link rel="stylesheet" href="${stylesheet}"/>`);
+    const css = await deck.request(`/${stylesheet}`);
+    expect(css.headers.get("content-type")).toContain("text/css");
+    expect(await css.text()).toContain("@layer hinote,");
+    // A slide's own CSS is on its page alone.
+    expect(first).not.toContain(".mine");
+    expect(second).toMatch(/<style data-hinote-slide="2">[^<]*\.mine/);
+    const script = /<script src="([^"]*)"/.exec(first)?.[1];
+    expect(script).toMatch(/^_hinote\/client\.js\?v=/);
+    expect((await deck.request(`/${script}`)).status).toBe(200);
+  });
+
+  test("middleware in front of the deck runs for every slide that is opened", async () => {
+    const deck = deckOf(textSlide("free"), textSlide("paid"));
+    const seen: string[] = [];
+    const app = new Hono();
+    app.use("*", async (c, next) => {
+      seen.push(c.req.path);
+      await next();
+    });
+    app.use("/talk/2", async (c) => c.text("locked", 402));
+    app.route("/talk", deck);
+    expect(await (await app.request("/talk")).text()).toContain("free");
+    const locked = await app.request("/talk/2");
+    expect(locked.status).toBe(402);
+    expect(await locked.text()).not.toContain("paid");
+    expect(seen).toEqual(["/talk", "/talk/2"]);
   });
 
   test("relative URLs in slides resolve against the deck root on every page", async () => {
     const deck = presenterDeckOf(
       createSlide(() => <img src="./pic.png" alt="" />),
+      textSlide("two"),
     );
     const baseOf = async (
       app: { request(path: string): Response | Promise<Response> },
       path: string,
     ) =>
       /<base href="([^"]*)"/.exec(await (await app.request(path)).text())?.[1];
-    for (const path of ["/", "/1", "/presenter", "/presenter/1"])
-      expect(
-        new URL(
-          "./pic.png",
-          new URL((await baseOf(deck, path)) ?? "", `http://h${path}`),
-        ).pathname,
-      ).toBe("/pic.png");
+    const resolved = async (
+      app: { request(path: string): Response | Promise<Response> },
+      path: string,
+    ) =>
+      new URL(
+        "./pic.png",
+        new URL((await baseOf(app, path)) ?? "", `http://h${path}`),
+      ).pathname;
+    for (const path of ["/", "/2", "/presenter", "/presenter/2"])
+      expect(await resolved(deck, path)).toBe("/pic.png");
     const app = new Hono().route("/talk", deck);
-    expect(await baseOf(app, "/talk/presenter/1")).toBe("/talk/");
+    for (const path of ["/talk", "/talk/2", "/talk/presenter/2"])
+      expect(await resolved(app, path)).toBe("/talk/pic.png");
     // The built file resolves images next to itself.
-    expect(await deck.render("static")).not.toContain("<base");
+    expect(await deck.render()).not.toContain("<base");
   });
 
   test("keeps Hono routing, including routes the author adds and mounting", async () => {
@@ -1336,7 +1416,7 @@ describe("deck as a Hono app", () => {
     );
 
     const app = new Hono().route("/talk", deck);
-    expect(await (await app.request("/talk/presenter/1")).text()).toContain(
+    expect(await (await app.request("/talk/presenter")).text()).toContain(
       "one",
     );
   });

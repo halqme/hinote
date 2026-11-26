@@ -7,10 +7,21 @@ import { parseCss, type CssInput, type CssSource } from "./css.ts";
 import { HinoteError } from "../errors.ts";
 import { didYouMean } from "../suggest.ts";
 import { isPlainObject } from "../guards.ts";
+import { disableSSG, isSSGContext } from "hono/ssg";
 import { syncHub } from "./hub.ts";
-import { parseServedPath } from "../client/location.ts";
+import { baseHref, slideRoute } from "../client/location.ts";
+import type { Role } from "../client/player.ts";
 import { citationOrder, numberCitations } from "../components/cite.tsx";
-import { renderDeck, type Page, type Sync } from "./render.ts";
+import {
+  CLIENT_SCRIPT,
+  drawDeck,
+  singlePage,
+  slidePage,
+  type DeckInput,
+  type Drawing,
+  type DrawnDeck,
+  type Sync,
+} from "./render.ts";
 import type { Slide } from "./slide.ts";
 import type { Theme } from "@hinote/types";
 import { parseTheme } from "./theme.ts";
@@ -75,6 +86,23 @@ function isSyncPost(body: unknown): body is SyncPost {
     body.message !== null
   );
 }
+
+// The files every page of a deck shares, as routes from the deck root. The
+// query names the version, so a browser that kept an older copy fetches again.
+const STYLESHEET = "_hinote/deck.css";
+const RUNTIME = "_hinote/client.js";
+
+// FNV-1a, enough to tell one version of a file from the next.
+function version(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+const RUNTIME_HREF = `${RUNTIME}?v=${version(CLIENT_SCRIPT)}`;
 
 const ASPECT = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/;
 // A short language tag: "ja", "en", "ja-JP", "zh-Hans". Not free text.
@@ -199,7 +227,11 @@ export function parseDeckOptions(
   return options;
 }
 
-// A deck is a Hono app: `hinote dev` serves it, and a server of your own on
+// A deck is a Hono app with a route for each slide: `/`, `/2`, `/3`, and, with
+// the presenter, `/presenter`, `/presenter/2`. Each answers with that slide
+// alone, so middleware in front of the deck sees every slide that is opened,
+// and the page fetches the next slide from its route. `hinote dev` serves it,
+// `hinote build` writes every route out as a file, and a server of your own on
 // any runtime that runs Hono can mount it with `app.route("/talk", deck)`.
 export class Deck extends Hono {
   readonly kind = "deck";
@@ -210,8 +242,9 @@ export class Deck extends Hono {
   presenter: boolean;
   // Set by `hinote dev`: pages listen for reloads even without the presenter.
   live = false;
-  // Set by `hinote dev` to bundle <Script> files into each page it serves.
+  // Set by the hinote CLI to bundle <Script> files into each page it serves.
   transform?: (html: string) => Promise<string>;
+  readonly #drawn = new Map<Drawing, Promise<DrawnDeck>>();
   readonly #pages = new Map<string, Promise<string>>();
 
   constructor(slides: readonly Slide[], options: ParsedDeckOptions = {}) {
@@ -222,45 +255,43 @@ export class Deck extends Hono {
     // A deck built while pages are open is an edited deck (`bun --hot`, `hinote dev`).
     syncHub().reloadAll();
 
-    const page = (kind: "view" | "presenter") => async (c: Context) => {
-      if (kind === "presenter" && !this.presenter) return c.notFound();
-      // Relative URLs in slides resolve against the deck root, not /presenter/3.
-      const base = parseServedPath(new URL(c.req.url).pathname).base;
+    const page = (role: Role, index: number) => async (c: Context) => {
+      if (role === "presenter" && !this.presenter) return c.notFound();
       const sync: Sync | undefined = this.presenter
-        ? "server"
+        ? // Written out for a static host, pages have no server to sync
+          // through, so windows of one browser talk directly.
+          isSSGContext(c)
+          ? "broadcast"
+          : "server"
         : this.live
           ? "reload"
           : undefined;
-      const key = `${kind} ${base} ${sync}`;
-      let html = this.#pages.get(key);
-      if (!html) {
-        const transform = this.transform;
-        html = this.render(kind, { base, sync }).then((rendered) => {
-          if (transform) return transform(rendered);
-          // Only the hinote CLI bundles a <Script> file. Served as it is, the
-          // page would carry a script that never runs.
-          if (rendered.includes(" data-hinote-src="))
-            throw new HinoteError(
-              "A slide has <Script src> with a file URL, which only the hinote CLI bundles.",
-              {
-                code: "script-unbundled",
-                hint: 'In a server of your own, bundle the file yourself and pass its URL as a string: <Script src="/scripts/poll.js" />.',
-              },
-            );
-          return rendered;
-        });
-        this.#pages.set(key, html);
-        html.catch(() => this.#pages.delete(key));
-      }
-      return c.html(await html, 200, { "cache-control": "no-store" });
+      const base = baseHref(c.req.path, slideRoute(role, index));
+      return c.html(await this.#page(role, index, base, sync), 200, {
+        "cache-control": "no-store",
+      });
     };
-    // Every slide serves the same page; the client reads the slide from the path.
-    this.get("/", page("view"));
-    this.get("/:slide{[0-9]+}", page("view"));
-    this.get("/presenter", page("presenter"));
-    this.get("/presenter/:slide{[0-9]+}", page("presenter"));
+    // A deck with no slides still answers at its root, with an empty stage.
+    const count = Math.max(1, slides.length);
+    for (const role of ["view", "presenter"] as const)
+      for (let index = 0; index < count; index++)
+        this.get(slideRoute(role, index), page(role, index));
 
-    this.get("/_hinote/events", (c) => {
+    this.get(`/${RUNTIME}`, (c) =>
+      c.body(CLIENT_SCRIPT, 200, {
+        "content-type": "text/javascript; charset=utf-8",
+        "cache-control": "no-cache",
+      }),
+    );
+    this.get(`/${STYLESHEET}`, async (c) =>
+      c.body((await this.draw("view")).css, 200, {
+        "content-type": "text/css; charset=utf-8",
+        "cache-control": "no-cache",
+      }),
+    );
+
+    // A stream has no end, so it is not a file `hinote build` can write.
+    this.get("/_hinote/events", disableSSG(), (c) => {
       if (!this.presenter && !this.live) return c.notFound();
       const id = c.req.query("id") ?? crypto.randomUUID();
       const channel = c.req.query("channel") ?? "";
@@ -305,25 +336,77 @@ export class Deck extends Hono {
     return parseAspect(this.config.document?.aspect ?? "16:9");
   }
 
-  // Renders the whole deck as one HTML document.
-  // `base` is the path the deck is served under; served pages resolve relative
-  // URLs against it. The static file resolves them against itself.
-  render(
-    page: Page = "view",
-    options: { base?: string; sync?: Sync; directories?: boolean } = {},
-  ) {
-    return this.#renderSlides(this.slides, page, options);
+  // The single file `hinote build --single` writes: every slide in one page
+  // that opens without a server, with the slide in the hash.
+  async render(): Promise<string> {
+    return singlePage(await this.draw("static"));
+  }
+
+  // The page of one slide, as its route answers it. `base` is the deck root
+  // as `<base href>` names it; it defaults to the root seen from the route.
+  async renderSlide(
+    index: number,
+    role: Role = "view",
+    options: { base?: string; sync?: Sync } = {},
+  ): Promise<string> {
+    const drawn = await this.draw(role);
+    const route = slideRoute(role, index);
+    return slidePage(drawn, index, {
+      base: options.base ?? baseHref(route, route),
+      sync: options.sync,
+      stylesheet: `${STYLESHEET}?v=${version(drawn.css)}`,
+      script: RUNTIME_HREF,
+    });
+  }
+
+  // Every slide drawn for one kind of page, once: citations are numbered and
+  // links resolved across the whole deck, so a slide's page needs them all.
+  draw(drawing: Drawing): Promise<DrawnDeck> {
+    let drawn = this.#drawn.get(drawing);
+    if (!drawn) {
+      drawn = drawDeck(this.#input(this.slides), drawing);
+      this.#drawn.set(drawing, drawn);
+      drawn.catch(() => this.#drawn.delete(drawing));
+    }
+    return drawn;
+  }
+
+  #page(role: Role, index: number, base: string, sync: Sync | undefined) {
+    const key = `${role} ${index} ${base} ${sync}`;
+    let html = this.#pages.get(key);
+    if (!html) {
+      const transform = this.transform;
+      html = this.renderSlide(index, role, { base, sync }).then((rendered) => {
+        if (transform) return transform(rendered);
+        // Only the hinote CLI bundles a <Script> file. Served as it is, the
+        // page would carry a script that never runs.
+        if (rendered.includes(" data-hinote-src="))
+          throw new HinoteError(
+            "A slide has <Script src> with a file URL, which only the hinote CLI bundles.",
+            {
+              code: "script-unbundled",
+              hint: 'In a server of your own, bundle the file yourself and pass its URL as a string: <Script src="/scripts/poll.js" />.',
+            },
+          );
+        return rendered;
+      });
+      this.#pages.set(key, html);
+      html.catch(() => this.#pages.delete(key));
+    }
+    return html;
   }
 
   // Renders each slide as a page of its own, so a slide that fails can be
   // named (`hinote check`, `hinote inspect`). A failure is kept, not thrown.
   async renderEach(
-    page: Page = "view",
+    drawing: Drawing = "static",
   ): Promise<({ html: string } | { error: unknown })[]> {
     const results: ({ html: string } | { error: unknown })[] = [];
     for (const slide of this.slides) {
       try {
-        results.push({ html: await this.#renderSlides([slide], page, {}) });
+        results.push({
+          html: await singlePage(await drawDeck(this.#input([slide]), drawing)),
+        });
       } catch (error) {
         results.push({ error });
       }
@@ -355,19 +438,14 @@ export class Deck extends Hono {
     return targets;
   }
 
-  async #renderSlides(
-    slides: readonly Slide[],
-    page: Page,
-    options: { base?: string; sync?: Sync; directories?: boolean },
-  ) {
+  #input(slides: readonly Slide[]): DeckInput {
     // Numbers come from the whole deck, so rendering one slide still says "2 / 12".
     const pageNumbers =
       this.config.document?.pageNumber === true
         ? slides.map((slide) => this.slides.indexOf(slide) + 1)
         : undefined;
     const sections = outline(this.slides);
-    return renderDeck({
-      ...options,
+    return {
       slides,
       targets: this.#targets(),
       place: (slide) => {
@@ -384,9 +462,8 @@ export class Deck extends Hono {
       canvas: this.canvas,
       transition: this.config.transition,
       css: this.config.css,
-      page,
       pageNumbers,
       pageCount: pageNumbers && this.slides.length,
-    });
+    };
   }
 }

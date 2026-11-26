@@ -129,7 +129,7 @@ render(<i>{"widget-" + "on-node"}</i>, document.body);`,
     try {
       let page = "";
       for (let i = 0; i < 100 && !page; i++) {
-        page = await fetch(`http://127.0.0.1:${port}/presenter/1`)
+        page = await fetch(`http://127.0.0.1:${port}/presenter`)
           .then((response) => response.text())
           .catch(() => "");
         if (!page) await Bun.sleep(50);

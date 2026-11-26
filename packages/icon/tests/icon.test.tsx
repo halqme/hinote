@@ -4,7 +4,7 @@ import { createSlide } from "@hinote/core";
 import { addCollection, Icon } from "../src/index.tsx";
 
 async function render(node: () => unknown) {
-  return createSlide([createSlide(node as () => never)]).render("static");
+  return createSlide([createSlide(node as () => never)]).render();
 }
 
 function svg(html: string): string {

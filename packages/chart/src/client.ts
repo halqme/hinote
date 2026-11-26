@@ -45,7 +45,5 @@ function animate(figure: HTMLElement): void {
   });
 }
 
-for (const figure of document.querySelectorAll<HTMLElement>(
-  "[data-hinote-chart]",
-))
-  animate(figure);
+// Every chart of each slide as the slide enters the page.
+hinote.mount("[data-hinote-chart]", animate);

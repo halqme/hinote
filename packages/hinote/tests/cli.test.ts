@@ -9,7 +9,7 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { expect, test } from "bun:test";
 import { Hono } from "hono";
 import { loadDeckFile } from "../src/build/load.ts";
@@ -186,8 +186,15 @@ Bun.serve({ fetch: app.fetch, port: ${port} });`,
       stderr: "pipe",
     });
     try {
-      const page = await waitFor(`http://127.0.0.1:${port}/1`, proc);
-      expect(await page.text()).toContain("h1 { color: teal; }");
+      const page = await (
+        await waitFor(`http://127.0.0.1:${port}/`, proc)
+      ).text();
+      const stylesheet = /<link rel="stylesheet" href="([^"]*)"/.exec(
+        page,
+      )?.[1];
+      expect(
+        await (await fetch(`http://127.0.0.1:${port}/${stylesheet}`)).text(),
+      ).toContain("h1 { color: teal; }");
       expect(
         await (await fetch(`http://127.0.0.1:${port}/logo.svg`)).text(),
       ).toBe("<svg/>");
@@ -337,7 +344,7 @@ test("assets copies only the files the slides refer to", async () => {
   }
 });
 
-test("prerender writes every page a static host needs, under a base path", async () => {
+test("prerender writes a page for each route, which a static host serves under any path", async () => {
   const dir = await tempDir();
   try {
     await writeFile(join(dir, "logo.svg"), "<svg/>");
@@ -349,31 +356,38 @@ test("prerender writes every page a static host needs, under a base path", async
 ])`),
     );
     const done = await run(
-      ["prerender", "deck.tsx", "-o", "site", "--base", "/talk/"],
+      ["prerender", "deck.tsx", "-o", "site", "--json"],
       dir,
     );
     expect(done.code).toBe(0);
-    for (const path of [
-      "",
-      "1",
-      "2",
-      "presenter",
-      "presenter/1",
-      "presenter/2",
-    ]) {
-      const html = await readFile(
-        join(dir, "site", path, "index.html"),
-        "utf8",
-      );
-      expect(html).toContain('<base href="/talk/"');
+    expect(
+      JSON.parse(done.stdout).data.pages.map((page: string) =>
+        relative(join(dir, "site"), page),
+      ),
+    ).toEqual(["2.html", "index.html", "presenter.html", "presenter/2.html"]);
+    for (const [path, base] of [
+      ["index.html", "./"],
+      ["2.html", "./"],
+      ["presenter.html", "./"],
+      ["presenter/2.html", "../"],
+    ] as const) {
+      const html = await readFile(join(dir, "site", path), "utf8");
+      // Relative to the deck root, so the site works under any path.
+      expect(html).toContain(`<base href="${base}"/>`);
       expect(html).toContain('data-sync="broadcast"');
     }
     expect(
-      await readFile(join(dir, "site/presenter/2/index.html"), "utf8"),
+      await readFile(join(dir, "site/presenter/2.html"), "utf8"),
     ).toContain('id="hinote-panel"');
-    expect(
-      await readFile(join(dir, "site/2/index.html"), "utf8"),
-    ).not.toContain('id="hinote-panel"');
+    const second = await readFile(join(dir, "site/2.html"), "utf8");
+    expect(second).not.toContain('id="hinote-panel"');
+    expect(second).toContain("<p>two</p>");
+    expect(second).not.toContain("logo.svg");
+    // The files the pages share and the ones the slides load.
+    expect(await readdir(join(dir, "site/_hinote"))).toEqual([
+      "client.js",
+      "deck.css",
+    ]);
     expect(await readFile(join(dir, "site/logo.svg"), "utf8")).toBe("<svg/>");
 
     // Without document: { presenter: true }, the site has the audience view only, with no sync.
@@ -386,19 +400,12 @@ test("prerender writes every page a static host needs, under a base path", async
     expect(
       (await run(["prerender", "plain.tsx", "-o", "plain"], dir)).code,
     ).toBe(0);
-    const plain = await readFile(join(dir, "plain/1/index.html"), "utf8");
+    const plain = await readFile(join(dir, "plain/index.html"), "utf8");
     expect(plain).not.toContain("data-sync");
     expect(plain).not.toContain("secret");
-    expect(
-      await Bun.file(join(dir, "plain/presenter/index.html")).exists(),
-    ).toBe(false);
-
-    const bad = await run(
-      ["prerender", "deck.tsx", "-o", "bad", "--base", "talk"],
-      dir,
+    expect(await Bun.file(join(dir, "plain/presenter.html")).exists()).toBe(
+      false,
     );
-    expect(bad.code).toBe(1);
-    expect(await Bun.file(join(dir, "bad")).exists()).toBe(false);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -585,13 +592,27 @@ export default createSlide([
     const html = await readFile(join(dir, "out/index.html"), "utf8");
     expect(html).not.toContain("data-hinote-src");
     // One module for the two uses, after the runtime that defines window.hinote.
-    expect(html.match(/<script type="module">/g)).toHaveLength(1);
+    const module = /<script type="module" data-hinote-script="[^"]*">/g;
+    expect(html.match(module)).toHaveLength(1);
     expect(html.indexOf("bundled-")).toBeGreaterThan(
       html.indexOf("hinote-sync"),
     );
-    expect(html.indexOf('<script type="module">')).toBeGreaterThan(
-      html.lastIndexOf("<script>"),
+    expect(html.search(module)).toBeGreaterThan(html.lastIndexOf("<script>"));
+    // On the site, each page that needs it carries it under one name, so a
+    // page that fetches the next slide runs it once.
+    expect((await run(["prerender", "deck.tsx", "-o", "site"], dir)).code).toBe(
+      0,
     );
+    const names = await Promise.all(
+      ["index.html", "2.html"].map(
+        async (page) =>
+          /<script type="module" data-hinote-script="([^"]*)">/.exec(
+            await readFile(join(dir, "site", page), "utf8"),
+          )?.[1],
+      ),
+    );
+    expect(names[0]).toContain("chart.client.tsx");
+    expect(names[1]).toBe(names[0]);
 
     await writeFile(join(dir, "chart.client.tsx"), "export const = ;");
     const broken = await run(

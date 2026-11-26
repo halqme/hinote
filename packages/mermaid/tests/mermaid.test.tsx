@@ -5,7 +5,7 @@ import { Mermaid } from "../src/index.tsx";
 async function render(...nodes: (() => unknown)[]) {
   return createSlide(
     nodes.map((node) => createSlide(node as () => never)),
-  ).render("static");
+  ).render();
 }
 
 // Each diagram's own <svg>, with what is inside it.

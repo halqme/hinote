@@ -2,7 +2,7 @@
 
 The repository is a Bun workspace. Each package lives in `packages/`:
 
-- `packages/core`: `@hinote/core`, the library: `createSlide`, the components, themes, and the browser runtime every page inlines. It needs no bundler at run time, so a server or an app of its own can depend on it alone.
+- `packages/core`: `@hinote/core`, the library: `createSlide`, the components, themes, and the browser runtime every page loads. It needs no bundler at run time, so a server or an app of its own can depend on it alone.
 - `packages/hinote`: the `hinote` package, the CLI. It depends on `@hinote/core` and re-exports it as `hinote` and `hinote/client`, so a deck imports from `hinote` and installs one package. The CLI bundles with Rolldown; what it reads from a deck beyond the public API comes from `@hinote/core/internal`, which is why hinote pins the exact version of `@hinote/core`.
 - `packages/chart`: `@hinote/chart`, `<Chart>`, TanStack Charts drawn on the server. The page gets each step's scene as JSON and animates between them with `src/client.ts`, which `<Chart>` adds for the CLI to bundle; `src/scene.ts` rebuilds the scales' `map` functions JSON drops. Like the other packages it does not import hinote: it writes the markup `<Script>` and `<Steps>` write, as `@hinote/types` describes it, and types `window.hinote` from there.
 - `packages/code`: `@hinote/code`, the `<Code>` component. It depends on `@pierre/highlights` so that `hinote` does not.
@@ -20,7 +20,7 @@ Run `bun install` once at the root. The root `package.json` is private and holds
 
 To try a change against a real deck, run `bun src/cli.ts init .tmp/talk --no-install` and then `bun src/cli.ts dev .tmp/talk` in `packages/hinote`.
 
-`packages/core/src/client/main.ts` runs in the browser, and every page inlines it. From source, `src/client/script.ts` bundles it with Rolldown when `@hinote/core` loads, so tests and `hinote dev` always run the current client. `bun run build` writes the bundled text into `dist/`, so the published package never needs a bundler, and Rolldown is only its dev dependency.
+`packages/core/src/client/main.ts` runs in the browser: a deck serves it at `/_hinote/client.js` for its pages, and the single file inlines it. From source, `src/client/script.ts` bundles it with Rolldown when `@hinote/core` loads, so tests and `hinote dev` always run the current client. `bun run build` writes the bundled text into `dist/`, so the published package never needs a bundler, and Rolldown is only its dev dependency.
 
 `bun run build` builds every package; in one package it builds that one. Each package's `dist/` is its `src/` compiled file for file by tsdown, on Rolldown, with declarations from TypeScript, by `scripts/build-package.ts` and the package's `tsconfig.build.json`. Nothing is bundled, not even another package, and each package declares `"sideEffects": false`, so a deck's bundler keeps only the modules the deck imports. `prepack` builds before packing. A package ships `dist/` and not `src/`, so Bun and Node load the same JavaScript. `@hinote/core`'s `scripts/build.ts` adds the CSS module declaration, which is not compiled, and the bundled browser runtime. `bun test` in `@hinote/core` and in hinote also builds `dist/` and runs it under Node when Node is installed: the library in a project with no bundler, and the CLI.
 

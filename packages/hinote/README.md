@@ -3,7 +3,7 @@
 Write slides with Hono and Hono/JSX.
 
 - **Slides are code.** Each slide is a component, so it can read a file or fetch data while it renders. Lay it out with `Row`, `Column`, `Grid`, and `Card`, and start from `themes.ink`, `themes.paper`, or `themes.slate`.
-- **A deck is a Hono app.** `hinote dev` presents it, `build` writes the audience view as one HTML file, and `app.route()` mounts the same deck in a server of your own. Such a server can depend on [`@hinote/core`](https://github.com/halqme/hinote/tree/main/packages/core), the library `hinote` re-exports, without the CLI and its bundler.
+- **A deck is a Hono app, with a route for each slide.** `hinote dev` presents it, `build` writes the audience view as one HTML file, `prerender` writes every route out as a static site, and `app.route()` mounts the same deck in a server of your own, where middleware runs for each slide that is opened. Such a server can depend on [`@hinote/core`](https://github.com/halqme/hinote/tree/main/packages/core), the library `hinote` re-exports, without the CLI and its bundler.
 - **The install stays small.** The [comparison](https://github.com/halqme/hinote/blob/main/bench/README.md) with Slidev, Marp, and hono-decks measures the install, the dev server, and the build. Those numbers are the latest benchmark run, not this file.
 
 Code, formulas, diagrams, charts, icons, and QR codes are separate packages, so a deck installs only what it shows: `@hinote/code`, `@hinote/katex`, `@hinote/d2`, `@hinote/mermaid`, `@hinote/chart`, `@hinote/icon`, and `@hinote/qr`. Their guides ship with hinote (`hinote skills`).
@@ -36,7 +36,7 @@ The guide ships with the package and matches its version. `hinote skills get cor
 
 - [`api`](skills/core/references/api.md): `createSlide` and its options, the components, themes, and CSS.
 - [`client`](skills/core/references/client.md): `<Script>` and the `hinote` browser global.
-- [`serving`](skills/core/references/serving.md): `dev`, `build`, `prerender`, `snapshot`, mounting the deck in Bun, Node, or Cloudflare Workers, and the one-step commands.
+- [`serving`](skills/core/references/serving.md): `dev`, `build`, `prerender`, `snapshot`, mounting the deck in Bun, Node, or Cloudflare Workers, middleware in front of each slide, and the one-step commands.
 - [`recipes`](skills/core/references/recipes.md): formulas, images beside text, columns, charts.
 
 [Developing hinote](https://github.com/halqme/hinote/blob/main/CONTRIBUTING.md)

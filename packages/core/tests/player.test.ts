@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
+  baseHref,
   parseHash,
-  parseServedPath,
-  servedPath,
   slideHash,
+  slideHref,
+  slideRoute,
 } from "../src/client/location.ts";
 import {
   createPlayer,
@@ -169,28 +170,37 @@ test("normalizePointer maps inside the slide and rejects outside", () => {
 });
 
 describe("location", () => {
-  test("served paths carry base, role, and the slide counted from 1", () => {
-    expect(parseServedPath("/")).toEqual({ base: "", role: "view" });
-    expect(parseServedPath("/3")).toEqual({ base: "", role: "view", slide: 2 });
-    expect(parseServedPath("/presenter")).toEqual({
-      base: "",
-      role: "presenter",
-    });
-    expect(parseServedPath("/talk/presenter/2")).toEqual({
-      base: "/talk",
-      role: "presenter",
-      slide: 1,
-    });
-    for (const [base, role, slide] of [
-      ["", "view", 0],
-      ["/talk", "presenter", 4],
-    ] as const) {
-      expect(parseServedPath(servedPath(base, role, slide))).toEqual({
-        base,
-        role,
-        slide,
-      });
-    }
+  test("each slide has a route from the deck root, counted from 1, and an href relative to it", () => {
+    expect(slideRoute("view", 0)).toBe("/");
+    expect(slideRoute("view", 2)).toBe("/3");
+    expect(slideRoute("presenter", 0)).toBe("/presenter");
+    expect(slideRoute("presenter", 1)).toBe("/presenter/2");
+    expect(slideHref("view", 0)).toBe("./");
+    expect(slideHref("view", 2)).toBe("3");
+    expect(slideHref("presenter", 1)).toBe("presenter/2");
+  });
+
+  test("<base href> finds the deck root from any page, mounted or not", () => {
+    const root = (path: string, route: string) =>
+      new URL(baseHref(path, route), `http://h${path}`).pathname;
+    for (const [path, route] of [
+      ["/", "/"],
+      ["/2", "/2"],
+      ["/presenter", "/presenter"],
+      ["/presenter/2", "/presenter/2"],
+    ] as const)
+      expect(root(path, route)).toBe("/");
+    for (const [path, route] of [
+      ["/talk", "/"],
+      ["/talk/", "/"],
+      ["/talk/2", "/2"],
+      ["/talk/presenter", "/presenter"],
+      ["/talk/presenter/2", "/presenter/2"],
+    ] as const)
+      expect(root(path, route)).toBe("/talk/");
+    // Relative wherever the route allows, so a page written for a static host
+    // works under any path.
+    expect(baseHref("/presenter/2", "/presenter/2")).toBe("../");
   });
 
   test("the built file keeps the slide in the hash", () => {

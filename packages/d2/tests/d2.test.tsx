@@ -6,7 +6,7 @@ import { D2 } from "../src/index.tsx";
 async function render(...nodes: (() => unknown)[]) {
   return createSlide(
     nodes.map((node) => createSlide(node as () => never)),
-  ).render("static");
+  ).render();
 }
 
 test("draws D2 as an inline SVG at twice D2's size", async () => {

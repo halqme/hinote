@@ -8,7 +8,7 @@ export type ScriptProps = {
 };
 
 // Marks where a page needs a script. A file URL leaves a placeholder that the
-// hinote CLI (dev, build, prerender) bundles and inlines at the end of the
+// hinote CLI (dev, build, snapshot) bundles and inlines at the end of the
 // page, once per file, after window.hinote exists. A string is an ordinary
 // module script the page loads from that URL.
 export function Script(props: ScriptProps) {

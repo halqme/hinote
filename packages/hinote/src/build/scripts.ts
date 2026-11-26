@@ -21,7 +21,9 @@ export function scriptPath(path: string): string {
 // Replaces each <Script> placeholder with nothing and appends one inline
 // module per file before </body>, after the runtime that defines
 // window.hinote. Module scripts run once the page is parsed, and copies of a
-// slide (the presenter's previews) do not run them again.
+// slide (the presenter's previews) do not run them again. Each is named after
+// its file, so a page that fetches another slide carrying the same script
+// does not run it twice.
 export async function inlineScripts(html: string): Promise<string> {
   const files = [
     ...new Set([...html.matchAll(PLACEHOLDER)].map((m) => m[1] ?? "")),
@@ -39,7 +41,7 @@ export async function inlineScripts(html: string): Promise<string> {
     }
     // The HTML parser ends a script at "</script".
     modules.push(
-      `<script type="module">${code.replace(/<\/script/gi, "\\u003c/script")}</script>`,
+      `<script type="module" data-hinote-script="${href}">${code.replace(/<\/script/gi, "\\u003c/script")}</script>`,
     );
   }
   const page = html.replace(PLACEHOLDER, "");

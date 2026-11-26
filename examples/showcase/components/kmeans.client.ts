@@ -105,15 +105,15 @@ function paint(
   label.textContent = shown.label;
 }
 
-for (const plot of document.querySelectorAll<HTMLElement>("#deck .plot")) {
+hinote.mount(".plot", (plot) => {
   const svg = plot.querySelector("svg");
   const label = plot.querySelector(".plot-label");
-  if (!(svg instanceof SVGSVGElement) || !label) continue;
+  if (!(svg instanceof SVGSVGElement) || !label) return undefined;
   const run = readRun(svg);
-  if (!run) continue;
+  if (!run) return undefined;
   let { points, frames } = run;
   const opening = frames[0];
-  if (opening === undefined) continue;
+  if (opening === undefined) return undefined;
   let shown = opening;
   let frameId = 0;
 
@@ -206,4 +206,6 @@ for (const plot of document.querySelectorAll<HTMLElement>("#deck .plot")) {
     shown = frame;
     paint(svg, label, points, shown);
   });
-}
+  // The slide is leaving the page, so its animation stops with it.
+  return () => cancelAnimationFrame(frameId);
+});

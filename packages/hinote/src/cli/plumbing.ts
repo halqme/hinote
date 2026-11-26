@@ -23,7 +23,7 @@ import { HinoteError, isHinoteError, UsageError } from "../errors.ts";
 import { deckPath, loadDeckFile } from "../build/load.ts";
 import { inlineScripts } from "../build/scripts.ts";
 import { resolveInside } from "../build/server.ts";
-import { stringFlag } from "./args.ts";
+import { numberFlag, stringFlag } from "./args.ts";
 import type { Command } from "./command.ts";
 
 export const DECK_ARG = "[deck.tsx]";
@@ -167,7 +167,7 @@ function renderHint(message: string): string | undefined {
 
 // Renders each slide by itself and reads back what a person would see.
 export async function describeSlides(deck: Deck): Promise<SlideInfo[]> {
-  const rendered = await deck.renderEach("view");
+  const rendered = await deck.renderEach();
   return deck.slides.map((slide, index) => {
     const result = rendered[index] ?? { error: "not rendered" };
     const transition = slide.options.transition ?? deck.config.transition;
@@ -228,7 +228,7 @@ export const render: Command = {
   maxArgs: 1,
   description: `Renders the deck and prints one page. <Script> files stay as placeholders; pipe the page through \`hinote inline\` to bundle them in.
 
-static is the one-file page that build writes. view and presenter are the pages a server answers at / and /presenter, here without sync.`,
+static is the one-file page that build --single writes, with every slide. view and presenter are the page of one slide, --slide, as the deck answers it at /3 and /presenter/3, here without sync.`,
   flags: {
     page: {
       type: "string",
@@ -236,16 +236,17 @@ static is the one-file page that build writes. view and presenter are the pages 
       default: "static",
       description: "Which page to render.",
     },
-    base: {
-      type: "string",
-      value: "/path",
-      description: "The path view and presenter pages are served under.",
+    slide: {
+      type: "number",
+      value: "n",
+      default: "1",
+      description: "The slide of a view or presenter page, counted from 1.",
     },
     output: OUTPUT_FLAG("Write the page to a file instead of stdout."),
   },
   examples: [
     "hinote render",
-    "hinote render --page presenter -o presenter.html",
+    "hinote render --page presenter --slide 3 -o presenter.html",
     "hinote render | hinote inline > deck.html",
   ],
   async run(args, out) {
@@ -257,11 +258,16 @@ static is the one-file page that build writes. view and presenter are the pages 
         "hinote help render",
       );
     const deck = await loadDeckFile(deckPath(args.positionals[0]));
-    const base =
-      page === "static" ? undefined : (stringFlag(args, "base") ?? "");
+    const slide = numberFlag(args, "slide") ?? 1;
+    if (page !== "static" && !(slide >= 1 && slide <= deck.slides.length))
+      throw new UsageError(
+        `--slide must be a slide number from 1 to ${deck.slides.length}.`,
+      );
     await emit(
       out,
-      await deck.render(page, { base }),
+      page === "static"
+        ? await deck.render()
+        : await deck.renderSlide(slide - 1, page),
       stringFlag(args, "output"),
     );
   },
@@ -291,13 +297,13 @@ export const refs: Command = {
   summary: "List the files the slides refer to",
   args: DECK_ARG,
   maxArgs: 1,
-  description: `Lists every relative path the slides load (src, href, srcset, and url() in CSS), relative to the deck file, and whether the file is there. These are the files build, prerender, and assets copy.`,
+  description: `Lists every relative path the slides load (src, href, srcset, and url() in CSS), relative to the deck file, and whether the file is there. These are the files build and assets copy.`,
   flags: {},
   examples: ["hinote refs", "hinote refs talk/deck.tsx --json"],
   async run(args, out) {
     const file = deckPath(args.positionals[0]);
     const deck = await loadDeckFile(file);
-    const files = referencedPaths(await deck.render("static")).map((path) => ({
+    const files = referencedPaths(await deck.render()).map((path) => ({
       path,
       exists: resolveInside(dirname(file), path) !== null,
     }));
@@ -481,7 +487,7 @@ Exits 1 when there is a problem, so it can gate a build: hinote check && hinote 
             hint: "Paths are relative to the deck file, and must stay inside its directory.",
           });
       if (problems.every((p) => p.code !== "render"))
-        await inlineScripts(await deck.render("static")).catch((error) => {
+        await inlineScripts(await deck.render()).catch((error) => {
           if (!isHinoteError(error)) throw error;
           problems.push({ code: "script", message: error.message });
         });

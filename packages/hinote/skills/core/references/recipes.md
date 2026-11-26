@@ -109,6 +109,7 @@ Draw an SVG on the server from the data, or add `<Script>` for one that responds
 /// <reference types="hinote/client" />
 import { render } from "hono/jsx/dom";
 
+// The slide on screen, when the event arrives.
 hinote.on("chart:mode", (mode) => {
   for (const bar of document.querySelectorAll<HTMLElement>("[data-roast]")) {
     const on = mode === "all" || bar.dataset.roast === mode;
@@ -116,17 +117,15 @@ hinote.on("chart:mode", (mode) => {
   }
 });
 
-if (hinote.role === "presenter") {
-  for (const slot of document.querySelectorAll<HTMLElement>(
-    "#deck .chart-slot",
-  ))
+if (hinote.role === "presenter")
+  hinote.mount(".chart-slot", (slot) => {
     render(
       <button type="button" onClick={() => hinote.send("chart:mode", "manual")}>
         Manual
       </button>,
       slot,
     );
-}
+  });
 ```
 
 ## Reveal a figure and its caption together

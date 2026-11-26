@@ -17,7 +17,7 @@ import { revive, sceneJson } from "../src/scene.ts";
 async function render(...nodes: (() => unknown)[]) {
   return createSlide(
     nodes.map((node) => createSlide(node as () => never)),
-  ).render("static");
+  ).render();
 }
 
 const q1 = [

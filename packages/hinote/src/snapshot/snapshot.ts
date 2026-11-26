@@ -93,7 +93,8 @@ async function photograph(
   canvas: Canvas,
   file: string,
 ): Promise<LayoutReport> {
-  await page.goto(`http://127.0.0.1:${port}/${index + 1}`);
+  // The first slide is the deck root; the rest are /2, /3, and so on.
+  await page.goto(`http://127.0.0.1:${port}/${index === 0 ? "" : index + 1}`);
   const expression = ready(index, canvas);
   await poll(
     async () => (await page.evaluate(expression)) === true,
@@ -135,7 +136,7 @@ function ready(index: number, { width, height }: Canvas): string {
     const deck = document.getElementById("deck");
     if (deck) deck.style.setProperty("--hinote-scale", "1");
     const stage = document.querySelector(${JSON.stringify(STAGE)});
-    const slide = document.querySelectorAll("#deck .slide")[${index}];
+    const slide = document.querySelector('#deck .slide[data-hinote-slide="${index + 1}"]');
     if (!stage || !slide || !slide.classList.contains("is-active")) return false;
     if (document.readyState !== "complete") return false;
     if (document.fonts && document.fonts.status !== "loaded") return false;

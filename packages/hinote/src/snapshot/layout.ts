@@ -27,7 +27,7 @@ const SLOP = 1;
 // report both see the finished slide (same idea as print).
 export function revealAllExpression(index: number): string {
   return `(() => {
-    const slide = document.querySelectorAll("#deck .slide")[${index}];
+    const slide = document.querySelector('#deck .slide[data-hinote-slide="${index + 1}"]');
     if (!slide) return false;
     const steps = slide.querySelectorAll("[data-hinote-step]");
     for (const el of steps) {
@@ -64,7 +64,7 @@ function measureExpression(index: number): string {
   return `(() => {
     const SLOP = ${SLOP};
     const slideIndex = ${index};
-    const slide = document.querySelectorAll("#deck .slide")[slideIndex];
+    const slide = document.querySelector(\`#deck .slide[data-hinote-slide="\${slideIndex + 1}"]\`);
     if (!slide) return { problems: [], warnings: [] };
     const slideBox = slide.getBoundingClientRect();
     const safe = resolveSafe(slide);

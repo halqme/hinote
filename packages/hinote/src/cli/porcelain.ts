@@ -10,10 +10,10 @@ import { HinoteError, isHinoteError, UsageError } from "../errors.ts";
 import { COMMANDS, diffProject, initProject, packageManager } from "./init.ts";
 import { deckPath, loadDeckFile } from "../build/load.ts";
 import { takeSnapshots } from "../snapshot/snapshot.ts";
-import { parseBase, prerender as prerenderDeck } from "../build/prerender.ts";
 import { serve } from "../build/runtime.ts";
 import { inlineScripts } from "../build/scripts.ts";
 import { createDevApp } from "../build/server.ts";
+import { writeSite } from "../build/site.ts";
 import { numberFlag, stringFlag } from "./args.ts";
 import type { Command } from "./command.ts";
 import { DECK_ARG, OUTPUT_FLAG, writeOutput } from "./plumbing.ts";
@@ -272,7 +272,7 @@ export const build: Command = {
 With --embed, the files go into the HTML as data: URLs instead, so the one file is the whole deck, to attach or send. Large images make it large.
 
 The same as:
-  hinote render --page static | hinote inline -o dist/index.html
+  hinote render | hinote inline -o dist/index.html
   hinote assets -o dist`,
   flags: {
     output: OUTPUT_FLAG("The HTML file to write.", "dist/index.html"),
@@ -291,7 +291,7 @@ The same as:
     const deckFile = deckPath(args.positionals[0]);
     const output = resolve(stringFlag(args, "output") ?? "dist/index.html");
     const deck = await loadDeckFile(deckFile);
-    const html = await inlineScripts(await deck.render("static"));
+    const html = await inlineScripts(await deck.render());
     if (args.flags.embed) {
       const embedded = await embedAssets(html, dirname(deckFile));
       await writeOutput(output, embedded.html);
@@ -324,31 +324,19 @@ export const prerender: Command = {
   summary: "Write every page a static host serves",
   args: DECK_ARG,
   maxArgs: 1,
-  description: `Writes index.html at / and at /3/ for every slide, plus the files the slides refer to, for GitHub Pages, Cloudflare Pages, Netlify, or any static host. With document: { presenter: true } on the deck it also writes /presenter/ and /presenter/3/, which sync with the audience pages in the same browser. Anyone can open those and read the notes.`,
+  description: `Writes every page the deck serves into a directory for GitHub Pages, Cloudflare Pages, Netlify, or any static host: index.html for the first slide and 2.html, 3.html for the rest, the stylesheet and runtime they share under _hinote/, and the files the slides refer to. The host answers /2 with 2.html, as those hosts do (Vercel with cleanUrls). Moving to a slide fetches its page, so the site has to be served; opened from disk it shows only the first slide. Links are relative to the deck root, so the site works under any path, such as a GitHub Pages project site. With document: { presenter: true } on the deck it also writes presenter.html and presenter/2.html, which sync with the audience pages in the same browser. Anyone can open those and read the notes.`,
   flags: {
     output: OUTPUT_FLAG("The directory to write.", "dist"),
-    base: {
-      type: "string",
-      value: "/path",
-      description:
-        "The path the site lives under, such as /repo for a GitHub Pages project site.",
-    },
   },
-  examples: ["hinote prerender", "hinote prerender -o site --base /talk"],
+  examples: ["hinote prerender", "hinote prerender -o site"],
   async run(args, out) {
     const deckFile = deckPath(args.positionals[0]);
     const outDir = resolve(stringFlag(args, "output") ?? "dist");
-    const base = parseBase(stringFlag(args, "base"));
     const deck = await loadDeckFile(deckFile);
-    const { pages, copied } = await prerenderDeck(
-      deck,
-      dirname(deckFile),
-      outDir,
-      base,
-    );
+    const { pages, copied } = await writeSite(deck, dirname(deckFile), outDir);
     out.result({ output: outDir, pages, copied }, [
       outDir,
-      `${pages.length} pages` +
+      `${pages.length} page${pages.length === 1 ? "" : "s"}` +
         (copied.length > 0 ? `, copied ${files(copied.length)}` : ""),
     ]);
   },
@@ -368,7 +356,7 @@ export const assets: Command = {
     const outDir = resolve(stringFlag(args, "output") ?? "public");
     const deck = await loadDeckFile(deckFile);
     const copied = await copyAssets(
-      await deck.render("static"),
+      await deck.render(),
       dirname(deckFile),
       outDir,
     );

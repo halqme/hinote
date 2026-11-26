@@ -56,16 +56,18 @@ describe.skipIf(!node)("the built package under Node", () => {
       `import { jsx } from "hono/jsx";
 import { createSlide } from "@hinote/core";
 const deck = createSlide([createSlide(() => jsx("h1", {}, "library"))]);
-console.log(await (await deck.request("/1")).text());`,
+console.log(await (await deck.request("/")).text());
+console.log(await (await deck.request("/_hinote/client.js")).text());`,
     );
     const run = Bun.spawnSync([node!, "app.mjs"], {
       cwd: app,
       stderr: "pipe",
     });
     expect(run.stderr.toString()).toBe("");
-    // Rendering a page inlines the browser runtime, which the package
-    // carries already bundled: there is no rolldown here to bundle it.
+    // The deck serves the browser runtime, which the package carries
+    // already bundled: there is no rolldown here to bundle it.
     expect(run.stdout.toString()).toContain("<h1>library</h1>");
+    expect(run.stdout.toString()).toContain("startViewTransition");
   });
 
   // A page that only lays out, such as one rendered by an app of its own,
